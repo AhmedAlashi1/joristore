@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.svg" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
+    <meta name="theme-color" content="#7367f0" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Jori Store" />
+    <meta name="description" content="Jori Store — تسوق بكل سهولة" />
+    <title>Jori Store</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <script>
+      (function () {
+        try {
+          var raw = localStorage.getItem('jori-store-brand');
+          if (!raw) return;
+          var d = JSON.parse(raw);
+          if (d.theme) {
+            var r = document.documentElement;
+            var t = d.theme;
+            r.style.setProperty('--primary', t.primary || '#7367f0');
+            r.style.setProperty('--bg', t.background || '#eef0f8');
+            r.style.setProperty('--fg', t.foreground || '#1a1a2e');
+            r.style.setProperty('--accent', t.accent || '#28c76f');
+            function hex(h) {
+              h = (h || '').replace('#', '');
+              if (h.length !== 6) return '115, 103, 240';
+              return parseInt(h.slice(0, 2), 16) + ',' + parseInt(h.slice(2, 4), 16) + ',' + parseInt(h.slice(4, 6), 16);
+            }
+            r.style.setProperty('--primary-rgb', hex(t.primary));
+            r.style.setProperty('--accent-rgb', hex(t.accent));
+          }
+          document.addEventListener('DOMContentLoaded', function () {
+            var boot = document.getElementById('boot-splash');
+            if (!boot) return;
+            if (d.logo) {
+              var img = boot.querySelector('img');
+              if (img) {
+                var logo = d.logo.indexOf('http') === 0 ? d.logo : (d.logo.indexOf('/') === 0 ? d.logo : '/' + d.logo);
+                img.src = logo.indexOf('/storage/') === 0 ? 'http://127.0.0.1:8000' + logo : logo;
+              }
+            }
+            if (d.name) {
+              var label = boot.querySelector('p');
+              if (label) label.textContent = d.name;
+            }
+          });
+        } catch (e) { /* ignore */ }
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="boot-splash" aria-hidden="true">
+      <img src="/logo.svg" alt="" width="120" height="120" />
+      <p>Jori Store</p>
+    </div>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
