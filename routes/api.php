@@ -167,6 +167,7 @@ Route::middleware('store.context')->prefix('store')->group(function () {
         Route::get('theme', 'theme');
         Route::get('categories', 'categories');
         Route::get('promo-banners', 'promoBanners');
+        Route::get('search/ai', 'aiSearch');
         Route::get('products', 'products');
         Route::get('products/{id}', 'productShow');
         Route::get('shipping-methods', 'shippingMethods');

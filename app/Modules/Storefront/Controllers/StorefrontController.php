@@ -10,11 +10,14 @@ use App\Modules\Promotions\Models\PromoBanner;
 use App\Modules\Shipping\Models\ShippingMethod;
 use App\Shared\Helpers\MoneyHelper;
 use App\Shared\Services\MerchantContext;
+use App\Shared\Services\StoreAiSearchService;
 use App\Shared\Services\StoreSettingService;
 use Illuminate\Http\Request;
 
 class StorefrontController extends Controller
 {
+    public function __construct(protected StoreAiSearchService $aiSearch) {}
+
     public function storeInfo()
     {
         $store = MerchantContext::store();
@@ -92,6 +95,25 @@ class StorefrontController extends Controller
         ]);
 
         return sendResponse($mapped, 'Shipping methods fetched');
+    }
+
+    public function aiSearch(Request $request)
+    {
+        $q = trim((string) $request->input('q', ''));
+        if ($q === '') {
+            return sendError('Query is required', [], 422);
+        }
+
+        $locale = (string) $request->input('locale', 'ar');
+        $result = $this->aiSearch->searchProducts($q, 24, $locale);
+
+        return sendResponse([
+            'query' => $q,
+            'summary' => $result['analysis']['summary'] ?? '',
+            'keywords' => $result['analysis']['keywords'] ?? [],
+            'ai_used' => $result['analysis']['ai_used'] ?? false,
+            'products' => $result['products'],
+        ], 'Smart search completed');
     }
 
     public function products(Request $request)

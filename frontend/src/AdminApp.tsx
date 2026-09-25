@@ -21,21 +21,21 @@ import { ShippingPage } from './pages/ShippingPage';
 import { hasPermission, isAuthenticated } from './lib/auth';
 
 function PrivateRoute({ children }: { children: ReactElement }) {
-  if (!isAuthenticated()) return <Navigate to="/login" replace />;
+  if (!isAuthenticated()) return <Navigate to="/admin/login" replace />;
   return children;
 }
 
 function PermissionRoute({ permission, children }: { permission: string; children: ReactElement }) {
-  if (!hasPermission(permission)) return <Navigate to="/dashboard" replace />;
+  if (!hasPermission(permission)) return <Navigate to="/admin/dashboard" replace />;
   return children;
 }
 
-export default function App() {
+export default function AdminApp() {
   return (
     <Routes>
-      <Route path="/" element={<Navigate to={isAuthenticated() ? '/dashboard' : '/login'} replace />} />
-      <Route path="/login" element={<LoginPage />} />
+      <Route path="login" element={<LoginPage />} />
       <Route element={<PrivateRoute><AppLayout /></PrivateRoute>}>
+        <Route index element={<Navigate to="dashboard" replace />} />
         <Route path="dashboard" element={<PermissionRoute permission="dashboard.view"><DashboardPage /></PermissionRoute>} />
         <Route path="orders" element={<PermissionRoute permission="orders.view"><OrdersPage /></PermissionRoute>} />
         <Route path="customers" element={<PermissionRoute permission="customers.view"><CustomersPage /></PermissionRoute>} />
@@ -48,13 +48,13 @@ export default function App() {
         <Route path="shipping" element={<PermissionRoute permission="shipping.manage"><ShippingPage /></PermissionRoute>} />
         <Route path="notifications" element={<PermissionRoute permission="dashboard.view"><NotificationsPage /></PermissionRoute>} />
         <Route path="staff" element={<PermissionRoute permission="staff.view"><AdminsPage /></PermissionRoute>} />
-        <Route path="admins" element={<Navigate to="/staff" replace />} />
+        <Route path="admins" element={<Navigate to="../staff" replace />} />
         <Route path="roles" element={<PermissionRoute permission="roles.manage"><RolesPage /></PermissionRoute>} />
         <Route path="settings" element={<PermissionRoute permission="settings.view"><SettingsPage /></PermissionRoute>} />
         <Route path="activity-logs" element={<PermissionRoute permission="activity_logs.view"><ActivityLogsPage /></PermissionRoute>} />
         <Route path="profile" element={<ProfilePage />} />
       </Route>
-      <Route path="*" element={<Navigate to="/" replace />} />
+      <Route path="*" element={<Navigate to="/admin/login" replace />} />
     </Routes>
   );
 }

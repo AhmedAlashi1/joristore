@@ -11,37 +11,37 @@ const navSections = [
   {
     titleKey: 'navGeneral' as const,
     items: [
-      { to: '/dashboard', labelKey: 'dashboard' as const, icon: LayoutDashboard, permission: 'dashboard.view' },
-      { to: '/notifications', labelKey: 'notifications' as const, icon: Bell, permission: 'dashboard.view' },
+      { to: '/admin/dashboard', labelKey: 'dashboard' as const, icon: LayoutDashboard, permission: 'dashboard.view' },
+      { to: '/admin/notifications', labelKey: 'notifications' as const, icon: Bell, permission: 'dashboard.view' },
     ],
   },
   {
     titleKey: 'navCommerce' as const,
     items: [
-      { to: '/orders', labelKey: 'orders' as const, icon: ShoppingCart, permission: 'orders.view' },
-      { to: '/customers', labelKey: 'customers' as const, icon: Users, permission: 'customers.view' },
-      { to: '/coupons', labelKey: 'coupons' as const, icon: Ticket, permission: 'coupons.view' },
-      { to: '/banners', labelKey: 'banners' as const, icon: Image, permission: 'banners.view' },
-      { to: '/shipping', labelKey: 'shipping' as const, icon: Truck, permission: 'shipping.manage' },
+      { to: '/admin/orders', labelKey: 'orders' as const, icon: ShoppingCart, permission: 'orders.view' },
+      { to: '/admin/customers', labelKey: 'customers' as const, icon: Users, permission: 'customers.view' },
+      { to: '/admin/coupons', labelKey: 'coupons' as const, icon: Ticket, permission: 'coupons.view' },
+      { to: '/admin/banners', labelKey: 'banners' as const, icon: Image, permission: 'banners.view' },
+      { to: '/admin/shipping', labelKey: 'shipping' as const, icon: Truck, permission: 'shipping.manage' },
     ],
   },
   {
     titleKey: 'navCatalog' as const,
     items: [
-      { to: '/products', labelKey: 'products' as const, icon: Package, permission: 'products.view' },
-      { to: '/categories', labelKey: 'categories' as const, icon: FolderTree, permission: 'categories.view' },
-      { to: '/brands', labelKey: 'brands' as const, icon: Tag, permission: 'brands.view' },
-      { to: '/inventory', labelKey: 'inventory' as const, icon: Warehouse, permission: 'inventory.view' },
+      { to: '/admin/products', labelKey: 'products' as const, icon: Package, permission: 'products.view' },
+      { to: '/admin/categories', labelKey: 'categories' as const, icon: FolderTree, permission: 'categories.view' },
+      { to: '/admin/brands', labelKey: 'brands' as const, icon: Tag, permission: 'brands.view' },
+      { to: '/admin/inventory', labelKey: 'inventory' as const, icon: Warehouse, permission: 'inventory.view' },
     ],
   },
   {
     titleKey: 'navSystem' as const,
     items: [
-      { to: '/staff', labelKey: 'staff' as const, icon: UserCog, permission: 'staff.view' },
-      { to: '/roles', labelKey: 'roles' as const, icon: Shield, permission: 'roles.manage' },
-      { to: '/settings', labelKey: 'settings' as const, icon: Settings, permission: 'settings.view' },
-      { to: '/activity-logs', labelKey: 'activityLogs' as const, icon: Activity, permission: 'activity_logs.view' },
-      { to: '/profile', labelKey: 'profile' as const, icon: User, permission: 'dashboard.view' },
+      { to: '/admin/staff', labelKey: 'staff' as const, icon: UserCog, permission: 'staff.view' },
+      { to: '/admin/roles', labelKey: 'roles' as const, icon: Shield, permission: 'roles.manage' },
+      { to: '/admin/settings', labelKey: 'settings' as const, icon: Settings, permission: 'settings.view' },
+      { to: '/admin/activity-logs', labelKey: 'activityLogs' as const, icon: Activity, permission: 'activity_logs.view' },
+      { to: '/admin/profile', labelKey: 'profile' as const, icon: User, permission: 'dashboard.view' },
     ],
   },
 ] as const;
@@ -252,7 +252,7 @@ export function AppLayout() {
                   // ignore
                 } finally {
                   clearAuthToken();
-                  navigate('/login', { replace: true });
+                  navigate('/admin/login', { replace: true });
                 }
               }}
             >

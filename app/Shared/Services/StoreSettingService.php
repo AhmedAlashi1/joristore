@@ -33,10 +33,10 @@ class StoreSettingService
     public static function themeDefaults(): array
     {
         return [
-            'primary' => '#7367f0',
-            'background' => '#eef0f8',
-            'foreground' => '#1a1a2e',
-            'accent' => '#28c76f',
+            'primary' => '#6c63ff',
+            'background' => '#f3f4fb',
+            'foreground' => '#141626',
+            'accent' => '#22b07d',
         ];
     }
 

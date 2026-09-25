@@ -53,11 +53,11 @@ export function DashboardPage() {
   ];
 
   const quickLinks = [
-    hasPermission('orders.view') ? { to: '/orders', label: ar ? 'الطلبات' : 'Orders', icon: LayoutDashboard } : null,
-    hasPermission('products.view') ? { to: '/products', label: ar ? 'المنتجات' : 'Products', icon: Zap } : null,
-    hasPermission('customers.view') ? { to: '/customers', label: ar ? 'العملاء' : 'Customers', icon: UserCog } : null,
-    hasPermission('staff.view') ? { to: '/staff', label: ar ? 'الموظفون' : 'Staff', icon: UserCog } : null,
-    hasPermission('roles.manage') ? { to: '/roles', label: t.roles, icon: Shield } : null,
+    hasPermission('orders.view') ? { to: '/admin/orders', label: ar ? 'الطلبات' : 'Orders', icon: LayoutDashboard } : null,
+    hasPermission('products.view') ? { to: '/admin/products', label: ar ? 'المنتجات' : 'Products', icon: Zap } : null,
+    hasPermission('customers.view') ? { to: '/admin/customers', label: ar ? 'العملاء' : 'Customers', icon: UserCog } : null,
+    hasPermission('staff.view') ? { to: '/admin/staff', label: ar ? 'الموظفون' : 'Staff', icon: UserCog } : null,
+    hasPermission('roles.manage') ? { to: '/admin/roles', label: t.roles, icon: Shield } : null,
   ].filter(Boolean) as Array<{ to: string; label: string; icon: typeof UserCog }>;
 
   return (
@@ -143,7 +143,7 @@ export function DashboardPage() {
           </CardHeader>
           <CardContent className="space-y-3">
             {stats.recent_orders.map((order) => (
-              <Link key={order.id} to="/orders" className="flex items-center justify-between gap-3 rounded-xl bg-white/30 px-3 py-2 transition hover:bg-white/50 dark:bg-white/5 dark:hover:bg-white/10">
+              <Link key={order.id} to="/admin/orders" className="flex items-center justify-between gap-3 rounded-xl bg-white/30 px-3 py-2 transition hover:bg-white/50 dark:bg-white/5 dark:hover:bg-white/10">
                 <div>
                   <p className="text-sm font-medium">{order.order_number}</p>
                   <p className="text-xs text-[#8a8da8]">{order.customer_name} · {order.status}</p>

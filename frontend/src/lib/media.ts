@@ -9,7 +9,7 @@ export function mediaUrl(path?: string | null): string {
   if (!path) return '';
   if (/^https?:\/\//i.test(path)) return path;
   if (path.startsWith('/storage/')) {
-    const origin = import.meta.env.VITE_API_ORIGIN;
+    const origin = import.meta.env.VITE_API_ORIGIN || import.meta.env.VITE_BACKEND_ORIGIN;
     if (origin) return `${origin}${path}`;
     return path;
   }

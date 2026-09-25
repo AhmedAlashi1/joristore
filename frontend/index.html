@@ -3,14 +3,50 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Smart Leads نظام ذكي يساعد فرق المبيعات وشركات البرمجة على جلب الشركات المستهدفة، تحليلها بالذكاء الصناعي، وتجهيز رسائل واتساب مخصصة." />
-    <title>Smart Leads | AI-Powered B2B Lead Generation</title>
+    <link rel="apple-touch-icon" href="/apple-touch-icon.svg" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
+    <meta name="theme-color" content="#6c63ff" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Jori Store" />
+    <meta name="description" content="Jori Store — متجر جوري للتسوق ولوحة التحكم" />
+    <title>Jori Store</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <script>
+      (function () {
+        try {
+          var scheme = localStorage.getItem('store_color_scheme') || 'system';
+          var dark = scheme === 'dark' || (scheme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          var bg = dark ? '#0e1017' : '#f3f4fb';
+          document.documentElement.style.background = bg;
+          var raw = localStorage.getItem('jori-store-brand');
+          if (raw) {
+            var d = JSON.parse(raw);
+            if (d.theme) {
+              var t = d.theme;
+              if (t.background && !dark) bg = t.background;
+              document.documentElement.style.background = bg;
+              if (t.primary) {
+                document.querySelector('meta[name="theme-color"]').setAttribute('content', t.primary);
+              }
+            }
+          }
+        } catch (e) { /* ignore */ }
+      })();
+    </script>
   </head>
   <body>
+    <script>
+      (function () {
+        try {
+          var boot = document.getElementById('boot-splash');
+          if (boot) boot.remove();
+        } catch (e) { /* ignore */ }
+      })();
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

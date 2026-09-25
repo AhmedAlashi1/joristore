@@ -30,7 +30,7 @@ export function LoginPage() {
       if (!user) throw new Error('User data not found');
       setAuthToken(token);
       setAdminAuthInfo(user);
-      navigate('/dashboard', { replace: true });
+      navigate('/admin/dashboard', { replace: true });
     } catch (err: any) {
       setError(err?.response?.data?.message || 'Login failed');
     } finally {
