@@ -13,7 +13,7 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.svg', 'apple-touch-icon.svg', 'logo.svg', 'pwa-192.png', 'pwa-512.png'],
+      includeAssets: ['favicon.svg', 'apple-touch-icon.svg', 'logo.svg', 'pwa-192.png', 'pwa-512.png', 'push-sw.js'],
       manifest: {
         id: '/',
         name: 'Jori Store',

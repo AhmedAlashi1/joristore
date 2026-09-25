@@ -20,6 +20,9 @@ type Dict = {
   installIosHint: string;
   installDesktopHint: string;
   dismiss: string;
+  pushPromptTitle: string;
+  pushPromptBody: string;
+  pushPromptAction: string;
   wishlist: string;
   emptyWishlist: string;
   emptyWishlistHint: string;
@@ -73,6 +76,9 @@ const dicts: Record<Locale, Dict> = {
     installIosHint: 'اضغط مشاركة ثم «إضافة إلى الشاشة الرئيسية»',
     installDesktopHint: 'من المتصفح: القائمة ← تثبيت التطبيق',
     dismiss: 'لاحقاً',
+    pushPromptTitle: 'إشعارات الشاشة والصوت',
+    pushPromptBody: 'فعّل الإشعار ليصلك على شاشة الجوال حتى والتطبيق مغلق (بعد تثبيت التطبيق على iPhone).',
+    pushPromptAction: 'تفعيل الإشعارات',
     wishlist: 'المفضلة',
     emptyWishlist: 'قائمة المفضلة فارغة',
     emptyWishlistHint: 'اضغط ♥ على أي منتج لحفظه هنا',
@@ -124,6 +130,9 @@ const dicts: Record<Locale, Dict> = {
     installIosHint: 'Tap Share, then Add to Home Screen',
     installDesktopHint: 'Browser menu → Install app',
     dismiss: 'Later',
+    pushPromptTitle: 'Lock screen notifications',
+    pushPromptBody: 'Enable alerts on your phone even when the app is closed (on iPhone: add to Home Screen first).',
+    pushPromptAction: 'Enable notifications',
     wishlist: 'Wishlist',
     emptyWishlist: 'Your wishlist is empty',
     emptyWishlistHint: 'Tap ♥ on any product to save it here',

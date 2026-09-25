@@ -49,6 +49,7 @@ class WebPushService
         $sent = 0;
         try {
             $webPush = new WebPush($auth);
+            $pushOptions = ['TTL' => 86400, 'urgency' => 'high'];
             foreach ($subscriptions as $row) {
                 $webPush->queueNotification(
                     Subscription::create([
@@ -58,6 +59,7 @@ class WebPushService
                         'contentEncoding' => $row->content_encoding ?: 'aesgcm',
                     ]),
                     $payload,
+                    $pushOptions,
                 );
             }
 

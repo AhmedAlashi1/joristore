@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { customerApi } from '../lib/api';
-import { syncPushSubscription } from '../lib/push-subscribe';
+import { enablePushFromUserGesture, syncPushSubscription } from '../lib/push-subscribe';
 import { useCustomer } from './customer-provider';
 
 type CustomerNotificationRow = {
@@ -124,14 +124,11 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   }, [isLoggedIn, permission]);
 
   const requestPermission = useCallback(async () => {
-    if (!('Notification' in window)) return;
-    const res = await Notification.requestPermission();
-    setPermission(res);
-    if (res === 'granted' && isLoggedIn) {
-      const ok = await syncPushSubscription();
-      setPushEnabled(ok);
-    }
-  }, [isLoggedIn]);
+    const result = await enablePushFromUserGesture();
+    setPermission('Notification' in window ? Notification.permission : 'unsupported');
+    setPushEnabled(result.ok);
+    if (result.ok) await refresh();
+  }, [refresh]);
 
   const markRead = useCallback(async (id: number) => {
     await customerApi.markNotificationRead(id);

@@ -5,6 +5,7 @@ import { OpenInAppBar } from '../install/OpenInAppBar';
 import { useInstall } from '../../providers/install-provider';
 import { InstallBanner } from '../install/InstallBanner';
 import { InstallGuideModal } from '../install/InstallGuideModal';
+import { EnablePushBar } from '../notifications/EnablePushBar';
 import { useCart } from '../../providers/cart-provider';
 import { useWishlist } from '../../providers/wishlist-provider';
 import { useLocale } from '../../providers/locale-provider';
@@ -34,6 +35,7 @@ export function AppShell() {
       </div>
 
       <OpenInAppBar />
+      <EnablePushBar />
       <AppHeader />
 
       <main className="relative z-10 px-4 pt-[calc(var(--header-h)+var(--safe-top)+var(--open-app-h)+20px)]">

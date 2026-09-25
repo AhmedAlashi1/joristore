@@ -125,7 +125,9 @@ export function NotificationsPage() {
       });
       const payload = ensureApiSuccess<{ sent_count: number; push_count?: number }>(res, '');
       const pushPart = payload.push_count != null
-        ? (ar ? ` — وصل push لـ ${payload.push_count} جهاز` : ` — push delivered to ${payload.push_count} devices`)
+        ? (payload.push_count > 0
+          ? (ar ? ` — push لـ ${payload.push_count} جهاز` : ` — push to ${payload.push_count} device(s)`)
+          : (ar ? ' — لا يوجد جهاز push (العميل يفعّل الإشعارات من التطبيق)' : ' — no push devices (customer must enable in app)'))
         : '';
       notify.success(
         ar

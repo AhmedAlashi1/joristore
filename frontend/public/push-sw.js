@@ -8,20 +8,26 @@ self.addEventListener('push', (event) => {
     /* ignore */
   }
 
-  event.waitUntil(
-    self.registration.showNotification(payload.title || 'Jori Store', {
-      body: payload.body || '',
-      icon: '/pwa-192.png',
-      badge: '/pwa-192.png',
-      tag: `jori-push-${Date.now()}`,
-      data: { url: payload.url || '/notifications' },
-    }),
-  );
+  const title = payload.title || 'Jori Store';
+  const options = {
+    body: payload.body || '',
+    icon: '/pwa-192.png',
+    badge: '/pwa-192.png',
+    tag: 'jori-store-push',
+    renotify: true,
+    silent: false,
+    vibrate: [180, 80, 180],
+    data: { url: payload.url || '/notifications' },
+  };
+
+  event.waitUntil(self.registration.showNotification(title, options));
 });
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   const target = event.notification.data?.url || '/notifications';
+  const absolute = new URL(target, self.location.origin).href;
+
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
       for (const client of clients) {
@@ -30,7 +36,7 @@ self.addEventListener('notificationclick', (event) => {
         }
       }
       if (self.clients.openWindow) {
-        return self.clients.openWindow(target);
+        return self.clients.openWindow(absolute);
       }
       return undefined;
     }),
