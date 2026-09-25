@@ -16,6 +16,7 @@ type Dict = {
   installTitle: string;
   installSubtitle: string;
   installButton: string;
+  installGuideButton: string;
   installIosHint: string;
   installDesktopHint: string;
   dismiss: string;
@@ -68,6 +69,7 @@ const dicts: Record<Locale, Dict> = {
     installTitle: 'ثبّت تطبيق على شاشتك الرئيسية',
     installSubtitle: 'تجربة أسرع — مثل التطبيق بدون متجر',
     installButton: 'تثبيت الآن',
+    installGuideButton: 'خطوات التثبيت',
     installIosHint: 'اضغط مشاركة ثم «إضافة إلى الشاشة الرئيسية»',
     installDesktopHint: 'من المتصفح: القائمة ← تثبيت التطبيق',
     dismiss: 'لاحقاً',
@@ -118,6 +120,7 @@ const dicts: Record<Locale, Dict> = {
     installTitle: 'Install app on your home screen',
     installSubtitle: 'Faster experience — like a native app',
     installButton: 'Install now',
+    installGuideButton: 'How to install',
     installIosHint: 'Tap Share, then Add to Home Screen',
     installDesktopHint: 'Browser menu → Install app',
     dismiss: 'Later',

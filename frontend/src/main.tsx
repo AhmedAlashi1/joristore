@@ -8,6 +8,11 @@ import { bootstrapStoreBrandFromCache } from './store/lib/store-brand';
 bootstrapStoreBrandFromCache();
 document.getElementById('boot-splash')?.remove();
 
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  window.__deferredInstallPrompt = e;
+});
+
 if (import.meta.env.DEV && 'serviceWorker' in navigator) {
   void navigator.serviceWorker.getRegistrations().then((regs) => {
     regs.forEach((r) => void r.unregister());

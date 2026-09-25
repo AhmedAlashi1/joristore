@@ -55,6 +55,10 @@ export function StoreBrandProvider({ children }: { children: ReactNode }) {
   }));
 
   useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      setBrand((prev) => (prev.loaded ? prev : { ...prev, loaded: true }));
+    }, 2500);
+
     storeApi.info()
       .then((r) => {
         const data = unwrap<{ name?: string; description?: string | null; logo?: string | null; theme?: Partial<StoreTheme> }>(r);
@@ -70,7 +74,12 @@ export function StoreBrandProvider({ children }: { children: ReactNode }) {
       })
       .catch(() => {
         setBrand((prev) => ({ ...prev, loaded: true }));
+      })
+      .finally(() => {
+        clearTimeout(timeout);
       });
+
+    return () => clearTimeout(timeout);
   }, []);
 
   const value = useMemo(() => brand, [brand]);

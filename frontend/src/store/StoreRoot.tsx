@@ -27,8 +27,8 @@ function StoreProviders() {
   return (
     <AppearanceProvider brandTheme={theme}>
       <StoreShell>
-        <SplashGate>
-          <InstallProvider>
+        <InstallProvider>
+          <SplashGate>
             <LocaleProvider>
               <WishlistProvider>
                 <CustomerProvider>
@@ -40,8 +40,8 @@ function StoreProviders() {
                 </CustomerProvider>
               </WishlistProvider>
             </LocaleProvider>
-          </InstallProvider>
-        </SplashGate>
+          </SplashGate>
+        </InstallProvider>
       </StoreShell>
     </AppearanceProvider>
   );

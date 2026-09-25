@@ -1,9 +1,8 @@
 import { useEffect, useState } from 'react';
-import { SPLASH_DONE_EVENT } from '../../providers/install-provider';
 import { useStoreBrand } from '../../providers/store-brand-provider';
 import { cn } from '../../lib/utils';
 
-const SPLASH_MS = 3600;
+const SPLASH_MS = 2600;
 const IMPACT_AT_MS = 480;
 
 type SplashScreenProps = {
@@ -11,18 +10,16 @@ type SplashScreenProps = {
 };
 
 export function SplashScreen({ onComplete }: SplashScreenProps) {
-  const { name, description, logo, loaded } = useStoreBrand();
+  const { name, description, logo } = useStoreBrand();
   const [phase, setPhase] = useState<'enter' | 'hold' | 'exit'>('enter');
-  const [showLogo, setShowLogo] = useState(false);
+  const showLogo = true;
   const [impacted, setImpacted] = useState(false);
 
   useEffect(() => {
-    if (!loaded) return;
-    setShowLogo(true);
     requestAnimationFrame(() => {
       document.getElementById('boot-splash')?.remove();
     });
-  }, [loaded]);
+  }, []);
 
   useEffect(() => {
     if (!showLogo) return undefined;
@@ -31,7 +28,6 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
     const holdTimer = window.setTimeout(() => setPhase('hold'), 1300);
     const exitTimer = window.setTimeout(() => setPhase('exit'), 2800);
     const doneTimer = window.setTimeout(() => {
-      window.dispatchEvent(new CustomEvent(SPLASH_DONE_EVENT));
       onComplete();
     }, SPLASH_MS);
 
@@ -44,13 +40,7 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
   }, [onComplete, showLogo]);
 
   if (!showLogo) {
-    return (
-      <div className="splash-screen fixed inset-0 z-[100] flex items-center justify-center bg-[var(--bg)]">
-        <div className="splash-loader splash-loader-active">
-          <span /><span /><span />
-        </div>
-      </div>
-    );
+    return null;
   }
 
   return (
@@ -59,6 +49,7 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
         'splash-screen fixed inset-0 z-[100] flex flex-col items-center justify-center overflow-hidden',
         phase === 'exit' && 'splash-exit',
       )}
+      style={{ background: 'var(--bg, #f3f4fb)' }}
     >
       <div
         className={cn(

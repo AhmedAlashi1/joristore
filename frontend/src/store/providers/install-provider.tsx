@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { SPLASH_DONE_EVENT } from '../lib/splash-done';
 
-export const SPLASH_DONE_EVENT = 'jori-splash-done';
+const INSTALL_DISMISS_KEY = 'jori-install-dismiss';
 
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>;
@@ -16,6 +17,22 @@ function isStandalone() {
 
 function isIos() {
   return /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as Window & { MSStream?: unknown }).MSStream;
+}
+
+function isMobileDevice() {
+  return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+}
+
+function shouldOfferInstall() {
+  return isMobileDevice() || isIos();
+}
+
+function installDismissed() {
+  try {
+    return sessionStorage.getItem(INSTALL_DISMISS_KEY) === '1';
+  } catch {
+    return false;
+  }
 }
 
 type InstallCtx = {
@@ -42,29 +59,43 @@ export function InstallProvider({ children }: { children: ReactNode }) {
   const [installed] = useState(isStandalone);
   const [isIosDevice] = useState(isIos);
 
+  const revealInstallUi = useCallback(() => {
+    if (installed || installDismissed()) return;
+    if (!shouldOfferInstall()) return;
+
+    setIconVisible(true);
+    setBannerVisible(true);
+  }, [installed]);
+
   useEffect(() => {
     if (installed) return;
 
-    const showAfterSplash = () => {
-      setIconVisible(true);
-      setGuideVisible(true);
-      setBannerVisible(true);
-    };
+    const early = window.__deferredInstallPrompt;
+    if (early) {
+      setDeferred(early as BeforeInstallPromptEvent);
+    }
 
     const onPrompt = (e: Event) => {
       e.preventDefault();
+      window.__deferredInstallPrompt = e;
       setDeferred(e as BeforeInstallPromptEvent);
-      setIconVisible(true);
+      revealInstallUi();
     };
 
+    const onSplashDone = () => revealInstallUi();
+
     window.addEventListener('beforeinstallprompt', onPrompt);
-    window.addEventListener(SPLASH_DONE_EVENT, showAfterSplash);
+    window.addEventListener(SPLASH_DONE_EVENT, onSplashDone);
+
+    if (window.__joriSplashDone) {
+      revealInstallUi();
+    }
 
     return () => {
       window.removeEventListener('beforeinstallprompt', onPrompt);
-      window.removeEventListener(SPLASH_DONE_EVENT, showAfterSplash);
+      window.removeEventListener(SPLASH_DONE_EVENT, onSplashDone);
     };
-  }, [installed]);
+  }, [installed, revealInstallUi]);
 
   const install = useCallback(async () => {
     if (!deferred) return false;
@@ -75,14 +106,29 @@ export function InstallProvider({ children }: { children: ReactNode }) {
       setBannerVisible(false);
       setIconVisible(false);
       setDeferred(null);
+      window.__deferredInstallPrompt = null;
       return true;
     }
     return false;
   }, [deferred]);
 
+  const persistDismiss = useCallback(() => {
+    try {
+      sessionStorage.setItem(INSTALL_DISMISS_KEY, '1');
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
   const dismissGuide = useCallback(() => setGuideVisible(false), []);
-  const dismissBanner = useCallback(() => setBannerVisible(false), []);
-  const openBanner = useCallback(() => { setBannerVisible(true); setGuideVisible(true); }, []);
+  const dismissBanner = useCallback(() => {
+    persistDismiss();
+    setBannerVisible(false);
+  }, [persistDismiss]);
+  const openBanner = useCallback(() => {
+    setBannerVisible(true);
+    setGuideVisible(true);
+  }, []);
   const openGuide = useCallback(() => setGuideVisible(true), []);
 
   const value = useMemo<InstallCtx>(() => ({
@@ -107,3 +153,6 @@ export function useInstall() {
   if (!ctx) throw new Error('useInstall outside InstallProvider');
   return ctx;
 }
+
+/** @deprecated import from ../lib/splash-done */
+export { SPLASH_DONE_EVENT };
