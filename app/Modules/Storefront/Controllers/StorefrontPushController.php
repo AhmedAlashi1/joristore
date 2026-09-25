@@ -24,8 +24,12 @@ class StorefrontPushController extends Controller
         $customer = $request->attributes->get('store_customer');
         $merchantId = MerchantContext::merchantId();
 
+        if ((int) $customer->merchant_id !== (int) $merchantId) {
+            return sendError('Customer not found', [], 404);
+        }
+
         $validator = Validator::make($request->all(), [
-            'endpoint' => 'required|string|max:500',
+            'endpoint' => 'required|string|max:2048',
             'keys' => 'required|array',
             'keys.p256dh' => 'required|string|max:255',
             'keys.auth' => 'required|string|max:255',
@@ -59,8 +63,12 @@ class StorefrontPushController extends Controller
         $customer = $request->attributes->get('store_customer');
         $merchantId = MerchantContext::merchantId();
 
+        if ((int) $customer->merchant_id !== (int) $merchantId) {
+            return sendError('Customer not found', [], 404);
+        }
+
         $validator = Validator::make($request->all(), [
-            'endpoint' => 'required|string|max:500',
+            'endpoint' => 'required|string|max:2048',
         ]);
 
         if ($validator->fails()) {

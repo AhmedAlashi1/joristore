@@ -26,8 +26,8 @@ return [
 
     'webpush' => [
         'subject' => env('VAPID_SUBJECT', env('APP_URL', 'mailto:admin@joristore.com')),
-        'public_key' => env('VAPID_PUBLIC_KEY'),
-        'private_key' => env('VAPID_PRIVATE_KEY'),
+        'public_key' => ($k = env('VAPID_PUBLIC_KEY')) ? trim($k, " \t\n\r\0\x0B\"'") : null,
+        'private_key' => ($k = env('VAPID_PRIVATE_KEY')) ? trim($k, " \t\n\r\0\x0B\"'") : null,
     ],
 
 ];

@@ -119,7 +119,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       return;
     }
     void syncPushSubscription()
-      .then((ok) => setPushEnabled(ok))
+      .then((r) => setPushEnabled(r.ok))
       .catch(() => setPushEnabled(false));
   }, [isLoggedIn, permission]);
 
@@ -127,7 +127,9 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     const result = await enablePushFromUserGesture();
     setPermission('Notification' in window ? Notification.permission : 'unsupported');
     setPushEnabled(result.ok);
-    if (result.ok) await refresh();
+    if (result.ok) {
+      await refresh();
+    }
   }, [refresh]);
 
   const markRead = useCallback(async (id: number) => {

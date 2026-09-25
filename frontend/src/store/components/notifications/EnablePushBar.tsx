@@ -1,6 +1,6 @@
 import { Bell, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { enablePushFromUserGesture } from '../../lib/push-subscribe';
+import { enablePushFromUserGesture, pushFailureMessage } from '../../lib/push-subscribe';
 import { useCustomer } from '../../providers/customer-provider';
 import { useLocale } from '../../providers/locale-provider';
 import { useNotifications } from '../../providers/notification-provider';
@@ -48,11 +48,7 @@ export function EnablePushBar() {
       const result = await enablePushFromUserGesture();
       await refresh();
       if (!result.ok) {
-        window.alert(
-          ar
-            ? 'تعذّر تفعيل الإشعار الخارجي. تأكد من VAPID على السيرفر والإذن من إعدادات الجوال.'
-            : 'Could not enable lock-screen push. Check server VAPID and phone notification settings.',
-        );
+        window.alert(pushFailureMessage(result.reason, ar));
       }
     } finally {
       setBusy(false);

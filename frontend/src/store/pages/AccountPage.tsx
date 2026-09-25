@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { customerApi } from '../lib/api';
 import { useCustomer, type CustomerAddress } from '../providers/customer-provider';
+import { enablePushFromUserGesture, pushFailureMessage } from '../lib/push-subscribe';
 import { useNotifications } from '../providers/notification-provider';
 import { AppearanceSettings } from '../components/settings/AppearanceSettings';
 import { useLocale } from '../providers/locale-provider';
@@ -11,7 +12,7 @@ export function AccountPage() {
   const { t, locale, toggleLocale } = useLocale();
   const ar = locale === 'ar';
   const { customer, isLoggedIn, login, register, logout, refresh } = useCustomer();
-  const { requestPermission, permission, pushEnabled } = useNotifications();
+  const { refresh, permission, pushEnabled } = useNotifications();
 
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [phone, setPhone] = useState('');
@@ -173,7 +174,21 @@ export function AccountPage() {
             <span className="font-bold text-[var(--primary)]">{locale === 'ar' ? 'العربية' : 'English'}</span>
           </button>
           <AppearanceSettings />
-          <button type="button" onClick={() => void requestPermission()} className="glass flex w-full items-center justify-between rounded-xl px-4 py-3 text-sm">
+          <button
+            type="button"
+            onClick={() => {
+              void (async () => {
+                const result = await enablePushFromUserGesture();
+                if (!result.ok) {
+                  window.alert(pushFailureMessage(result.reason, ar));
+                  return;
+                }
+                await refresh();
+                window.location.reload();
+              })();
+            }}
+            className="glass flex w-full items-center justify-between rounded-xl px-4 py-3 text-sm"
+          >
             <span>{ar ? 'إشعارات الجوال' : 'Phone notifications'}</span>
             <span className="text-xs font-bold text-[var(--primary)]">
               {permission === 'granted'
