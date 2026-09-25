@@ -11,8 +11,8 @@ import { useLocale } from '../providers/locale-provider';
 export function AccountPage() {
   const { t, locale, toggleLocale } = useLocale();
   const ar = locale === 'ar';
-  const { customer, isLoggedIn, login, register, logout, refresh } = useCustomer();
-  const { refresh, permission, pushEnabled } = useNotifications();
+  const { customer, isLoggedIn, login, register, logout, refresh: refreshCustomer } = useCustomer();
+  const { refresh: refreshNotifications, permission, pushEnabled } = useNotifications();
 
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [phone, setPhone] = useState('');
@@ -48,7 +48,7 @@ export function AccountPage() {
       await customerApi.addAddress(addrForm);
       setAddrOpen(false);
       setAddrForm({ full_name: '', phone: '', city: '', area: '', street: '', building: '' });
-      await refresh();
+      await refreshCustomer();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Error');
     } finally {
@@ -58,7 +58,7 @@ export function AccountPage() {
 
   const deleteAddress = async (id: number) => {
     await customerApi.deleteAddress(id);
-    await refresh();
+    await refreshCustomer();
   };
 
   if (!isLoggedIn) {
@@ -183,7 +183,7 @@ export function AccountPage() {
                   window.alert(pushFailureMessage(result.reason, ar));
                   return;
                 }
-                await refresh();
+                await refreshNotifications();
                 window.location.reload();
               })();
             }}
