@@ -12,6 +12,7 @@ class DatabaseSeeder extends Seeder
             MerchantPermissionSeeder::class,
             SystemRolesSeeder::class,
             DemoMerchantSeeder::class,
+            PromoBannersDemoSeeder::class,
             CatalogDemoSeeder::class,
             CustomersDemoSeeder::class,
             LegalDemoSeeder::class,
