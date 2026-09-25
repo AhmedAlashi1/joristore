@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { clearCustomerId, getCustomerId, setCustomerId } from '../lib/customer-storage';
 import { customerApi } from '../lib/api';
+import { removePushSubscription } from '../lib/push-subscribe';
 
 export type CustomerProfile = {
   id: number;
@@ -73,6 +74,7 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
       setCustomer(res);
     },
     logout: () => {
+      void removePushSubscription();
       clearCustomerId();
       setCustomer(null);
     },

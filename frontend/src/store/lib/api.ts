@@ -72,4 +72,7 @@ export const customerApi = {
   unreadCount: async () => unwrap<{ count: number }>(await api.get('/store/customer/notifications/unread-count', storeHeaders)),
   markNotificationRead: async (id: number) => unwrap<void>(await api.post(`/store/customer/notifications/${id}/read`, {}, storeHeaders)),
   markAllNotificationsRead: async () => unwrap<void>(await api.post('/store/customer/notifications/read-all', {}, storeHeaders)),
+  pushVapidKey: () => api.get('/store/push/vapid-key', storeHeaders),
+  pushSubscribe: (body: Record<string, unknown>) => api.post('/store/customer/push/subscribe', body, storeHeaders),
+  pushUnsubscribe: (body: Record<string, unknown>) => api.post('/store/customer/push/unsubscribe', body, storeHeaders),
 };

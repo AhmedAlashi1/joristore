@@ -24,4 +24,10 @@ return [
         'model' => env('OPENAI_MODEL', 'gpt-4o-mini'),
     ],
 
+    'webpush' => [
+        'subject' => env('VAPID_SUBJECT', env('APP_URL', 'mailto:admin@joristore.com')),
+        'public_key' => env('VAPID_PUBLIC_KEY'),
+        'private_key' => env('VAPID_PRIVATE_KEY'),
+    ],
+
 ];

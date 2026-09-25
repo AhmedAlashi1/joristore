@@ -51,7 +51,7 @@ export function StoreBrandProvider({ children }: { children: ReactNode }) {
     description: cached?.description ?? fallback.description,
     logo: resolveBrandAsset(cached?.logo),
     theme: { ...defaultTheme, ...cached?.theme },
-    loaded: false,
+    loaded: Boolean(cached),
   }));
 
   useEffect(() => {

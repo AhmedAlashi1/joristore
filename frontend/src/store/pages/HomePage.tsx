@@ -4,33 +4,44 @@ import { Link } from 'react-router-dom';
 import { PromoCarousel } from '../components/home/PromoCarousel';
 import { ProductCard, type ProductCardData } from '../components/product/ProductCard';
 import { StoreMediaImage } from '../components/media/StoreMediaImage';
-import { storeApi, unwrap } from '../lib/api';
+import { getCachedHome, HOME_CACHE_KEY, prefetchStoreHome } from '../lib/prefetch-home';
+import { readStoreCache } from '../lib/store-cache';
 import { useLocale } from '../providers/locale-provider';
 
 type Category = { id: number; name: string; slug: string; image?: string | null };
 
-const HOME_FEATURED_LIMIT = 4;
-const HOME_CATEGORIES_LIMIT = 6;
+function initialHomeState() {
+  const cached = getCachedHome();
+  return {
+    categories: cached?.categories ?? [],
+    featured: (cached?.featured ?? []) as ProductCardData[],
+    hasCache: Boolean(cached),
+  };
+}
 
 export function HomePage() {
   const { t } = useLocale();
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [featured, setFeatured] = useState<ProductCardData[]>([]);
-  const [loaded, setLoaded] = useState(false);
+  const [initial] = useState(initialHomeState);
+  const [categories, setCategories] = useState<Category[]>(initial.categories);
+  const [featured, setFeatured] = useState<ProductCardData[]>(initial.featured);
+  const [loaded, setLoaded] = useState(initial.hasCache);
 
   useEffect(() => {
-    Promise.all([
-      storeApi.categories().then((r) => unwrap<Category[]>(r)),
-      storeApi.products({ featured: true, per_page: HOME_FEATURED_LIMIT }).then((r) =>
-        unwrap<{ data: ProductCardData[] }>(r),
-      ),
-    ])
-      .then(([cats, prods]) => {
-        setCategories(cats.slice(0, HOME_CATEGORIES_LIMIT));
-        setFeatured((prods.data || []).slice(0, HOME_FEATURED_LIMIT));
-      })
-      .catch(() => undefined)
-      .finally(() => setLoaded(true));
+    let cancelled = false;
+
+    void prefetchStoreHome().then(() => {
+      if (cancelled) return;
+      const fresh = readStoreCache<{ categories: Category[]; featured: ProductCardData[] }>(HOME_CACHE_KEY);
+      if (fresh) {
+        setCategories(fresh.categories);
+        setFeatured(fresh.featured);
+      }
+      setLoaded(true);
+    });
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   return (

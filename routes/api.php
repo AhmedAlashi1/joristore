@@ -17,6 +17,7 @@ use App\Modules\Settings\Controllers\MediaUploadController;
 use App\Modules\Settings\Controllers\StoreSettingsController;
 use App\Modules\Shipping\Controllers\ShippingMethodController;
 use App\Modules\Storefront\Controllers\StorefrontController;
+use App\Modules\Storefront\Controllers\StorefrontPushController;
 use App\Modules\Storefront\Controllers\StorefrontCustomerController;
 use App\Modules\Staff\Controllers\MerchantRoleController;
 use App\Modules\Staff\Controllers\StaffController;
@@ -162,6 +163,10 @@ Route::middleware(['auth:sanctum', 'merchant.context'])->prefix('admin')->group(
 });
 
 Route::middleware('store.context')->prefix('store')->group(function () {
+    Route::controller(StorefrontPushController::class)->group(function () {
+        Route::get('push/vapid-key', 'vapidPublicKey');
+    });
+
     Route::controller(StorefrontController::class)->group(function () {
         Route::get('/', 'storeInfo');
         Route::get('theme', 'theme');
@@ -186,6 +191,8 @@ Route::middleware('store.context')->prefix('store')->group(function () {
             Route::get('notifications/unread-count', 'unreadNotificationsCount');
             Route::post('notifications/read-all', 'markAllNotificationsRead');
             Route::post('notifications/{id}/read', 'markNotificationRead');
+            Route::post('push/subscribe', [StorefrontPushController::class, 'subscribe']);
+            Route::post('push/unsubscribe', [StorefrontPushController::class, 'unsubscribe']);
             Route::post('addresses', 'storeAddress');
             Route::put('addresses/{addressId}', 'updateAddress');
             Route::delete('addresses/{addressId}', 'destroyAddress');

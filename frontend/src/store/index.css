@@ -48,6 +48,32 @@ body {
   touch-action: manipulation;
 }
 
+/* Hide scrollbars in storefront (scroll still works) */
+html:has(.store-app),
+html:has(.store-app) body {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+html:has(.store-app) body::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+.store-app,
+.store-app * {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.store-app::-webkit-scrollbar,
+.store-app *::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
 #boot-splash {
   position: fixed;
   inset: 0;
@@ -433,6 +459,13 @@ body {
   z-index: 3;
   opacity: 0;
   transform: scale(0.2);
+}
+
+/* Keep logo visible after slam ends (do not revert to opacity: 0) */
+.splash-logo-settled {
+  opacity: 1 !important;
+  transform: translate(0, 0) scale(1) rotate(0deg) !important;
+  filter: none !important;
 }
 
 .splash-logo-enter {

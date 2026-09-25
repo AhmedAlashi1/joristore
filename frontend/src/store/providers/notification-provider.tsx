@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { customerApi } from '../lib/api';
+import { syncPushSubscription } from '../lib/push-subscribe';
 import { useCustomer } from './customer-provider';
 
 type CustomerNotificationRow = {
@@ -14,6 +15,7 @@ type NotificationCtx = {
   items: CustomerNotificationRow[];
   unreadCount: number;
   permission: NotificationPermission | 'unsupported';
+  pushEnabled: boolean;
   requestPermission: () => Promise<void>;
   refresh: () => Promise<void>;
   markRead: (id: number) => Promise<void>;
@@ -49,13 +51,14 @@ function showSystemNotification(title: string, body: string) {
   try {
     const n = new Notification(title, {
       body,
-      icon: '/logo.svg',
-      badge: '/logo.svg',
+      icon: '/pwa-192.png',
+      badge: '/pwa-192.png',
       tag: `jori-${Date.now()}`,
       requireInteraction: false,
     });
     n.onclick = () => {
       window.focus();
+      window.location.href = '/notifications';
       n.close();
     };
   } catch {
@@ -67,6 +70,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   const { isLoggedIn } = useCustomer();
   const [items, setItems] = useState<CustomerNotificationRow[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [pushEnabled, setPushEnabled] = useState(false);
   const [permission, setPermission] = useState<NotificationPermission | 'unsupported'>(() =>
     ('Notification' in window ? Notification.permission : 'unsupported'),
   );
@@ -104,16 +108,30 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     void refresh();
-    if (!isLoggedIn) return;
+    if (!isLoggedIn) return undefined;
     const timer = window.setInterval(() => void refresh(), 15000);
     return () => clearInterval(timer);
   }, [isLoggedIn, refresh]);
+
+  useEffect(() => {
+    if (!isLoggedIn || permission !== 'granted') {
+      setPushEnabled(false);
+      return;
+    }
+    void syncPushSubscription()
+      .then((ok) => setPushEnabled(ok))
+      .catch(() => setPushEnabled(false));
+  }, [isLoggedIn, permission]);
 
   const requestPermission = useCallback(async () => {
     if (!('Notification' in window)) return;
     const res = await Notification.requestPermission();
     setPermission(res);
-  }, []);
+    if (res === 'granted' && isLoggedIn) {
+      const ok = await syncPushSubscription();
+      setPushEnabled(ok);
+    }
+  }, [isLoggedIn]);
 
   const markRead = useCallback(async (id: number) => {
     await customerApi.markNotificationRead(id);
@@ -129,11 +147,12 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     items,
     unreadCount,
     permission,
+    pushEnabled,
     requestPermission,
     refresh,
     markRead,
     markAllRead,
-  }), [items, unreadCount, permission, requestPermission, refresh, markRead, markAllRead]);
+  }), [items, unreadCount, permission, pushEnabled, requestPermission, refresh, markRead, markAllRead]);
 
   return <NotificationContext.Provider value={value}>{children}</NotificationContext.Provider>;
 }

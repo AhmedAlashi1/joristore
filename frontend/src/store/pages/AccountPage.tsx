@@ -11,7 +11,7 @@ export function AccountPage() {
   const { t, locale, toggleLocale } = useLocale();
   const ar = locale === 'ar';
   const { customer, isLoggedIn, login, register, logout, refresh } = useCustomer();
-  const { requestPermission, permission } = useNotifications();
+  const { requestPermission, permission, pushEnabled } = useNotifications();
 
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [phone, setPhone] = useState('');
@@ -175,7 +175,11 @@ export function AccountPage() {
           <AppearanceSettings />
           <button type="button" onClick={() => void requestPermission()} className="glass flex w-full items-center justify-between rounded-xl px-4 py-3 text-sm">
             <span>{ar ? 'إشعارات الجوال' : 'Phone notifications'}</span>
-            <span className="text-xs font-bold text-[var(--primary)]">{permission === 'granted' ? (ar ? 'مفعّلة' : 'On') : (ar ? 'تفعيل' : 'Enable')}</span>
+            <span className="text-xs font-bold text-[var(--primary)]">
+              {permission === 'granted'
+                ? (pushEnabled ? (ar ? 'Push مفعّل' : 'Push on') : (ar ? 'مفعّلة' : 'On'))
+                : (ar ? 'تفعيل' : 'Enable')}
+            </span>
           </button>
           <Link to="/terms" className="glass flex w-full items-center gap-2 rounded-xl px-4 py-3 text-sm">
             <FileText size={16} className="text-[var(--primary)]" />

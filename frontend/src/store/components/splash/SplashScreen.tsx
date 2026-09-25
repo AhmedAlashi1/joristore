@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { prefetchStoreHome } from '../../lib/prefetch-home';
 import { useStoreBrand } from '../../providers/store-brand-provider';
 import { cn } from '../../lib/utils';
 
@@ -14,17 +15,34 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
   const [phase, setPhase] = useState<'enter' | 'hold' | 'exit'>('enter');
   const showLogo = true;
   const [impacted, setImpacted] = useState(false);
+  const [logoSettled, setLogoSettled] = useState(false);
 
   useEffect(() => {
     requestAnimationFrame(() => {
       document.getElementById('boot-splash')?.remove();
     });
+    void prefetchStoreHome();
   }, []);
+
+  useEffect(() => {
+    if (!logo) return undefined;
+    const img = new Image();
+    img.src = logo;
+    const link = document.createElement('link');
+    link.rel = 'preload';
+    link.as = 'image';
+    link.href = logo;
+    document.head.appendChild(link);
+    return () => {
+      link.remove();
+    };
+  }, [logo]);
 
   useEffect(() => {
     if (!showLogo) return undefined;
 
     const impactTimer = window.setTimeout(() => setImpacted(true), IMPACT_AT_MS);
+    const settledTimer = window.setTimeout(() => setLogoSettled(true), 1200);
     const holdTimer = window.setTimeout(() => setPhase('hold'), 1300);
     const exitTimer = window.setTimeout(() => setPhase('exit'), 2800);
     const doneTimer = window.setTimeout(() => {
@@ -33,6 +51,7 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
 
     return () => {
       clearTimeout(impactTimer);
+      clearTimeout(settledTimer);
       clearTimeout(holdTimer);
       clearTimeout(exitTimer);
       clearTimeout(doneTimer);
@@ -85,7 +104,13 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
         ))}
       </div>
 
-      <div className={cn('splash-logo-wrap', phase === 'enter' && 'splash-logo-slam')}>
+      <div
+        className={cn(
+          'splash-logo-wrap',
+          phase === 'enter' && !logoSettled && 'splash-logo-slam',
+          logoSettled && 'splash-logo-settled',
+        )}
+      >
         <div className="splash-logo-glow" />
         <img src={logo} alt={name} className="splash-logo" width={120} height={120} />
         <div className="splash-shimmer" />

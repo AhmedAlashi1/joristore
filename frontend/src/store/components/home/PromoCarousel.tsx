@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { storeApi, unwrap } from '../../lib/api';
+import { getCachedPromos, PROMO_CACHE_KEY, prefetchStoreHome } from '../../lib/prefetch-home';
+import { readStoreCache } from '../../lib/store-cache';
 import { useLocale } from '../../providers/locale-provider';
 import { StoreMediaImage } from '../media/StoreMediaImage';
 import { cn } from '../../lib/utils';
@@ -9,13 +10,19 @@ type Promo = { id: number; title: string; title_en?: string | null; image: strin
 
 export function PromoCarousel() {
   const { locale } = useLocale();
-  const [promos, setPromos] = useState<Promo[]>([]);
+  const [promos, setPromos] = useState<Promo[]>(() => getCachedPromos() ?? []);
   const [active, setActive] = useState(0);
 
   useEffect(() => {
-    storeApi.promoBanners()
-      .then((r) => setPromos(unwrap<Promo[]>(r)))
-      .catch(() => undefined);
+    let cancelled = false;
+    void prefetchStoreHome().then(() => {
+      if (cancelled) return;
+      const fresh = readStoreCache<Promo[]>(PROMO_CACHE_KEY);
+      if (fresh?.length) setPromos(fresh);
+    });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const slides = useMemo(
