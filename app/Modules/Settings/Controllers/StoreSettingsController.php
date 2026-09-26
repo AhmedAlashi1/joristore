@@ -183,4 +183,37 @@ class StoreSettingsController extends Controller
 
         return sendResponse(StoreSettingService::getTheme($store->id), 'Theme settings updated');
     }
+
+    public function social()
+    {
+        $store = MerchantContext::merchant()?->store;
+        if (! $store) {
+            return sendError('Store not found', [], 404);
+        }
+
+        return sendResponse(StoreSettingService::getSocial($store->id), 'Social links fetched');
+    }
+
+    public function updateSocial(Request $request)
+    {
+        $store = MerchantContext::merchant()?->store;
+        if (! $store) {
+            return sendError('Store not found', [], 404);
+        }
+
+        $keys = array_keys(StoreSettingService::socialKeys());
+        $rules = collect($keys)->mapWithKeys(fn ($k) => [$k => 'nullable|string|max:500'])->all();
+
+        $validator = Validator::make($request->all(), $rules);
+
+        if ($validator->fails()) {
+            return sendError($validator->errors()->first(), $validator->errors()->toArray(), 422);
+        }
+
+        StoreSettingService::setSocial($store->id, $validator->validated());
+
+        $this->activityLog->log('settings.social_updated', 'settings', 'Social links updated', Store::class, $store->id, request: $request);
+
+        return sendResponse(StoreSettingService::getSocial($store->id), 'Social links updated');
+    }
 }

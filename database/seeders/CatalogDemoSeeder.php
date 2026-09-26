@@ -39,144 +39,265 @@ class CatalogDemoSeeder extends Seeder
             ]
         );
 
-        if (Product::withoutGlobalScopes()->where('merchant_id', $merchantId)->exists()) {
-            $this->command?->info('Catalog demo data already exists — skipping.');
-
-            return;
-        }
-
-        // Clean orphan categories/brands from partial seeds
-        Category::withoutGlobalScopes()->where('merchant_id', $merchantId)->delete();
-        Brand::withoutGlobalScopes()->where('merchant_id', $merchantId)->delete();
+        $this->wipeMerchantCatalog($merchantId);
 
         $location = InventoryLocation::withoutGlobalScopes()->firstOrCreate(
             ['merchant_id' => $merchantId, 'is_default' => true],
             ['name' => 'Main Warehouse', 'code' => 'MAIN', 'status' => 'active']
         );
 
-        $brands = [];
-        foreach (['Jori', 'Premium', 'Essentials', 'Nova'] as $name) {
-            $brands[$name] = Brand::withoutGlobalScopes()->create([
-                'merchant_id' => $merchantId,
-                'name' => $name,
-                'slug' => Str::slug($name),
-                'status' => 'active',
-            ]);
-        }
+        (new StoreBrandsSeeder)->run();
+        $brands = Brand::withoutGlobalScopes()
+            ->where('merchant_id', $merchantId)
+            ->where('status', 'active')
+            ->orderBy('name')
+            ->get()
+            ->keyBy('id');
+        $brandIds = $brands->keys()->all();
 
-        $catalog = [
+        $tree = [
             [
-                'name' => 'إلكترونيات',
-                'slug' => 'electronics',
-                'image' => '/categories/electronics.svg',
-                'products' => [
-                    ['name' => 'سماعات بلوتوث لاسلكية', 'price' => 149.00, 'compare' => 199.00, 'featured' => true, 'qty' => 45],
-                    ['name' => 'شاحن سريع 65W', 'price' => 89.00, 'compare' => 120.00, 'featured' => true, 'qty' => 80],
-                    ['name' => 'ساعة ذكية رياضية', 'price' => 299.00, 'compare' => 399.00, 'featured' => false, 'qty' => 25],
-                    ['name' => 'حامل جوال للسيارة', 'price' => 45.00, 'compare' => null, 'featured' => false, 'qty' => 120],
-                ],
-            ],
-            [
-                'name' => 'أزياء',
-                'slug' => 'fashion',
+                'name' => 'ملابس رجالية',
+                'slug' => 'men-apparel',
                 'image' => '/categories/fashion.svg',
-                'products' => [
-                    ['name' => 'قميص قطني كلاسيك', 'price' => 79.00, 'compare' => 99.00, 'featured' => true, 'qty' => 60],
-                    ['name' => 'حذاء رياضي مريح', 'price' => 249.00, 'compare' => 320.00, 'featured' => true, 'qty' => 35],
-                    ['name' => 'حقيبة ظهر عصرية', 'price' => 129.00, 'compare' => null, 'featured' => false, 'qty' => 40],
-                    ['name' => 'نظارة شمسية UV400', 'price' => 59.00, 'compare' => 85.00, 'featured' => false, 'qty' => 90],
+                'children' => [
+                    'أطقم رياضية',
+                    'تيشيرتات',
+                    'بناطيل رياضية',
+                    'شورتات',
+                    'هوديز وسويت شيرت',
+                    'جاكيتات',
+                    'ملابس ضاغطة',
+                    'ملابس داخلية',
                 ],
             ],
             [
-                'name' => 'منزل ومطبخ',
-                'slug' => 'home-kitchen',
-                'image' => '/categories/home-kitchen.svg',
-                'products' => [
-                    ['name' => 'طقم أواني طبخ 5 قطع', 'price' => 189.00, 'compare' => 240.00, 'featured' => true, 'qty' => 30],
-                    ['name' => 'خلاط كهربائي 800W', 'price' => 159.00, 'compare' => null, 'featured' => false, 'qty' => 22],
-                    ['name' => 'مكتب LED قابل للطي', 'price' => 119.00, 'compare' => 150.00, 'featured' => false, 'qty' => 18],
-                    ['name' => 'مجموعة أكواب زجاج', 'price' => 49.00, 'compare' => null, 'featured' => false, 'qty' => 100],
+                'name' => 'ملابس نسائية',
+                'slug' => 'women-apparel',
+                'image' => '/categories/fashion.svg',
+                'children' => [
+                    'أطقم رياضية',
+                    'تيشيرتات وتوبات',
+                    'ليغنز وبناطيل',
+                    'شورتات',
+                    'جاكيتات وهوديز',
+                    'ملابس رياضية محتشمة',
                 ],
             ],
             [
-                'name' => 'جمال وعناية',
-                'slug' => 'beauty',
-                'image' => '/categories/beauty.svg',
-                'products' => [
-                    ['name' => 'سيرum فيتامين C', 'price' => 69.00, 'compare' => 95.00, 'featured' => true, 'qty' => 55],
-                    ['name' => 'مجموعة عناية بالبشرة', 'price' => 139.00, 'compare' => 180.00, 'featured' => true, 'qty' => 28],
-                    ['name' => 'عطر فاخر 100ml', 'price' => 199.00, 'compare' => 260.00, 'featured' => false, 'qty' => 20],
-                    ['name' => 'فرشاة شعر احترافية', 'price' => 39.00, 'compare' => null, 'featured' => false, 'qty' => 75],
-                ],
-            ],
-            [
-                'name' => 'رياضة',
-                'slug' => 'sports',
+                'name' => 'أحذية',
+                'slug' => 'footwear',
                 'image' => '/categories/sports.svg',
-                'products' => [
-                    ['name' => 'دامبل قابل للتعديل 20kg', 'price' => 279.00, 'compare' => 350.00, 'featured' => true, 'qty' => 15],
-                    ['name' => 'حصيرة يoga مضادة للانزلاق', 'price' => 89.00, 'compare' => null, 'featured' => false, 'qty' => 50],
-                    ['name' => 'زجاجة ماء رياضية 1L', 'price' => 29.00, 'compare' => 45.00, 'featured' => false, 'qty' => 200],
-                    ['name' => 'قفازات جيم', 'price' => 35.00, 'compare' => null, 'featured' => false, 'qty' => 85],
+                'children' => [
+                    'أحذية كرة قدم',
+                    'أحذية ملاعب وصالات',
+                    'أحذية جري',
+                    'أحذية مشي',
+                    'أحذية تدريب وجيم',
+                    'سنيكرز',
+                    'شباشب وصنادل',
+                ],
+            ],
+            [
+                'name' => 'أدوات رياضية',
+                'slug' => 'sports-equipment',
+                'image' => '/categories/sports.svg',
+                'children' => [
+                    'كرات',
+                    'أدوات لياقة منزلية',
+                    'أوزان ودامبلز',
+                    'حبال مقاومة',
+                    'حبال قفز',
+                    'حصائر تمارين',
+                    'أدوات تدريب كرة القدم',
+                ],
+            ],
+            [
+                'name' => 'إكسسوارات رياضية',
+                'slug' => 'sports-accessories',
+                'image' => '/categories/fashion.svg',
+                'children' => [
+                    'حقائب رياضية',
+                    'قفازات جيم',
+                    'قفازات حارس مرمى',
+                    'واقيات ساق',
+                    'دعامات رياضية',
+                    'زجاجات مياه',
+                ],
+            ],
+            [
+                'name' => 'الجرابين والطواقي',
+                'slug' => 'socks-caps',
+                'image' => '/categories/fashion.svg',
+                'children' => [
+                    'جرابين رياضية',
+                    'جرابين كرة قدم',
+                    'جرابين تدريب',
+                    'طواقي',
+                    'قبعات رياضية',
+                    'شباشب جراب',
+                ],
+            ],
+            [
+                'name' => 'ملابس الفرق والأندية',
+                'slug' => 'teams-clubs',
+                'image' => '/categories/sports.svg',
+                'children' => [
+                    'أطقم أندية',
+                    'أطقم منتخبات',
+                    'ملابس تدريب',
                 ],
             ],
         ];
 
-        $brandKeys = array_keys($brands);
         $sort = 0;
+        $productCount = 0;
+        $priceBase = 49;
 
-        foreach ($catalog as $group) {
-            $category = Category::withoutGlobalScopes()->create([
+        foreach ($tree as $dept) {
+            $parent = Category::withoutGlobalScopes()->create([
                 'merchant_id' => $merchantId,
-                'name' => $group['name'],
-                'slug' => $group['slug'],
-                'image' => $group['image'] ?? null,
-                'description' => 'تشكيلة '.$group['name'].' من Jori Store',
+                'name' => $dept['name'],
+                'slug' => $dept['slug'],
+                'image' => $dept['image'],
+                'description' => $dept['name'].' — معرض عالم الرياضة',
                 'status' => 'active',
                 'sort_order' => $sort++,
             ]);
 
-            foreach ($group['products'] as $i => $item) {
-                $slug = Str::slug($item['name']).'-'.$i;
-                $brand = $brands[$brandKeys[$i % count($brandKeys)]];
-
-                $product = Product::withoutGlobalScopes()->create([
+            $childSort = 0;
+            foreach ($dept['children'] as $childName) {
+                $childSlug = $dept['slug'].'-'.Str::slug($childName);
+                $child = Category::withoutGlobalScopes()->create([
                     'merchant_id' => $merchantId,
-                    'category_id' => $category->id,
-                    'brand_id' => $brand->id,
-                    'name' => $item['name'],
-                    'slug' => $slug,
-                    'product_type' => 'simple',
+                    'parent_id' => $parent->id,
+                    'name' => $childName,
+                    'slug' => $childSlug,
+                    'image' => null,
+                    'description' => $childName.' — '.$dept['name'],
                     'status' => 'active',
-                    'short_description' => 'منتج عالي الجودة من متجر جوري',
-                    'description' => 'تفاصيل المنتج: '.$item['name'].'. مناسب للاستخدام اليومي مع ضمان الجودة.',
-                    'featured' => $item['featured'],
-                    'published_at' => now(),
+                    'sort_order' => $childSort++,
                 ]);
 
-                $variant = ProductVariant::withoutGlobalScopes()->create([
-                    'product_id' => $product->id,
-                    'merchant_id' => $merchantId,
-                    'name' => 'Default',
-                    'sku' => 'JORI-'.strtoupper(Str::random(6)),
-                    'price_amount' => (int) round($item['price'] * 100),
-                    'compare_at_price_amount' => isset($item['compare']) ? (int) round($item['compare'] * 100) : null,
-                    'is_default' => true,
-                    'status' => 'active',
-                ]);
+                $price = $priceBase + ($childSort * 7) + ($sort * 3);
+                $demoColors = [
+                    ['name' => 'أسود', 'hex' => '#1a1a1a'],
+                    ['name' => 'أبيض', 'hex' => '#f5f5f5'],
+                    ['name' => 'كحلي', 'hex' => '#1e3a5f'],
+                    ['name' => 'رمادي', 'hex' => '#8a8da8'],
+                ];
+                $color = $demoColors[($childSort + $sort) % count($demoColors)];
+                $brandId = $brandIds[($childSort + $sort) % max(1, count($brandIds))] ?? null;
 
-                Inventory::withoutGlobalScopes()->create([
-                    'merchant_id' => $merchantId,
-                    'product_variant_id' => $variant->id,
-                    'inventory_location_id' => $location->id,
-                    'quantity' => $item['qty'],
-                    'reserved_quantity' => 0,
-                    'low_stock_threshold' => 5,
-                    'allow_backorder' => false,
-                ]);
+                $productCount += $this->seedProduct(
+                    $merchantId,
+                    $location,
+                    $brandId,
+                    $child,
+                    [
+                        'name' => $childName.' — تشكيلة مميزة',
+                        'price' => (float) $price,
+                        'compare' => $price + 25,
+                        'featured' => $childSort <= 2,
+                        'qty' => 30 + ($childSort * 5),
+                        'color_name' => $color['name'],
+                        'color_hex' => $color['hex'],
+                        'sizes' => ['S', 'M', 'L', 'XL'],
+                    ],
+                    $childSort,
+                );
+
+                $productCount += $this->seedProduct(
+                    $merchantId,
+                    $location,
+                    $brandId,
+                    $child,
+                    [
+                        'name' => $childName.' — إصدار Pro',
+                        'price' => (float) ($price + 15),
+                        'compare' => null,
+                        'featured' => false,
+                        'qty' => 20,
+                        'color_name' => $demoColors[($childSort + 1) % count($demoColors)]['name'],
+                        'color_hex' => $demoColors[($childSort + 1) % count($demoColors)]['hex'],
+                        'sizes' => ['M', 'L'],
+                    ],
+                    $childSort + 10,
+                );
             }
         }
 
-        $this->command?->info('Catalog demo: 5 categories, 20 products seeded.');
+        $this->command?->info("Catalog demo: sports-world tree seeded ({$productCount} products).");
+    }
+
+    protected function wipeMerchantCatalog(int $merchantId): void
+    {
+        $productIds = Product::withoutGlobalScopes()->where('merchant_id', $merchantId)->pluck('id');
+        if ($productIds->isNotEmpty()) {
+            ProductVariant::withoutGlobalScopes()->whereIn('product_id', $productIds)->delete();
+            Inventory::withoutGlobalScopes()->where('merchant_id', $merchantId)->delete();
+            Product::withoutGlobalScopes()->where('merchant_id', $merchantId)->forceDelete();
+        }
+        Category::withoutGlobalScopes()->where('merchant_id', $merchantId)->forceDelete();
+    }
+
+    /**
+     * @param  array{name: string, price: float, compare?: float|null, featured: bool, qty: int, color_name?: string, color_hex?: string, sizes?: string[]}  $item
+     */
+    protected function seedProduct(
+        int $merchantId,
+        InventoryLocation $location,
+        ?int $brandId,
+        Category $category,
+        array $item,
+        int $index,
+    ): int {
+        $slug = Str::slug($item['name']).'-'.$category->id.'-'.$index;
+
+        $product = Product::withoutGlobalScopes()->create([
+            'merchant_id' => $merchantId,
+            'category_id' => $category->id,
+            'brand_id' => $brandId,
+            'color_name' => $item['color_name'] ?? null,
+            'color_hex' => $item['color_hex'] ?? null,
+            'name' => $item['name'],
+            'slug' => $slug,
+            'product_type' => 'simple',
+            'status' => 'active',
+            'short_description' => 'من معرض عالم الرياضة',
+            'description' => $item['name'].' — '.$category->name.'. جودة عالية للاستخدام الرياضي.',
+            'featured' => $item['featured'],
+            'published_at' => now(),
+        ]);
+
+        $sizes = $item['sizes'] ?? [];
+        if ($sizes === []) {
+            $sizes = ['Default'];
+        }
+
+        foreach ($sizes as $i => $sizeName) {
+            $variant = ProductVariant::withoutGlobalScopes()->create([
+                'product_id' => $product->id,
+                'merchant_id' => $merchantId,
+                'name' => $sizeName,
+                'sku' => 'SW-'.strtoupper(Str::random(6)),
+                'price_amount' => (int) round($item['price'] * 100),
+                'compare_at_price_amount' => isset($item['compare']) ? (int) round($item['compare'] * 100) : null,
+                'is_default' => $i === 0,
+                'status' => 'active',
+            ]);
+
+            Inventory::withoutGlobalScopes()->create([
+                'merchant_id' => $merchantId,
+                'product_variant_id' => $variant->id,
+                'inventory_location_id' => $location->id,
+                'quantity' => max(1, (int) floor($item['qty'] / count($sizes))),
+                'reserved_quantity' => 0,
+                'low_stock_threshold' => 5,
+                'allow_backorder' => false,
+            ]);
+        }
+
+        return 1;
     }
 }

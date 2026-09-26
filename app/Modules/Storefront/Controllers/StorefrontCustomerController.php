@@ -14,8 +14,10 @@ use App\Modules\Orders\Models\OrderItem;
 use App\Modules\Orders\Models\OrderStatusHistory;
 use App\Modules\Orders\Models\Payment;
 use App\Modules\Orders\Models\Shipment;
+use App\Modules\Shipping\Models\DeliveryRegion;
 use App\Modules\Shipping\Models\ShippingMethod;
 use App\Shared\Helpers\MoneyHelper;
+use App\Shared\Services\DeliveryPricingService;
 use App\Shared\Services\MerchantContext;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -23,6 +25,8 @@ use Illuminate\Support\Facades\Validator;
 
 class StorefrontCustomerController extends Controller
 {
+    public function __construct(protected DeliveryPricingService $deliveryPricing) {}
+
     public function register(Request $request)
     {
         $merchantId = MerchantContext::merchantId();
@@ -156,6 +160,9 @@ class StorefrontCustomerController extends Controller
         if (! $address) {
             return sendError('Address not found', [], 404);
         }
+        if (! $address->delivery_region_id) {
+            return sendError('Please update your address with a delivery region', [], 422);
+        }
 
         try {
             $order = DB::transaction(function () use ($data, $customer, $merchantId, $address) {
@@ -176,9 +183,12 @@ class StorefrontCustomerController extends Controller
                     $orderItems[] = compact('variant', 'item', 'lineTotal');
                 }
 
-                $shippingAmount = 0;
                 $shippingMethodId = $data['shipping_method_id'] ?? null;
-                if ($shippingMethodId) {
+                $shippingAmount = 0;
+                $deliveryQuote = $this->deliveryPricing->quoteForAddress($merchantId, $address);
+                if ($deliveryQuote) {
+                    $shippingAmount = $deliveryQuote['amount_minor'];
+                } elseif ($shippingMethodId) {
                     $shipping = ShippingMethod::find($shippingMethodId);
                     if ($shipping && $shipping->merchant_id === $merchantId) {
                         $freeMin = $shipping->free_shipping_minimum ?? 0;
@@ -302,12 +312,15 @@ class StorefrontCustomerController extends Controller
 
         $validator = Validator::make($request->all(), [
             'type' => 'nullable|in:shipping,billing',
+            'label' => 'nullable|string|max:120',
             'full_name' => 'required|string|max:255',
             'phone' => 'nullable|string|max:20',
-            'city' => 'required|string|max:255',
-            'area' => 'nullable|string|max:255',
-            'street' => 'nullable|string|max:255',
+            'delivery_region_id' => 'required|integer|exists:delivery_regions,id',
+            'street' => 'required|string|max:255',
             'building' => 'nullable|string|max:255',
+            'notes' => 'nullable|string|max:1000',
+            'city' => 'nullable|string|max:255',
+            'area' => 'nullable|string|max:255',
             'floor' => 'nullable|string|max:50',
             'apartment' => 'nullable|string|max:50',
             'postal_code' => 'nullable|string|max:20',
@@ -320,6 +333,13 @@ class StorefrontCustomerController extends Controller
 
         $data = $validator->validated();
 
+        $region = DeliveryRegion::query()
+            ->where('merchant_id', MerchantContext::merchantId())
+            ->find($data['delivery_region_id']);
+        if (! $region) {
+            return sendError('Invalid delivery region', [], 422);
+        }
+
         if ($data['is_default'] ?? false) {
             $customer->addresses()->update(['is_default' => false]);
         }
@@ -327,11 +347,13 @@ class StorefrontCustomerController extends Controller
         $address = $customer->addresses()->create([
             ...$data,
             'type' => $data['type'] ?? 'shipping',
-            'country_code' => 'SA',
+            'city' => $region->name,
+            'area' => $data['area'] ?? null,
+            'country_code' => 'PS',
             'is_default' => $data['is_default'] ?? ! $customer->addresses()->exists(),
         ]);
 
-        return sendResponse($address, 'Address created');
+        return sendResponse($this->formatAddress($address->load('deliveryRegion')), 'Address created');
     }
 
     public function updateAddress(Request $request, int $addressId)
@@ -344,12 +366,15 @@ class StorefrontCustomerController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
+            'label' => 'nullable|string|max:120',
             'full_name' => 'sometimes|required|string|max:255',
             'phone' => 'nullable|string|max:20',
-            'city' => 'sometimes|required|string|max:255',
-            'area' => 'nullable|string|max:255',
-            'street' => 'nullable|string|max:255',
+            'delivery_region_id' => 'sometimes|required|integer|exists:delivery_regions,id',
+            'street' => 'sometimes|required|string|max:255',
             'building' => 'nullable|string|max:255',
+            'notes' => 'nullable|string|max:1000',
+            'city' => 'nullable|string|max:255',
+            'area' => 'nullable|string|max:255',
             'floor' => 'nullable|string|max:50',
             'apartment' => 'nullable|string|max:50',
             'postal_code' => 'nullable|string|max:20',
@@ -366,9 +391,19 @@ class StorefrontCustomerController extends Controller
             $customer->addresses()->where('id', '!=', $addressId)->update(['is_default' => false]);
         }
 
+        if (isset($data['delivery_region_id'])) {
+            $region = DeliveryRegion::query()
+                ->where('merchant_id', MerchantContext::merchantId())
+                ->find($data['delivery_region_id']);
+            if (! $region) {
+                return sendError('Invalid delivery region', [], 422);
+            }
+            $data['city'] = $region->name;
+        }
+
         $address->update($data);
 
-        return sendResponse($address->fresh(), 'Address updated');
+        return sendResponse($this->formatAddress($address->fresh()->load('deliveryRegion')), 'Address updated');
     }
 
     public function destroyAddress(Request $request, int $addressId)
@@ -456,10 +491,31 @@ class StorefrontCustomerController extends Controller
         ];
 
         if ($detailed) {
-            $data['addresses'] = $c->addresses ?? [];
+            $addresses = $c->relationLoaded('addresses')
+                ? $c->addresses
+                : $c->addresses()->with('deliveryRegion')->get();
+            $data['addresses'] = $addresses->map(fn (CustomerAddress $a) => $this->formatAddress($a))->values()->all();
             $data['last_order_at'] = $c->last_order_at;
         }
 
         return $data;
+    }
+
+    protected function formatAddress(CustomerAddress $a): array
+    {
+        return [
+            'id' => $a->id,
+            'label' => $a->label,
+            'full_name' => $a->full_name,
+            'phone' => $a->phone,
+            'delivery_region_id' => $a->delivery_region_id,
+            'region_name' => $a->deliveryRegion?->name ?? $a->city,
+            'city' => $a->city,
+            'area' => $a->area,
+            'street' => $a->street,
+            'building' => $a->building,
+            'notes' => $a->notes,
+            'is_default' => (bool) $a->is_default,
+        ];
     }
 }

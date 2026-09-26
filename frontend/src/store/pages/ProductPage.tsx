@@ -1,12 +1,29 @@
 import { ArrowRight, Minus, Plus, ShoppingCart } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { FavoriteButton } from '../components/product/FavoriteButton';
 import { storeApi, unwrap } from '../lib/api';
 import { StoreMediaImage } from '../components/media/StoreMediaImage';
-import { formatPrice } from '../lib/utils';
+import { cn, formatPrice } from '../lib/utils';
 import { useCart } from '../providers/cart-provider';
 import { useLocale } from '../providers/locale-provider';
+
+type SizeVariant = {
+  id: number;
+  name: string;
+  price: number;
+  in_stock: boolean;
+  quantity: number;
+  is_default?: boolean;
+};
+
+type ColorSibling = {
+  id: number;
+  name: string;
+  color_name?: string | null;
+  color_hex?: string | null;
+  image?: string | null;
+};
 
 type ProductDetail = {
   id: number;
@@ -21,6 +38,10 @@ type ProductDetail = {
   category_name?: string;
   brand_name?: string;
   image?: string | null;
+  color_name?: string | null;
+  color_hex?: string | null;
+  color_siblings?: ColorSibling[];
+  size_variants?: SizeVariant[];
 };
 
 export function ProductPage() {
@@ -29,31 +50,51 @@ export function ProductPage() {
   const { t } = useLocale();
   const { addItem } = useCart();
   const [product, setProduct] = useState<ProductDetail | null>(null);
+  const [selectedVariantId, setSelectedVariantId] = useState<number | null>(null);
   const [qty, setQty] = useState(1);
   const [added, setAdded] = useState(false);
 
   useEffect(() => {
     if (!id) return;
     storeApi.product(Number(id))
-      .then((r) => setProduct(unwrap<ProductDetail>(r)))
+      .then((r) => {
+        const data = unwrap<ProductDetail>(r);
+        setProduct(data);
+        const sizes = data.size_variants ?? [];
+        const defaultSize = sizes.find((s) => s.is_default) ?? sizes.find((s) => s.in_stock) ?? sizes[0];
+        setSelectedVariantId(defaultSize?.id ?? data.variant_id ?? null);
+        setQty(1);
+      })
       .catch(() => navigate('/shop'));
   }, [id, navigate]);
+
+  const activeVariant = useMemo(() => {
+    if (!product?.size_variants?.length) return null;
+    return product.size_variants.find((v) => v.id === selectedVariantId) ?? product.size_variants[0];
+  }, [product, selectedVariantId]);
+
+  const displayPrice = activeVariant?.price ?? product?.price ?? 0;
+  const canAdd = activeVariant ? activeVariant.in_stock : (product?.in_stock ?? false);
+  const variantIdForCart = activeVariant?.id ?? product?.variant_id;
 
   if (!product) {
     return <div className="glass aspect-square animate-pulse rounded-3xl" />;
   }
 
   const handleAdd = () => {
-    if (!product.in_stock || !product.variant_id) return;
+    if (!canAdd || !variantIdForCart) return;
     addItem({
       productId: product.id,
-      productVariantId: product.variant_id,
-      name: product.name,
-      price: product.price,
+      productVariantId: variantIdForCart,
+      name: activeVariant ? `${product.name} (${activeVariant.name})` : product.name,
+      price: displayPrice,
     }, qty);
     setAdded(true);
     setTimeout(() => setAdded(false), 1500);
   };
+
+  const siblings = product.color_siblings ?? [];
+  const showColors = siblings.length > 0 || product.color_hex || product.color_name;
 
   return (
     <div className="space-y-4 pb-4 page-slide-left">
@@ -64,11 +105,11 @@ export function ProductPage() {
         <FavoriteButton
           product={{
             productId: product.id,
-            productVariantId: product.variant_id,
+            productVariantId: variantIdForCart,
             name: product.name,
-            price: product.price,
+            price: displayPrice,
             compare_at_price: product.compare_at_price,
-            in_stock: product.in_stock,
+            in_stock: canAdd,
             category_name: product.category_name,
           }}
           size={20}
@@ -79,7 +120,6 @@ export function ProductPage() {
       <div className="glass-strong card-pop overflow-hidden rounded-3xl">
         <div className="relative flex aspect-square items-center justify-center overflow-hidden bg-gradient-to-br from-[var(--primary-soft)] to-transparent">
           <StoreMediaImage src={product.image} alt={product.name} className="p-6" />
-          <div className="absolute inset-0 animate-pulse bg-gradient-to-tr from-transparent via-white/20 to-transparent" />
         </div>
         <div className="p-5">
           {product.category_name ? (
@@ -90,11 +130,59 @@ export function ProductPage() {
             <p className="mt-2 text-sm text-[#6f6b7d]">{product.short_description}</p>
           ) : null}
           <div className="mt-4 flex items-baseline gap-2">
-            <span className="text-2xl font-bold text-[var(--primary)]">{formatPrice(product.price)}</span>
-            {product.compare_at_price && product.compare_at_price > product.price ? (
+            <span className="text-2xl font-bold text-[var(--primary)]">{formatPrice(displayPrice)}</span>
+            {product.compare_at_price && product.compare_at_price > displayPrice ? (
               <span className="text-sm text-[#8a8da8] line-through">{formatPrice(product.compare_at_price)}</span>
             ) : null}
           </div>
+
+          {showColors ? (
+            <div className="mt-4">
+              <p className="mb-2 text-xs font-bold text-store-muted">{t.chooseColor}</p>
+              <div className="flex flex-wrap gap-2">
+                <span
+                  className="color-swatch ring-2 ring-[var(--primary)]"
+                  style={{ background: product.color_hex || '#7367f0' }}
+                  title={product.color_name || product.name}
+                />
+                {siblings.map((s) => (
+                  <Link
+                    key={s.id}
+                    to={`/product/${s.id}`}
+                    className={cn('color-swatch', s.id === product.id && 'ring-2 ring-[var(--primary)]')}
+                    style={{ background: s.color_hex || '#c8cad8' }}
+                    title={s.color_name || s.name}
+                  />
+                ))}
+              </div>
+            </div>
+          ) : null}
+
+          {(product.size_variants ?? []).length > 1 ? (
+            <div className="mt-4">
+              <p className="mb-2 text-xs font-bold text-store-muted">{t.chooseSize}</p>
+              <div className="flex flex-wrap gap-2">
+                {product.size_variants!.map((v) => (
+                  <button
+                    key={v.id}
+                    type="button"
+                    disabled={!v.in_stock}
+                    onClick={() => setSelectedVariantId(v.id)}
+                    className={cn(
+                      'rounded-xl px-3 py-1.5 text-xs font-bold transition-all',
+                      selectedVariantId === v.id
+                        ? 'bg-[var(--primary)] text-white'
+                        : 'glass text-[var(--fg)]',
+                      !v.in_stock && 'opacity-40',
+                    )}
+                  >
+                    {v.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
           {product.description ? (
             <p className="mt-4 text-sm leading-relaxed text-[#6f6b7d]">{product.description}</p>
           ) : null}
@@ -117,11 +205,11 @@ export function ProductPage() {
       <button
         type="button"
         className="btn-primary w-full"
-        disabled={!product.in_stock}
+        disabled={!canAdd}
         onClick={handleAdd}
       >
         <ShoppingCart size={20} />
-        {added ? 'تمت الإضافة ✓' : product.in_stock ? t.addToCart : t.outOfStock}
+        {added ? 'تمت الإضافة ✓' : canAdd ? t.addToCart : t.outOfStock}
       </button>
 
       {added ? (

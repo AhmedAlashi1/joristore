@@ -5,6 +5,7 @@ import { readStoreCache } from '../../lib/store-cache';
 import { useLocale } from '../../providers/locale-provider';
 import { StoreMediaImage } from '../media/StoreMediaImage';
 import { cn } from '../../lib/utils';
+import { useSwipeIndex } from './useSwipeIndex';
 
 type Promo = { id: number; title: string; title_en?: string | null; image: string; link: string };
 
@@ -35,21 +36,32 @@ export function PromoCarousel() {
 
   useEffect(() => {
     if (slides.length <= 1) return undefined;
-    const timer = window.setInterval(() => setActive((i) => (i + 1) % slides.length), 4500);
+    const timer = window.setInterval(() => setActive((i) => (i + 1) % slides.length), 5000);
     return () => clearInterval(timer);
   }, [slides.length]);
 
-  if (slides.length === 0) return null;
+  const { onTouchStart, onTouchEnd } = useSwipeIndex(slides.length, active, setActive);
 
-  const current = slides[active] ?? slides[0];
+  if (slides.length === 0) return null;
 
   return (
     <section className="mt-2 space-y-1.5">
-      <Link to={current.link} className="promo-banner block overflow-hidden rounded-2xl shadow-md">
-        <div className="h-32 w-full">
-          <StoreMediaImage src={current.image} alt={current.alt} className="transition-opacity duration-500" />
+      <div
+        className="promo-carousel-track relative overflow-hidden rounded-2xl shadow-md"
+        onTouchStart={onTouchStart}
+        onTouchEnd={onTouchEnd}
+      >
+        <div
+          className="flex transition-transform duration-500 ease-out"
+          style={{ transform: `translateX(-${active * 100}%)` }}
+        >
+          {slides.map((p) => (
+            <Link key={p.id} to={p.link} className="promo-banner block h-32 w-full shrink-0 overflow-hidden">
+              <StoreMediaImage src={p.image} alt={p.alt} />
+            </Link>
+          ))}
         </div>
-      </Link>
+      </div>
       {slides.length > 1 ? (
         <div className="flex items-center justify-center gap-2">
           {slides.map((p, i) => (

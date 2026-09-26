@@ -9,6 +9,7 @@ import { CategoriesPage } from './pages/CategoriesPage';
 import { CouponsPage } from './pages/CouponsPage';
 import { CustomersPage } from './pages/CustomersPage';
 import { DashboardPage } from './pages/DashboardPage';
+import { GymsPage } from './pages/GymsPage';
 import { InventoryPage } from './pages/InventoryPage';
 import { LoginPage } from './pages/LoginPage';
 import { NotificationsPage } from './pages/NotificationsPage';
@@ -17,6 +18,7 @@ import { ProductsPage } from './pages/ProductsPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { RolesPage } from './pages/RolesPage';
 import { SettingsPage } from './pages/SettingsPage';
+import { DeliveryRegionsPage } from './pages/DeliveryRegionsPage';
 import { ShippingPage } from './pages/ShippingPage';
 import { hasPermission, isAuthenticated } from './lib/auth';
 
@@ -45,7 +47,9 @@ export default function AdminApp() {
         <Route path="inventory" element={<PermissionRoute permission="inventory.view"><InventoryPage /></PermissionRoute>} />
         <Route path="coupons" element={<PermissionRoute permission="coupons.view"><CouponsPage /></PermissionRoute>} />
         <Route path="banners" element={<PermissionRoute permission="banners.view"><BannersPage /></PermissionRoute>} />
+        <Route path="gyms" element={<PermissionRoute permission="settings.view"><GymsPage /></PermissionRoute>} />
         <Route path="shipping" element={<PermissionRoute permission="shipping.manage"><ShippingPage /></PermissionRoute>} />
+        <Route path="delivery-regions" element={<PermissionRoute permission="shipping.manage"><DeliveryRegionsPage /></PermissionRoute>} />
         <Route path="notifications" element={<PermissionRoute permission="dashboard.view"><NotificationsPage /></PermissionRoute>} />
         <Route path="staff" element={<PermissionRoute permission="staff.view"><AdminsPage /></PermissionRoute>} />
         <Route path="admins" element={<Navigate to="../staff" replace />} />

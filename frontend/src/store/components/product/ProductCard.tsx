@@ -12,6 +12,8 @@ export type ProductCardData = {
   in_stock?: boolean;
   featured?: boolean;
   category_name?: string;
+  brand_name?: string | null;
+  color_name?: string | null;
   image?: string | null;
 };
 
@@ -20,19 +22,22 @@ export function ProductCard({
   index = 0,
   className,
   compact = false,
+  rail = false,
 }: {
   product: ProductCardData;
   index?: number;
   className?: string;
   compact?: boolean;
+  rail?: boolean;
 }) {
   return (
     <Link
       to={`/product/${product.id}`}
       className={cn(
         'glass-strong glass-interactive group block overflow-hidden rounded-2xl',
-        !compact && 'card-pop',
-        !compact && `stagger-${Math.min(index + 1, 6)}`,
+        rail && 'product-card-rail w-[9.25rem] shrink-0 snap-start',
+        !rail && !compact && 'card-pop',
+        !rail && !compact && `stagger-${Math.min(index + 1, 6)}`,
         className,
       )}
       style={compact ? undefined : { animationDelay: `${index * 0.07}s` }}
@@ -71,6 +76,9 @@ export function ProductCard({
       </div>
       <div className={cn('p-2.5', compact && 'p-2')}>
         <p className="line-clamp-2 text-sm font-bold leading-snug text-[var(--fg)]">{product.name}</p>
+        {product.brand_name ? (
+          <p className="mt-0.5 text-[10px] font-bold uppercase tracking-wide text-[var(--primary)]">{product.brand_name}</p>
+        ) : null}
         {product.category_name ? (
           <p className="mt-0.5 text-[11px] font-semibold text-store-muted">{product.category_name}</p>
         ) : null}

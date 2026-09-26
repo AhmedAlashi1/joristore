@@ -55,6 +55,36 @@ type Dict = {
   smartSearchLocal: string;
   viewAllResults: string;
   searchFailed: string;
+  newArrivals: string;
+  bestSellers: string;
+  weeklyDeals: string;
+  nearbyGym: string;
+  viewDetails: string;
+  gymHours: string;
+  gymHoursHint: string;
+  gymSubscription: string;
+  chooseSize: string;
+  chooseColor: string;
+  categoriesBrowse: string;
+  sportsWorldSubtitle: string;
+  allInCategory: string;
+  backToCategories: string;
+  viewAllShop: string;
+  filters: string;
+  filterBrand: string;
+  filterColor: string;
+  filterSize: string;
+  clearFilters: string;
+  contactUs: string;
+  followUs: string;
+  termsAndConditions: string;
+  savedAddresses: string;
+  noSavedAddresses: string;
+  addAddress: string;
+  defaultAddress: string;
+  setDefaultAddress: string;
+  editAddress: string;
+  deleteAddress: string;
 };
 
 const dicts: Record<Locale, Dict> = {
@@ -111,6 +141,36 @@ const dicts: Record<Locale, Dict> = {
     smartSearchLocal: 'نتائج ذكية',
     viewAllResults: 'عرض كل النتائج في المتجر',
     searchFailed: 'تعذّر البحث، حاول مرة أخرى',
+    newArrivals: 'وصل حديثاً',
+    bestSellers: 'الأكثر طلباً',
+    weeklyDeals: 'عرض الأسبوع',
+    nearbyGym: 'أقرب جيم',
+    viewDetails: 'التفاصيل',
+    gymHours: 'ساعات العمل',
+    gymHoursHint: 'اضغط للتفاصيل والاشتراك',
+    gymSubscription: 'الاشتراك والأسعار',
+    chooseSize: 'المقاس',
+    chooseColor: 'اللون',
+    categoriesBrowse: 'أقسام المتجر',
+    sportsWorldSubtitle: 'معرض عالم الرياضة',
+    allInCategory: 'عرض كل منتجات',
+    backToCategories: 'رجوع للأقسام',
+    viewAllShop: 'تصفح كل المنتجات',
+    filters: 'فلترة',
+    filterBrand: 'الماركة',
+    filterColor: 'اللون',
+    filterSize: 'المقاس',
+    clearFilters: 'مسح الفلاتر',
+    contactUs: 'تواصل معنا',
+    followUs: 'تابعنا على السوشال ميديا',
+    termsAndConditions: 'الشروط والأحكام',
+    savedAddresses: 'العناوين المحفوظة',
+    noSavedAddresses: 'لا توجد عناوين محفوظة بعد',
+    addAddress: 'إضافة عنوان',
+    defaultAddress: 'العنوان الافتراضي',
+    setDefaultAddress: 'جعله افتراضي',
+    editAddress: 'تعديل',
+    deleteAddress: 'حذف',
   },
   en: {
     home: 'Home',
@@ -165,6 +225,36 @@ const dicts: Record<Locale, Dict> = {
     smartSearchLocal: 'Smart results',
     viewAllResults: 'View all results in shop',
     searchFailed: 'Search failed, try again',
+    newArrivals: 'New arrivals',
+    bestSellers: 'Best sellers',
+    weeklyDeals: 'Weekly deals',
+    nearbyGym: 'Nearby gym',
+    viewDetails: 'Details',
+    gymHours: 'Opening hours',
+    gymHoursHint: 'Tap for hours & membership',
+    gymSubscription: 'Membership & pricing',
+    chooseSize: 'Size',
+    chooseColor: 'Color',
+    categoriesBrowse: 'Departments',
+    sportsWorldSubtitle: 'Sports World Exhibition',
+    allInCategory: 'All products in',
+    backToCategories: 'Back to categories',
+    viewAllShop: 'Browse all products',
+    filters: 'Filters',
+    filterBrand: 'Brand',
+    filterColor: 'Color',
+    filterSize: 'Size',
+    clearFilters: 'Clear filters',
+    contactUs: 'Contact us',
+    followUs: 'Follow us on social media',
+    termsAndConditions: 'Terms & Conditions',
+    savedAddresses: 'Saved addresses',
+    noSavedAddresses: 'No saved addresses yet',
+    addAddress: 'Add address',
+    defaultAddress: 'Default',
+    setDefaultAddress: 'Set as default',
+    editAddress: 'Edit',
+    deleteAddress: 'Delete',
   },
 };
 

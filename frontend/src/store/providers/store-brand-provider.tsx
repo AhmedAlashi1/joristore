@@ -17,6 +17,7 @@ type StoreBrandCtx = {
   description: string;
   logo: string;
   theme: StoreTheme;
+  social: Record<string, string | null | undefined>;
   loaded: boolean;
 };
 
@@ -25,6 +26,7 @@ const fallback: StoreBrandCtx = {
   description: 'تسوق بكل سهولة',
   logo: DEFAULT_LOGO,
   theme: defaultTheme,
+  social: {},
   loaded: false,
 };
 
@@ -35,12 +37,14 @@ function snapshotFromApi(data: {
   description?: string | null;
   logo?: string | null;
   theme?: Partial<StoreTheme>;
+  social?: Record<string, string | null>;
 }): StoreBrandSnapshot {
   return {
     name: data.name || fallback.name,
     description: data.description,
     logo: data.logo,
     theme: { ...defaultTheme, ...data.theme },
+    social: data.social ?? {},
   };
 }
 
@@ -51,6 +55,7 @@ export function StoreBrandProvider({ children }: { children: ReactNode }) {
     description: cached?.description ?? fallback.description,
     logo: resolveBrandAsset(cached?.logo),
     theme: { ...defaultTheme, ...cached?.theme },
+    social: cached?.social ?? {},
     loaded: Boolean(cached),
   }));
 
@@ -61,7 +66,7 @@ export function StoreBrandProvider({ children }: { children: ReactNode }) {
 
     storeApi.info()
       .then((r) => {
-        const data = unwrap<{ name?: string; description?: string | null; logo?: string | null; theme?: Partial<StoreTheme> }>(r);
+        const data = unwrap<{ name?: string; description?: string | null; logo?: string | null; theme?: Partial<StoreTheme>; social?: Record<string, string | null> }>(r);
         const snap = snapshotFromApi(data);
         cacheStoreBrand(snap);
         setBrand({
@@ -69,6 +74,7 @@ export function StoreBrandProvider({ children }: { children: ReactNode }) {
           description: snap.description || fallback.description,
           logo: resolveBrandAsset(snap.logo),
           theme: snap.theme,
+          social: snap.social ?? {},
           loaded: true,
         });
       })

@@ -14,11 +14,17 @@ export function isCustomStoreLogo(logo: string): boolean {
 }
 export const STORE_BRAND_CACHE_KEY = 'jori-store-brand';
 
+export type StoreSocialLinks = Partial<Record<
+  'facebook' | 'instagram' | 'twitter' | 'tiktok' | 'snapchat' | 'youtube' | 'whatsapp',
+  string | null
+>>;
+
 export type StoreBrandSnapshot = {
   name: string;
   description?: string | null;
   logo?: string | null;
   theme: StoreTheme;
+  social?: StoreSocialLinks;
 };
 
 export const defaultTheme: StoreTheme = {

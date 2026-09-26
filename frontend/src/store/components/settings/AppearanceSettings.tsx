@@ -6,9 +6,9 @@ export function AppearanceSettings() {
   const { scheme, setScheme } = useAppearance();
 
   return (
-    <div className="glass rounded-xl p-2">
-      <p className="mb-2 px-2 text-xs font-semibold text-store-muted">{t.appearance}</p>
-      <div className="flex gap-1">
+    <div className="glass rounded-xl px-3 py-3">
+      <p className="mb-2.5 text-xs font-semibold text-store-muted">{t.appearance}</p>
+      <div className="flex gap-1.5">
         {(['light', 'dark', 'system'] as ColorScheme[]).map((mode) => (
           <button
             key={mode}

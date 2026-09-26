@@ -33,6 +33,10 @@ export function SettingsPage() {
     accent: '#28c76f',
   });
   const [themeSaving, setThemeSaving] = useState(false);
+  const [social, setSocial] = useState<Record<string, string>>({
+    instagram: '', facebook: '', twitter: '', tiktok: '', snapchat: '', youtube: '', whatsapp: '',
+  });
+  const [socialSaving, setSocialSaving] = useState(false);
 
   const themeFields = [
     { key: 'primary', labelAr: 'اللون الأساسي', labelEn: 'Primary color' },
@@ -71,6 +75,12 @@ export function SettingsPage() {
     api.get('/admin/settings/theme')
       .then((res) => setTheme(ensureApiSuccess<typeof theme>(res, '')))
       .catch(() => undefined);
+    api.get('/admin/settings/social')
+      .then((res) => {
+        const data = ensureApiSuccess<Record<string, string | null>>(res, '');
+        setSocial((prev) => ({ ...prev, ...Object.fromEntries(Object.entries(data).map(([k, v]) => [k, v ?? ''])) }));
+      })
+      .catch(() => undefined);
   }, [ar, notify]);
 
   const save = async () => {
@@ -94,6 +104,18 @@ export function SettingsPage() {
       notify.errorFrom(e, ar ? 'فشل الحفظ' : 'Save failed');
     } finally {
       setLegalSaving(false);
+    }
+  };
+
+  const saveSocial = async () => {
+    setSocialSaving(true);
+    try {
+      await api.put('/admin/settings/social', social);
+      notify.success(ar ? 'تم حفظ روابط السوشل' : 'Social links saved');
+    } catch (e) {
+      notify.errorFrom(e, ar ? 'فشل الحفظ' : 'Save failed');
+    } finally {
+      setSocialSaving(false);
     }
   };
 
@@ -224,6 +246,26 @@ export function SettingsPage() {
             <Button onClick={saveTheme} disabled={themeSaving}>
               {themeSaving ? <Loader2 className="me-2 h-4 w-4 animate-spin" /> : null}
               {ar ? 'حفظ الألوان' : 'Save colors'}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="glass-strong border-0">
+        <CardHeader><CardTitle>{ar ? 'السوشل ميديا' : 'Social media'}</CardTitle></CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-[#8a8da8]">{ar ? 'الروابط تظهر في تطبيق المتجر عند تعبئتها' : 'Links appear in the storefront when filled'}</p>
+          <FormGrid>
+            {(['instagram', 'facebook', 'twitter', 'tiktok', 'snapchat', 'youtube', 'whatsapp'] as const).map((key) => (
+              <FormField key={key} label={key}>
+                <Input dir="ltr" value={social[key] || ''} onChange={(e) => setSocial({ ...social, [key]: e.target.value })} placeholder="https://" />
+              </FormField>
+            ))}
+          </FormGrid>
+          <div className="flex justify-end">
+            <Button onClick={saveSocial} disabled={socialSaving}>
+              {socialSaving ? <Loader2 className="me-2 h-4 w-4 animate-spin" /> : null}
+              {ar ? 'حفظ السوشل' : 'Save social'}
             </Button>
           </div>
         </CardContent>

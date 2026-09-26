@@ -3,6 +3,7 @@
 use App\Modules\Authentication\Controllers\AuthController;
 use App\Modules\Catalog\Controllers\BrandController;
 use App\Modules\Catalog\Controllers\CategoryController;
+use App\Modules\Catalog\Controllers\GymController;
 use App\Modules\Catalog\Controllers\ProductController;
 use App\Modules\Customers\Controllers\CustomerNotificationController;
 use App\Modules\Dashboard\Controllers\ActivityLogController;
@@ -15,6 +16,7 @@ use App\Modules\Promotions\Controllers\CouponController;
 use App\Modules\Promotions\Controllers\PromoBannerController;
 use App\Modules\Settings\Controllers\MediaUploadController;
 use App\Modules\Settings\Controllers\StoreSettingsController;
+use App\Modules\Shipping\Controllers\DeliveryRegionController;
 use App\Modules\Shipping\Controllers\ShippingMethodController;
 use App\Modules\Storefront\Controllers\StorefrontController;
 use App\Modules\Storefront\Controllers\StorefrontPushController;
@@ -45,6 +47,8 @@ Route::middleware(['auth:sanctum', 'merchant.context'])->prefix('admin')->group(
         Route::put('settings/legal', 'updateLegal')->middleware('merchant.permission:settings.update');
         Route::get('settings/theme', 'theme')->middleware('merchant.permission:settings.view');
         Route::put('settings/theme', 'updateTheme')->middleware('merchant.permission:settings.update');
+        Route::get('settings/social', 'social')->middleware('merchant.permission:settings.view');
+        Route::put('settings/social', 'updateSocial')->middleware('merchant.permission:settings.update');
     });
 
     Route::post('media/upload', [MediaUploadController::class, 'store'])
@@ -72,9 +76,18 @@ Route::middleware(['auth:sanctum', 'merchant.context'])->prefix('admin')->group(
         Route::get('products/options', 'options')->middleware('merchant.permission:products.view|orders.view');
         Route::get('products', 'index')->middleware('merchant.permission:products.view');
         Route::post('products', 'store')->middleware('merchant.permission:products.create');
+        Route::post('products/{id}/duplicate', 'duplicate')->middleware('merchant.permission:products.create');
         Route::get('products/{id}', 'show')->middleware('merchant.permission:products.view');
         Route::put('products/{id}', 'update')->middleware('merchant.permission:products.update');
         Route::delete('products/{id}', 'destroy')->middleware('merchant.permission:products.delete');
+    });
+
+    Route::controller(GymController::class)->prefix('gyms')->group(function () {
+        Route::get('/', 'index')->middleware('merchant.permission:settings.view');
+        Route::post('/', 'store')->middleware('merchant.permission:settings.update');
+        Route::get('{id}', 'show')->middleware('merchant.permission:settings.view');
+        Route::put('{id}', 'update')->middleware('merchant.permission:settings.update');
+        Route::delete('{id}', 'destroy')->middleware('merchant.permission:settings.update');
     });
 
     Route::controller(InventoryController::class)->group(function () {
@@ -134,6 +147,17 @@ Route::middleware(['auth:sanctum', 'merchant.context'])->prefix('admin')->group(
         Route::delete('shipping-methods/{id}', 'destroy')->middleware('merchant.permission:shipping.manage');
     });
 
+    Route::controller(DeliveryRegionController::class)->prefix('delivery-regions')->group(function () {
+        Route::get('/', 'index')->middleware('merchant.permission:shipping.manage');
+        Route::post('/', 'store')->middleware('merchant.permission:shipping.manage');
+        Route::get('{id}', 'show')->middleware('merchant.permission:shipping.manage');
+        Route::put('{id}', 'update')->middleware('merchant.permission:shipping.manage');
+        Route::delete('{id}', 'destroy')->middleware('merchant.permission:shipping.manage');
+        Route::post('{id}/streets', 'storeStreet')->middleware('merchant.permission:shipping.manage');
+        Route::put('{id}/streets/{streetId}', 'updateStreet')->middleware('merchant.permission:shipping.manage');
+        Route::delete('{id}/streets/{streetId}', 'destroyStreet')->middleware('merchant.permission:shipping.manage');
+    });
+
     Route::controller(StaffController::class)->group(function () {
         Route::get('staff/roles/options', 'roleOptions')->middleware('merchant.permission:staff.view|roles.manage');
         Route::get('staff', 'index')->middleware('merchant.permission:staff.view');
@@ -171,11 +195,17 @@ Route::middleware('store.context')->prefix('store')->group(function () {
         Route::get('/', 'storeInfo');
         Route::get('theme', 'theme');
         Route::get('categories', 'categories');
+        Route::get('brands', 'brands');
+        Route::get('product-filters', 'productFilters');
         Route::get('promo-banners', 'promoBanners');
         Route::get('search/ai', 'aiSearch');
         Route::get('products', 'products');
         Route::get('products/{id}', 'productShow');
+        Route::get('gyms', 'gyms');
+        Route::get('gyms/{id}', 'gymShow');
         Route::get('shipping-methods', 'shippingMethods');
+        Route::get('delivery-regions', 'deliveryRegions');
+        Route::get('delivery-quote', 'deliveryQuote');
         Route::get('legal', 'legal');
     });
 

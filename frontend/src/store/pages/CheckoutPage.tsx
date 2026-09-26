@@ -20,6 +20,7 @@ export function CheckoutPage() {
   const [shippingMethods, setShippingMethods] = useState<ShippingMethod[]>([]);
   const [addressId, setAddressId] = useState<number | null>(null);
   const [shippingId, setShippingId] = useState<number | null>(null);
+  const [deliveryFee, setDeliveryFee] = useState<number | null>(null);
   const [note, setNote] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -41,6 +42,21 @@ export function CheckoutPage() {
       .catch(() => undefined);
   }, [isLoggedIn, refresh]);
 
+  const selectedAddress = addresses.find((a) => a.id === addressId) ?? null;
+
+  useEffect(() => {
+    if (!selectedAddress?.delivery_region_id) {
+      setDeliveryFee(null);
+      return;
+    }
+    storeApi.deliveryQuote({
+      delivery_region_id: selectedAddress.delivery_region_id,
+      street: selectedAddress.street,
+    })
+      .then((r) => setDeliveryFee(unwrap<{ price: number }>(r).price))
+      .catch(() => setDeliveryFee(null));
+  }, [selectedAddress?.id, selectedAddress?.delivery_region_id, selectedAddress?.street]);
+
   if (items.length === 0) {
     return (
       <div className="py-16 text-center">
@@ -60,14 +76,20 @@ export function CheckoutPage() {
   }
 
   const shipping = shippingMethods.find((s) => s.id === shippingId);
-  const shippingPrice = shipping && shipping.free_shipping_minimum && total >= shipping.free_shipping_minimum
+  const legacyShippingPrice = shipping && shipping.free_shipping_minimum && total >= shipping.free_shipping_minimum
     ? 0
     : (shipping?.price ?? 0);
-  const grandTotal = total + shippingPrice;
+  const usesZoneDelivery = deliveryFee != null && Boolean(selectedAddress?.delivery_region_id);
+  const shippingPrice = usesZoneDelivery ? deliveryFee : legacyShippingPrice;
+  const grandTotal = total + (shippingPrice ?? 0);
 
   const placeOrder = async () => {
     if (!addressId) {
       setError(ar ? 'اختر عنوان التوصيل' : 'Select delivery address');
+      return;
+    }
+    if (selectedAddress && !selectedAddress.delivery_region_id) {
+      setError(ar ? 'حدّث العنوان واختر المنطقة من حسابي' : 'Update your address with a delivery region');
       return;
     }
     setLoading(true);
@@ -98,7 +120,7 @@ export function CheckoutPage() {
         {addresses.length === 0 ? (
           <div className="text-sm text-[#8a8da8]">
             {ar ? 'لا توجد عناوين — ' : 'No addresses — '}
-            <Link to="/account" className="font-semibold text-[var(--primary)]">{t.account}</Link>
+            <Link to="/account/addresses" className="font-semibold text-[var(--primary)]">{ar ? 'إدارة العناوين' : 'Manage addresses'}</Link>
           </div>
         ) : (
           <div className="space-y-2">
@@ -107,7 +129,7 @@ export function CheckoutPage() {
                 <input type="radio" name="addr" checked={addressId === a.id} onChange={() => setAddressId(a.id)} className="mt-1" />
                 <div className="text-sm">
                   <p className="font-bold">{a.full_name}</p>
-                  <p className="text-[#8a8da8]">{a.city}{a.area ? `، ${a.area}` : ''}</p>
+                  <p className="text-[#8a8da8]">{a.region_name || a.city}{a.street ? ` · ${a.street}` : ''}</p>
                 </div>
               </label>
             ))}
@@ -115,7 +137,16 @@ export function CheckoutPage() {
         )}
       </section>
 
-      {shippingMethods.length > 0 ? (
+      {usesZoneDelivery ? (
+        <section className="glass-strong rounded-2xl p-4">
+          <h2 className="mb-2 text-sm font-bold">{t.shippingMethod}</h2>
+          <p className="text-sm text-[#6f6b7d]">
+            {ar ? 'توصيل حسب المنطقة' : 'Delivery by zone'}
+            {selectedAddress?.region_name ? `: ${selectedAddress.region_name}` : ''}
+          </p>
+          <p className="mt-2 text-sm font-bold text-[var(--primary)]">{formatPrice(shippingPrice ?? 0)}</p>
+        </section>
+      ) : shippingMethods.length > 0 ? (
         <section className="glass-strong rounded-2xl p-4">
           <h2 className="mb-3 text-sm font-bold">{t.shippingMethod}</h2>
           <div className="space-y-2">

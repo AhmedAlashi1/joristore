@@ -14,7 +14,9 @@ type Dictionary = {
   inventory: string;
   coupons: string;
   banners: string;
+  gyms: string;
   shipping: string;
+  deliveryRegions: string;
   notifications: string;
   staff: string;
   roles: string;
@@ -47,7 +49,9 @@ const dictionaries: Record<Locale, Dictionary> = {
     inventory: 'Inventory',
     coupons: 'Coupons',
     banners: 'Promo Banners',
+    gyms: 'Gyms',
     shipping: 'Shipping',
+    deliveryRegions: 'Delivery zones',
     notifications: 'Notifications',
     staff: 'Staff',
     roles: 'Roles',
@@ -78,7 +82,9 @@ const dictionaries: Record<Locale, Dictionary> = {
     inventory: 'المخزون',
     coupons: 'كوبونات الخصم',
     banners: 'البنرات الإعلانية',
+    gyms: 'الجيمات',
     shipping: 'الشحن',
+    deliveryRegions: 'مناطق التوصيل ₪',
     notifications: 'الإشعارات',
     staff: 'الموظفون',
     roles: 'الأدوار',

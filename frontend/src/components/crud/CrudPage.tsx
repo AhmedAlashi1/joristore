@@ -1,5 +1,6 @@
-import { Loader2, Pencil, Plus, Trash2 } from 'lucide-react';
+import { Copy, Loader2, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { AdminModal } from '../ui/AdminModal';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { LoadingSpinner } from '../ui/loading-spinner';
@@ -42,6 +43,8 @@ type CrudPageProps<T extends { id: number }> = {
   preparePayload?: (form: Record<string, unknown>, mode: 'create' | 'edit') => Record<string, unknown>;
   canEditRow?: (row: T) => boolean;
   canDeleteRow?: (row: T) => boolean;
+  canDuplicate?: boolean;
+  duplicateLabel?: string;
 };
 
 export function FormField({ label, children }: { label: string; children: ReactNode }) {
@@ -108,6 +111,8 @@ export function CrudPage<T extends { id: number }>({
   preparePayload,
   canEditRow,
   canDeleteRow,
+  canDuplicate = false,
+  duplicateLabel,
 }: CrudPageProps<T>) {
   const { locale } = useI18n();
   const notify = useNotify();
@@ -194,6 +199,21 @@ export function CrudPage<T extends { id: number }>({
     }
   };
 
+  const handleDuplicate = async (row: T) => {
+    setSaving(true);
+    try {
+      const res = await api.post(`${endpoint}/${row.id}/duplicate`);
+      const created = ensureApiSuccess<T>(res, '');
+      notify.success(ar ? 'تم النسخ — غيّر اللون والصورة ثم فعّل المنتج' : 'Duplicated — update color, image, then activate');
+      await load();
+      openEdit(created);
+    } catch (error) {
+      notify.errorFrom(error, ar ? 'فشل النسخ' : 'Duplicate failed');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleDelete = async (row: T) => {
     const ok = window.confirm(ar ? 'هل أنت متأكد من الحذف؟' : 'Are you sure you want to delete?');
     if (!ok) return;
@@ -254,7 +274,7 @@ export function CrudPage<T extends { id: number }>({
                   {columns.map((col) => (
                     <th key={col.key} className="px-4 py-3.5 text-start text-xs font-semibold uppercase tracking-wider">{col.header}</th>
                   ))}
-                  {(canUpdate || canDelete) ? <th className="px-4 py-3.5 text-end text-xs font-semibold uppercase tracking-wider">{ar ? 'إجراءات' : 'Actions'}</th> : null}
+                  {(canUpdate || canDelete || canDuplicate) ? <th className="px-4 py-3.5 text-end text-xs font-semibold uppercase tracking-wider">{ar ? 'إجراءات' : 'Actions'}</th> : null}
                 </tr>
               </thead>
               <tbody>
@@ -269,9 +289,20 @@ export function CrudPage<T extends { id: number }>({
                         {col.render ? col.render(row) : String((row as Record<string, unknown>)[col.key] ?? '-')}
                       </td>
                     ))}
-                    {(canUpdate || canDelete) ? (
+                    {(canUpdate || canDelete || canDuplicate) ? (
                       <td className="px-4 py-3">
                         <div className="flex justify-end gap-2">
+                          {canDuplicate ? (
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              title={duplicateLabel ?? (ar ? 'نسخ لون آخر' : 'Duplicate for new color')}
+                              disabled={saving}
+                              onClick={() => void handleDuplicate(row)}
+                            >
+                              <Copy className="h-4 w-4" />
+                            </Button>
+                          ) : null}
                           {canUpdate && (!canEditRow || canEditRow(row)) ? (
                             <Button variant="secondary" size="sm" onClick={() => openEdit(row)}>
                               <Pencil className="h-4 w-4" />
@@ -305,25 +336,23 @@ export function CrudPage<T extends { id: number }>({
         </div>
       ) : null}
 
-      {modalOpen ? (
-        <div className="modal-backdrop-enter fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
-          <div className="modal-panel-enter glass-strong max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl p-6">
-            <h3 className="mb-4 text-lg font-bold">
-              {mode === 'create' ? (ar ? 'إضافة' : 'Create') : (ar ? 'تعديل' : 'Edit')}
-            </h3>
-            <div className="space-y-4">
-              {renderForm(form, setForm, mode)}
-            </div>
-            <div className="mt-6 flex justify-end gap-2">
-              <Button variant="secondary" onClick={closeModal}>{ar ? 'إلغاء' : 'Cancel'}</Button>
-              <Button onClick={handleSubmit} disabled={saving}>
-                {saving ? <Loader2 className="me-2 h-4 w-4 animate-spin" /> : null}
-                {ar ? 'حفظ' : 'Save'}
-              </Button>
-            </div>
+      <AdminModal
+        open={modalOpen}
+        onClose={closeModal}
+        wide
+        title={mode === 'create' ? (ar ? 'إضافة' : 'Create') : (ar ? 'تعديل' : 'Edit')}
+        footer={(
+          <div className="flex justify-end gap-2">
+            <Button variant="secondary" onClick={closeModal}>{ar ? 'إلغاء' : 'Cancel'}</Button>
+            <Button onClick={handleSubmit} disabled={saving}>
+              {saving ? <Loader2 className="me-2 h-4 w-4 animate-spin" /> : null}
+              {ar ? 'حفظ' : 'Save'}
+            </Button>
           </div>
-        </div>
-      ) : null}
+        )}
+      >
+        <div className="space-y-4">{renderForm(form, setForm, mode)}</div>
+      </AdminModal>
     </div>
   );
 }

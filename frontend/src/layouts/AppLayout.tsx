@@ -1,4 +1,4 @@
-import { Activity, Bell, FolderTree, Image, LayoutDashboard, LogOut, Menu, Moon, Package, Settings, Shield, ShoppingCart, Sparkles, Sun, Tag, Ticket, Truck, User, UserCog, Users, Warehouse, X } from 'lucide-react';
+import { Activity, Bell, Dumbbell, FolderTree, Image, LayoutDashboard, LogOut, MapPinned, Menu, Moon, Package, Settings, Shield, ShoppingCart, Sparkles, Sun, Tag, Ticket, Truck, User, UserCog, Users, Warehouse, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/button';
@@ -22,7 +22,9 @@ const navSections = [
       { to: '/admin/customers', labelKey: 'customers' as const, icon: Users, permission: 'customers.view' },
       { to: '/admin/coupons', labelKey: 'coupons' as const, icon: Ticket, permission: 'coupons.view' },
       { to: '/admin/banners', labelKey: 'banners' as const, icon: Image, permission: 'banners.view' },
+      { to: '/admin/gyms', labelKey: 'gyms' as const, icon: Dumbbell, permission: 'settings.view' },
       { to: '/admin/shipping', labelKey: 'shipping' as const, icon: Truck, permission: 'shipping.manage' },
+      { to: '/admin/delivery-regions', labelKey: 'deliveryRegions' as const, icon: MapPinned, permission: 'shipping.manage' },
     ],
   },
   {

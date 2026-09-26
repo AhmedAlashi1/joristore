@@ -2,6 +2,7 @@ import { customerApi } from './api';
 import { getCustomerId } from './customer-storage';
 
 const VAPID_CACHE_KEY = 'jori-vapid-public-key';
+export const PUSH_OPT_OUT_KEY = 'jori-push-opt-out';
 
 export type PushEnableReason =
   | 'unsupported'
@@ -62,6 +63,9 @@ async function ensureServiceWorkerRegistration(): Promise<ServiceWorkerRegistrat
 }
 
 export async function syncPushSubscription(): Promise<{ ok: boolean; reason?: PushEnableReason }> {
+  if (localStorage.getItem(PUSH_OPT_OUT_KEY) === '1') {
+    return { ok: false, reason: 'denied' };
+  }
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
     return { ok: false, reason: 'unsupported' };
   }
@@ -145,7 +149,14 @@ export async function enablePushFromUserGesture(): Promise<{ ok: boolean; reason
     return { ok: false, reason: 'denied' };
   }
 
+  localStorage.removeItem(PUSH_OPT_OUT_KEY);
   return syncPushSubscription();
+}
+
+/** Turn off push without revoking browser notification permission. */
+export async function disablePushFromUserGesture(): Promise<void> {
+  await removePushSubscription();
+  localStorage.setItem(PUSH_OPT_OUT_KEY, '1');
 }
 
 export function pushFailureMessage(reason: PushEnableReason | undefined, ar: boolean): string {

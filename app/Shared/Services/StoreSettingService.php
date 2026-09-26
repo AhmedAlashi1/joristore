@@ -65,4 +65,41 @@ class StoreSettingService
             self::set($storeId, 'theme_'.$key, $data[$key], true, 'theme');
         }
     }
+
+    /** @return array<string, string|null> */
+    public static function socialKeys(): array
+    {
+        return [
+            'facebook' => 'social_facebook',
+            'instagram' => 'social_instagram',
+            'twitter' => 'social_twitter',
+            'tiktok' => 'social_tiktok',
+            'snapchat' => 'social_snapchat',
+            'youtube' => 'social_youtube',
+            'whatsapp' => 'social_whatsapp',
+        ];
+    }
+
+    /** @return array<string, string|null> */
+    public static function getSocial(int $storeId): array
+    {
+        $out = [];
+        foreach (self::socialKeys() as $key => $settingKey) {
+            $out[$key] = self::get($storeId, $settingKey);
+        }
+
+        return $out;
+    }
+
+    /** @param  array<string, string|null>  $data */
+    public static function setSocial(int $storeId, array $data): void
+    {
+        foreach (self::socialKeys() as $key => $settingKey) {
+            if (! array_key_exists($key, $data)) {
+                continue;
+            }
+            $value = $data[$key];
+            self::set($storeId, $settingKey, $value ?: null, true, 'social');
+        }
+    }
 }

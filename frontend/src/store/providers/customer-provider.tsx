@@ -1,5 +1,11 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { clearCustomerId, getCustomerId, setCustomerId } from '../lib/customer-storage';
+import {
+  clearCustomerId,
+  getCachedCustomerProfile,
+  getCustomerId,
+  setCachedCustomerProfile,
+  setCustomerId,
+} from '../lib/customer-storage';
 import { customerApi } from '../lib/api';
 import { removePushSubscription } from '../lib/push-subscribe';
 
@@ -17,12 +23,16 @@ export type CustomerProfile = {
 
 export type CustomerAddress = {
   id: number;
+  label?: string;
   full_name: string;
   phone?: string;
+  delivery_region_id?: number;
+  region_name?: string;
   city: string;
   area?: string;
   street?: string;
   building?: string;
+  notes?: string;
   is_default: boolean;
 };
 
@@ -39,7 +49,11 @@ type CustomerCtx = {
 const CustomerContext = createContext<CustomerCtx | null>(null);
 
 export function CustomerProvider({ children }: { children: ReactNode }) {
-  const [customer, setCustomer] = useState<CustomerProfile | null>(null);
+  const [customer, setCustomer] = useState<CustomerProfile | null>(() => {
+    const id = getCustomerId();
+    if (!id) return null;
+    return getCachedCustomerProfile();
+  });
 
   const refresh = async () => {
     const id = getCustomerId();
@@ -50,7 +64,13 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
     try {
       const res = await customerApi.profile();
       setCustomer(res);
+      setCachedCustomerProfile(res);
     } catch {
+      const cached = getCachedCustomerProfile();
+      if (cached?.id === id) {
+        setCustomer(cached);
+        return;
+      }
       clearCustomerId();
       setCustomer(null);
     }
@@ -67,11 +87,13 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
       const res = await customerApi.login(phone);
       setCustomerId(res.id);
       setCustomer(res);
+      setCachedCustomerProfile(res);
     },
     register: async (data) => {
       const res = await customerApi.register(data);
       setCustomerId(res.id);
       setCustomer(res);
+      setCachedCustomerProfile(res);
     },
     logout: () => {
       void removePushSubscription();

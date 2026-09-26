@@ -1,6 +1,12 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { customerApi } from '../lib/api';
-import { enablePushFromUserGesture, syncPushSubscription } from '../lib/push-subscribe';
+import {
+  disablePushFromUserGesture,
+  enablePushFromUserGesture,
+  PUSH_OPT_OUT_KEY,
+  syncPushSubscription,
+  type PushEnableReason,
+} from '../lib/push-subscribe';
 import { useCustomer } from './customer-provider';
 
 type CustomerNotificationRow = {
@@ -16,7 +22,8 @@ type NotificationCtx = {
   unreadCount: number;
   permission: NotificationPermission | 'unsupported';
   pushEnabled: boolean;
-  requestPermission: () => Promise<void>;
+  requestPermission: () => Promise<{ ok: boolean; reason?: PushEnableReason }>;
+  disablePush: () => Promise<void>;
   refresh: () => Promise<void>;
   markRead: (id: number) => Promise<void>;
   markAllRead: () => Promise<void>;
@@ -118,6 +125,10 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       setPushEnabled(false);
       return;
     }
+    if (localStorage.getItem(PUSH_OPT_OUT_KEY) === '1') {
+      setPushEnabled(false);
+      return;
+    }
     void syncPushSubscription()
       .then((r) => setPushEnabled(r.ok))
       .catch(() => setPushEnabled(false));
@@ -130,7 +141,13 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     if (result.ok) {
       await refresh();
     }
+    return { ok: result.ok, reason: result.reason };
   }, [refresh]);
+
+  const disablePush = useCallback(async () => {
+    await disablePushFromUserGesture();
+    setPushEnabled(false);
+  }, []);
 
   const markRead = useCallback(async (id: number) => {
     await customerApi.markNotificationRead(id);
@@ -148,10 +165,11 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     permission,
     pushEnabled,
     requestPermission,
+    disablePush,
     refresh,
     markRead,
     markAllRead,
-  }), [items, unreadCount, permission, pushEnabled, requestPermission, refresh, markRead, markAllRead]);
+  }), [items, unreadCount, permission, pushEnabled, requestPermission, disablePush, refresh, markRead, markAllRead]);
 
   return <NotificationContext.Provider value={value}>{children}</NotificationContext.Provider>;
 }

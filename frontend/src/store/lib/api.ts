@@ -35,9 +35,16 @@ export const storeApi = {
   categories: () => api.get('/store/categories', storeHeaders),
   promoBanners: () => api.get('/store/promo-banners', storeHeaders),
   products: (params?: Record<string, unknown>) => api.get('/store/products', { params, ...storeHeaders }),
+  brands: () => api.get('/store/brands', storeHeaders),
+  productFilters: (params?: Record<string, unknown>) => api.get('/store/product-filters', { params, ...storeHeaders }),
   product: (id: number) => api.get(`/store/products/${id}`, storeHeaders),
   shippingMethods: () => api.get('/store/shipping-methods', storeHeaders),
+  deliveryRegions: () => api.get('/store/delivery-regions', storeHeaders),
+  deliveryQuote: (params: { delivery_region_id: number; street?: string }) =>
+    api.get('/store/delivery-quote', { params, ...storeHeaders }),
   legal: () => api.get('/store/legal', storeHeaders),
+  gyms: (params?: Record<string, unknown>) => api.get('/store/gyms', { params, ...storeHeaders }),
+  gym: (id: number) => api.get(`/store/gyms/${id}`, storeHeaders),
 };
 
 import type { CustomerAddress, CustomerProfile } from '../providers/customer-provider';
