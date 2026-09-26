@@ -9,7 +9,7 @@ import { useLocale } from '../providers/locale-provider';
 export function AccountPage() {
   const { t, locale, toggleLocale } = useLocale();
   const ar = locale === 'ar';
-  const { customer, isLoggedIn, login, register, logout, refresh: refreshCustomer } = useCustomer();
+  const { customer, isLoggedIn, login, register, logout } = useCustomer();
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [phone, setPhone] = useState('');
   const [firstName, setFirstName] = useState('');
