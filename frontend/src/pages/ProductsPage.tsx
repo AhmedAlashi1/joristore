@@ -6,6 +6,7 @@ import { Badge } from '../components/ui/badge';
 import { mediaUrl } from '../lib/media';
 import { api } from '../lib/api';
 import { ensureApiSuccess } from '../lib/api-response';
+import { formatPrice } from '../lib/format-price';
 import { hasPermission } from '../lib/auth';
 import { useI18n } from '../providers/i18n-provider';
 
@@ -82,7 +83,7 @@ export function ProductsPage() {
       ),
     },
     { key: 'category', header: ar ? 'التصنيف' : 'Category', render: (r) => r.category_name ?? '—' },
-    { key: 'price', header: ar ? 'السعر' : 'Price', render: (r) => `${r.price.toFixed(2)} SAR` },
+    { key: 'price', header: ar ? 'السعر' : 'Price', render: (r) => formatPrice(r.price) },
     { key: 'quantity', header: ar ? 'المخزون' : 'Stock', render: (r) => (
       <span className={r.quantity <= 5 ? 'font-semibold text-[#ff9f43]' : ''}>{r.quantity}</span>
     )},

@@ -25,6 +25,8 @@ export type StoreBrandSnapshot = {
   logo?: string | null;
   theme: StoreTheme;
   social?: StoreSocialLinks;
+  currency?: string | null;
+  currencySymbol?: string | null;
 };
 
 export const defaultTheme: StoreTheme = {

@@ -23,6 +23,8 @@ class StoreSettingsController extends Controller
             return sendError('Merchant not found', [], 404);
         }
 
+        $storeId = $merchant->store?->id;
+
         return sendResponse([
             'merchant' => [
                 'business_name' => $merchant->business_name,
@@ -31,6 +33,7 @@ class StoreSettingsController extends Controller
                 'phone' => $merchant->phone,
                 'country_code' => $merchant->country_code,
                 'currency' => $merchant->currency,
+                'currency_symbol' => $storeId ? StoreSettingService::getCurrencySymbol($storeId) : StoreSettingService::defaultCurrencySymbol(),
                 'timezone' => $merchant->timezone,
                 'default_language' => $merchant->default_language,
                 'commercial_registration_number' => $merchant->commercial_registration_number,
@@ -65,6 +68,7 @@ class StoreSettingsController extends Controller
             'phone' => 'nullable|string|max:20',
             'country_code' => 'nullable|string|max:5',
             'currency' => 'nullable|string|max:5',
+            'currency_symbol' => 'nullable|string|max:12',
             'timezone' => 'nullable|string|max:64',
             'default_language' => 'nullable|string|max:5',
             'commercial_registration_number' => 'nullable|string|max:100',
@@ -106,6 +110,10 @@ class StoreSettingsController extends Controller
             'timezone' => $data['timezone'] ?? null,
             'default_language' => $data['default_language'] ?? null,
         ], fn ($v) => $v !== null));
+
+        if (array_key_exists('currency_symbol', $data)) {
+            StoreSettingService::setCurrencySymbol($merchant->store->id, $data['currency_symbol']);
+        }
 
         $this->activityLog->log('settings.updated', 'settings', 'Store settings updated', Store::class, $merchant->store->id, request: $request);
 

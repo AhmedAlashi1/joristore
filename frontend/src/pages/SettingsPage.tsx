@@ -8,6 +8,7 @@ import { ImageUploadField } from '../components/ui/ImageUploadField';
 import { api } from '../lib/api';
 import { ensureApiSuccess } from '../lib/api-response';
 import { useNotify } from '../lib/notify';
+import { formatPrice, setAdminCurrencySymbol } from '../lib/format-price';
 import { useI18n } from '../providers/i18n-provider';
 
 type SettingsData = {
@@ -55,7 +56,8 @@ export function SettingsPage() {
           email: data.merchant?.email ?? '',
           phone: data.merchant?.phone ?? '',
           country_code: data.merchant?.country_code ?? 'SA',
-          currency: data.merchant?.currency ?? 'SAR',
+          currency: data.merchant?.currency ?? 'ILS',
+          currency_symbol: data.merchant?.currency_symbol ?? '₪',
           timezone: data.merchant?.timezone ?? 'Asia/Riyadh',
           default_language: data.merchant?.default_language ?? 'ar',
           commercial_registration_number: data.merchant?.commercial_registration_number ?? '',
@@ -66,6 +68,7 @@ export function SettingsPage() {
           store_email: data.store?.email ?? '',
           store_phone: data.store?.phone ?? '',
         });
+        setAdminCurrencySymbol(data.merchant?.currency_symbol ?? '₪');
       })
       .catch(() => notify.error(ar ? 'فشل تحميل الإعدادات' : 'Failed to load settings'))
       .finally(() => setLoading(false));
@@ -87,6 +90,7 @@ export function SettingsPage() {
     setSaving(true);
     try {
       await api.put('/admin/settings/store', form);
+      setAdminCurrencySymbol(form.currency_symbol || '₪');
       notify.success(ar ? 'تم حفظ الإعدادات' : 'Settings saved');
     } catch (e) {
       notify.errorFrom(e, ar ? 'فشل الحفظ' : 'Save failed');
@@ -158,8 +162,28 @@ export function SettingsPage() {
             <FormField label={ar ? 'الهاتف' : 'Phone'}>
               <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
             </FormField>
-            <FormField label={ar ? 'العملة' : 'Currency'}>
-              <Input value={form.currency} onChange={(e) => setForm({ ...form, currency: e.target.value })} />
+            <FormField label={ar ? 'كود العملة' : 'Currency code'}>
+              <select
+                className="glass-input h-10 w-full rounded-xl px-3 text-sm"
+                value={form.currency || 'ILS'}
+                onChange={(e) => setForm({ ...form, currency: e.target.value })}
+              >
+                <option value="ILS">{ar ? 'شيكل (ILS)' : 'Shekel (ILS)'}</option>
+                <option value="SAR">{ar ? 'ريال (SAR)' : 'SAR'}</option>
+                <option value="USD">USD</option>
+                <option value="EUR">EUR</option>
+                <option value="JOD">JOD</option>
+              </select>
+            </FormField>
+            <FormField label={ar ? 'علامة العرض في المتجر' : 'Store display symbol'}>
+              <Input
+                value={form.currency_symbol ?? '₪'}
+                onChange={(e) => setForm({ ...form, currency_symbol: e.target.value })}
+                placeholder="₪"
+              />
+              <p className="mt-1 text-xs text-[#8a8da8]">
+                {ar ? `مثال: ${formatPrice(20, form.currency_symbol || '₪')}` : `Preview: ${formatPrice(20, form.currency_symbol || '₪')}`}
+              </p>
             </FormField>
             <FormField label={ar ? 'السجل التجاري' : 'CR Number'}>
               <Input value={form.commercial_registration_number} onChange={(e) => setForm({ ...form, commercial_registration_number: e.target.value })} />

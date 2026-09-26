@@ -37,6 +37,7 @@ class StorefrontController extends Controller
             'description' => $store->description,
             'logo' => $store->logo,
             'currency' => $store->currency,
+            'currency_symbol' => StoreSettingService::getCurrencySymbol($store->id),
             'default_language' => $store->default_language,
             'theme' => StoreSettingService::getTheme($store->id),
             'social' => StoreSettingService::getSocial($store->id),

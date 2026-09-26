@@ -21,8 +21,8 @@ class DemoMerchantSeeder extends Seeder
             'email' => 'admin@admin.net',
             'phone' => null,
             'password' => '123456',
-            'country_code' => 'SA',
-            'currency' => 'SAR',
+            'country_code' => 'PS',
+            'currency' => 'ILS',
             'default_language' => 'ar',
         ]);
     }

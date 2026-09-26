@@ -18,6 +18,8 @@ type StoreBrandCtx = {
   logo: string;
   theme: StoreTheme;
   social: Record<string, string | null | undefined>;
+  currency: string;
+  currencySymbol: string;
   loaded: boolean;
 };
 
@@ -27,6 +29,8 @@ const fallback: StoreBrandCtx = {
   logo: DEFAULT_LOGO,
   theme: defaultTheme,
   social: {},
+  currency: 'ILS',
+  currencySymbol: '₪',
   loaded: false,
 };
 
@@ -38,6 +42,8 @@ function snapshotFromApi(data: {
   logo?: string | null;
   theme?: Partial<StoreTheme>;
   social?: Record<string, string | null>;
+  currency?: string | null;
+  currency_symbol?: string | null;
 }): StoreBrandSnapshot {
   return {
     name: data.name || fallback.name,
@@ -45,6 +51,8 @@ function snapshotFromApi(data: {
     logo: data.logo,
     theme: { ...defaultTheme, ...data.theme },
     social: data.social ?? {},
+    currency: data.currency ?? fallback.currency,
+    currencySymbol: data.currency_symbol?.trim() || fallback.currencySymbol,
   };
 }
 
@@ -56,6 +64,8 @@ export function StoreBrandProvider({ children }: { children: ReactNode }) {
     logo: resolveBrandAsset(cached?.logo),
     theme: { ...defaultTheme, ...cached?.theme },
     social: cached?.social ?? {},
+    currency: cached?.currency ?? fallback.currency,
+    currencySymbol: cached?.currencySymbol ?? fallback.currencySymbol,
     loaded: Boolean(cached),
   }));
 
@@ -66,7 +76,15 @@ export function StoreBrandProvider({ children }: { children: ReactNode }) {
 
     storeApi.info()
       .then((r) => {
-        const data = unwrap<{ name?: string; description?: string | null; logo?: string | null; theme?: Partial<StoreTheme>; social?: Record<string, string | null> }>(r);
+        const data = unwrap<{
+          name?: string;
+          description?: string | null;
+          logo?: string | null;
+          theme?: Partial<StoreTheme>;
+          social?: Record<string, string | null>;
+          currency?: string | null;
+          currency_symbol?: string | null;
+        }>(r);
         const snap = snapshotFromApi(data);
         cacheStoreBrand(snap);
         setBrand({
@@ -75,6 +93,8 @@ export function StoreBrandProvider({ children }: { children: ReactNode }) {
           logo: resolveBrandAsset(snap.logo),
           theme: snap.theme,
           social: snap.social ?? {},
+          currency: snap.currency ?? fallback.currency,
+          currencySymbol: snap.currencySymbol ?? fallback.currencySymbol,
           loaded: true,
         });
       })

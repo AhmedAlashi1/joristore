@@ -102,4 +102,27 @@ class StoreSettingService
             self::set($storeId, $settingKey, $value ?: null, true, 'social');
         }
     }
+
+    public static function defaultCurrencySymbol(): string
+    {
+        return '₪';
+    }
+
+    public static function getCurrencySymbol(int $storeId): string
+    {
+        return self::get($storeId, 'currency_symbol', self::defaultCurrencySymbol())
+            ?? self::defaultCurrencySymbol();
+    }
+
+    public static function setCurrencySymbol(int $storeId, ?string $symbol): void
+    {
+        $value = trim((string) $symbol);
+        self::set(
+            $storeId,
+            'currency_symbol',
+            $value !== '' ? $value : self::defaultCurrencySymbol(),
+            true,
+            'general',
+        );
+    }
 }

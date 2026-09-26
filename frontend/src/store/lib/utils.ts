@@ -5,9 +5,7 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function formatPrice(amount: number, currency = 'SAR') {
-  return `${amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`;
-}
+export { formatPrice, getCurrencySymbol } from '../../lib/format-price';
 
 /** Resolve category/product image paths from API (relative or absolute URL). */
 export function resolveMediaUrl(path?: string | null): string {

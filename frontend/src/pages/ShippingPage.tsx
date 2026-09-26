@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { CrudPage, FormField, FormGrid, SelectInput, type CrudColumn } from '../components/crud/CrudPage';
 import { Input } from '../components/ui/input';
 import { Badge } from '../components/ui/badge';
+import { formatPrice } from '../lib/format-price';
 import { hasPermission } from '../lib/auth';
 import { useI18n } from '../providers/i18n-provider';
 
@@ -26,7 +27,7 @@ export function ShippingPage() {
   const columns = useMemo<CrudColumn<ShippingRow>[]>(() => [
     { key: 'name', header: ar ? 'الاسم' : 'Name', render: (r) => r.name },
     { key: 'type', header: ar ? 'النوع' : 'Type', render: (r) => r.type },
-    { key: 'price', header: ar ? 'السعر' : 'Price', render: (r) => r.type === 'free' ? (ar ? 'مجاني' : 'Free') : `${r.price.toFixed(2)} SAR` },
+    { key: 'price', header: ar ? 'السعر' : 'Price', render: (r) => r.type === 'free' ? (ar ? 'مجاني' : 'Free') : formatPrice(r.price) },
     {
       key: 'days',
       header: ar ? 'مدة التوصيل' : 'Delivery',
