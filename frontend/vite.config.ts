@@ -16,9 +16,9 @@ export default defineConfig({
       includeAssets: ['favicon.svg', 'apple-touch-icon.svg', 'logo.svg', 'pwa-192.png', 'pwa-512.png', 'push-sw.js'],
       manifest: {
         id: '/',
-        name: 'Jori Store',
-        short_name: 'Jori',
-        description: 'تسوق بكل سهولة — متجر جوري',
+        name: 'المتجر',
+        short_name: 'المتجر',
+        description: 'متجر إلكتروني',
         theme_color: '#7367f0',
         background_color: '#eef0f8',
         display: 'standalone',
@@ -52,6 +52,14 @@ export default defineConfig({
             urlPattern: /\/api\/store\/.*/i,
             handler: 'NetworkFirst',
             options: { cacheName: 'store-api-cache', networkTimeoutSeconds: 5 },
+          },
+          {
+            urlPattern: ({ url }) => url.pathname.startsWith('/storage/'),
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'store-media',
+              expiration: { maxEntries: 80, maxAgeSeconds: 60 * 60 * 24 * 30 },
+            },
           },
         ],
       },

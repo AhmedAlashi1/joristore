@@ -1,12 +1,13 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { storeApi, unwrap } from '../lib/api';
 import {
+  applyStoreDocumentMeta,
   cacheStoreBrand,
   defaultTheme,
-  DEFAULT_LOGO,
   loadCachedStoreBrand,
-  resolveBrandAsset,
-  type StoreBrandSnapshot,
+  persistLogoForOffline,
+  resolveBrandLogoDisplay,
+  snapshotFromStoreApiData,
   type StoreTheme,
 } from '../lib/store-brand';
 
@@ -24,9 +25,9 @@ type StoreBrandCtx = {
 };
 
 const fallback: StoreBrandCtx = {
-  name: 'Jori Store',
+  name: 'المتجر',
   description: 'تسوق بكل سهولة',
-  logo: DEFAULT_LOGO,
+  logo: '',
   theme: defaultTheme,
   social: {},
   currency: 'ILS',
@@ -36,32 +37,12 @@ const fallback: StoreBrandCtx = {
 
 const StoreBrandContext = createContext<StoreBrandCtx>(fallback);
 
-function snapshotFromApi(data: {
-  name?: string;
-  description?: string | null;
-  logo?: string | null;
-  theme?: Partial<StoreTheme>;
-  social?: Record<string, string | null>;
-  currency?: string | null;
-  currency_symbol?: string | null;
-}): StoreBrandSnapshot {
-  return {
-    name: data.name || fallback.name,
-    description: data.description,
-    logo: data.logo,
-    theme: { ...defaultTheme, ...data.theme },
-    social: data.social ?? {},
-    currency: data.currency ?? fallback.currency,
-    currencySymbol: data.currency_symbol?.trim() || fallback.currencySymbol,
-  };
-}
-
 export function StoreBrandProvider({ children }: { children: ReactNode }) {
   const cached = loadCachedStoreBrand();
   const [brand, setBrand] = useState<StoreBrandCtx>(() => ({
     name: cached?.name ?? fallback.name,
     description: cached?.description ?? fallback.description,
-    logo: resolveBrandAsset(cached?.logo),
+    logo: resolveBrandLogoDisplay(cached?.logo),
     theme: { ...defaultTheme, ...cached?.theme },
     social: cached?.social ?? {},
     currency: cached?.currency ?? fallback.currency,
@@ -70,6 +51,12 @@ export function StoreBrandProvider({ children }: { children: ReactNode }) {
   }));
 
   useEffect(() => {
+    const cachedBrand = loadCachedStoreBrand();
+    if (cachedBrand) {
+      applyStoreDocumentMeta(cachedBrand);
+      void persistLogoForOffline(cachedBrand.logo);
+    }
+
     const timeout = window.setTimeout(() => {
       setBrand((prev) => (prev.loaded ? prev : { ...prev, loaded: true }));
     }, 2500);
@@ -85,12 +72,14 @@ export function StoreBrandProvider({ children }: { children: ReactNode }) {
           currency?: string | null;
           currency_symbol?: string | null;
         }>(r);
-        const snap = snapshotFromApi(data);
+        const snap = snapshotFromStoreApiData(data);
         cacheStoreBrand(snap);
+        applyStoreDocumentMeta(snap);
+        void persistLogoForOffline(snap.logo);
         setBrand({
           name: snap.name,
           description: snap.description || fallback.description,
-          logo: resolveBrandAsset(snap.logo),
+          logo: resolveBrandLogoDisplay(snap.logo),
           theme: snap.theme,
           social: snap.social ?? {},
           currency: snap.currency ?? fallback.currency,

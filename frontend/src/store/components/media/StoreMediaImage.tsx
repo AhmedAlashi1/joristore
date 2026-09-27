@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { DEFAULT_LOGO } from '../../lib/store-brand';
 import { useStoreBrand } from '../../providers/store-brand-provider';
 import { cn, resolveMediaUrl } from '../../lib/utils';
 
@@ -24,7 +25,7 @@ export function StoreMediaImage({
   if (showLogo) {
     return (
       <img
-        src={logo}
+        src={logo || DEFAULT_LOGO}
         alt={alt}
         className={cn(
           'h-full w-full bg-[var(--primary-soft)] object-contain p-3',

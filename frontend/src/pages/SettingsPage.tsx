@@ -7,6 +7,7 @@ import { Input } from '../components/ui/input';
 import { ImageUploadField } from '../components/ui/ImageUploadField';
 import { api } from '../lib/api';
 import { ensureApiSuccess } from '../lib/api-response';
+import { getApiErrorMessage } from '../lib/http-error';
 import { useNotify } from '../lib/notify';
 import { formatPrice, setAdminCurrencySymbol } from '../lib/format-price';
 import { useI18n } from '../providers/i18n-provider';
@@ -47,8 +48,11 @@ export function SettingsPage() {
   ] as const;
 
   useEffect(() => {
+    let cancelled = false;
+
     api.get('/admin/settings/store')
       .then((res) => {
+        if (cancelled) return;
         const data = ensureApiSuccess<SettingsData>(res, '');
         setForm({
           business_name: data.merchant?.business_name ?? '',
@@ -65,25 +69,42 @@ export function SettingsPage() {
           store_name: data.store?.name ?? '',
           store_description: data.store?.description ?? '',
           store_logo: data.store?.logo ?? '',
+          pwa_short_name: (data.store as { pwa_short_name?: string })?.pwa_short_name ?? '',
           store_email: data.store?.email ?? '',
           store_phone: data.store?.phone ?? '',
         });
         setAdminCurrencySymbol(data.merchant?.currency_symbol ?? '₪');
       })
-      .catch(() => notify.error(ar ? 'فشل تحميل الإعدادات' : 'Failed to load settings'))
-      .finally(() => setLoading(false));
+      .catch((e) => {
+        if (cancelled) return;
+        notify.error(
+          getApiErrorMessage(e, ar ? 'فشل تحميل الإعدادات' : 'Failed to load settings'),
+        );
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
     api.get('/admin/settings/legal')
-      .then((res) => setLegal(ensureApiSuccess<Record<string, string>>(res, '')))
+      .then((res) => {
+        if (!cancelled) setLegal(ensureApiSuccess<Record<string, string>>(res, ''));
+      })
       .catch(() => undefined);
     api.get('/admin/settings/theme')
-      .then((res) => setTheme(ensureApiSuccess<typeof theme>(res, '')))
+      .then((res) => {
+        if (!cancelled) setTheme(ensureApiSuccess<typeof theme>(res, ''));
+      })
       .catch(() => undefined);
     api.get('/admin/settings/social')
       .then((res) => {
+        if (cancelled) return;
         const data = ensureApiSuccess<Record<string, string | null>>(res, '');
         setSocial((prev) => ({ ...prev, ...Object.fromEntries(Object.entries(data).map(([k, v]) => [k, v ?? ''])) }));
       })
       .catch(() => undefined);
+
+    return () => {
+      cancelled = true;
+    };
   }, [ar, notify]);
 
   const save = async () => {
@@ -202,6 +223,14 @@ export function SettingsPage() {
             <FormField label={ar ? 'اسم المتجر *' : 'Store name *'}>
               <Input value={form.store_name} onChange={(e) => setForm({ ...form, store_name: e.target.value })} />
             </FormField>
+            <FormField label={ar ? 'اسم التطبيق (قصير)' : 'PWA short name'}>
+              <Input
+                value={form.pwa_short_name ?? ''}
+                onChange={(e) => setForm({ ...form, pwa_short_name: e.target.value })}
+                placeholder={ar ? 'يظهر تحت الأيقونة على الجوال' : 'Shown under the home-screen icon'}
+                maxLength={32}
+              />
+            </FormField>
             <FormField label={ar ? 'بريد المتجر' : 'Store email'}>
               <Input value={form.store_email} onChange={(e) => setForm({ ...form, store_email: e.target.value })} />
             </FormField>
@@ -254,7 +283,7 @@ export function SettingsPage() {
             style={{ background: theme.background, color: theme.foreground }}
           >
             <p className="text-xs opacity-70">{ar ? 'معاينة' : 'Preview'}</p>
-            <p className="mt-1 text-lg font-bold" style={{ color: theme.primary }}>{form.store_name || 'Jori Store'}</p>
+            <p className="mt-1 text-lg font-bold" style={{ color: theme.primary }}>{form.store_name || (ar ? 'المتجر' : 'Store')}</p>
             <button
               type="button"
               className="mt-3 rounded-xl px-4 py-2 text-sm font-bold text-white"

@@ -21,7 +21,11 @@ export function AppHeader() {
       <header className="app-header fixed inset-x-0 top-0 z-40 mx-auto max-w-[480px] px-4 pt-[calc(6px+var(--safe-top))]">
         <div className="glass-strong flex items-center justify-between gap-2 rounded-2xl px-3 py-2.5 shadow-sm">
           <Link to="/" className="flex min-w-0 items-center gap-2">
-            <img src={logo} alt="" className="h-9 w-9 shrink-0 rounded-xl object-cover" />
+            {logo ? (
+              <img src={logo} alt="" className="h-9 w-9 shrink-0 rounded-xl object-cover" />
+            ) : (
+              <span className="h-9 w-9 shrink-0 rounded-xl bg-[var(--primary-soft)]" aria-hidden />
+            )}
             <div className="min-w-0">
               <p className="text-store-muted truncate text-[10px]">{t.welcome}</p>
               <p className="truncate text-sm font-bold text-[var(--fg)]">{storeName}</p>

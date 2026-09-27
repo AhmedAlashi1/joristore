@@ -44,6 +44,93 @@ class StorefrontController extends Controller
         ], 'Store info');
     }
 
+    public function pwaManifest()
+    {
+        $store = MerchantContext::store();
+        $theme = StoreSettingService::getTheme($store->id);
+        $shortName = StoreSettingService::get($store->id, 'pwa_short_name');
+        if (! $shortName) {
+            $shortName = mb_strlen($store->name) > 12
+                ? mb_substr($store->name, 0, 12)
+                : $store->name;
+        }
+
+        $logoUrl = $this->absolutePublicAsset($store->logo);
+        $icons = [
+            ['src' => url('/pwa-192.png'), 'sizes' => '192x192', 'type' => 'image/png', 'purpose' => 'any'],
+            ['src' => url('/pwa-512.png'), 'sizes' => '512x512', 'type' => 'image/png', 'purpose' => 'any'],
+            ['src' => url('/pwa-512.png'), 'sizes' => '512x512', 'type' => 'image/png', 'purpose' => 'maskable'],
+        ];
+
+        if ($store->logo && ! preg_match('/(^|\/)logo\.svg(\?|$)/i', $store->logo)) {
+            $icons[] = [
+                'src' => $logoUrl,
+                'sizes' => '512x512',
+                'type' => $this->guessImageMime($store->logo),
+                'purpose' => 'any',
+            ];
+            $icons[] = [
+                'src' => $logoUrl,
+                'sizes' => '512x512',
+                'type' => $this->guessImageMime($store->logo),
+                'purpose' => 'maskable',
+            ];
+        }
+
+        $manifest = [
+            'id' => '/',
+            'name' => $store->name,
+            'short_name' => $shortName,
+            'description' => $store->description ?: $store->name,
+            'theme_color' => $theme['primary'] ?? '#6c63ff',
+            'background_color' => $theme['background'] ?? '#f3f4fb',
+            'display' => 'standalone',
+            'display_override' => ['standalone', 'browser'],
+            'orientation' => 'portrait',
+            'scope' => '/',
+            'start_url' => '/',
+            'lang' => $store->default_language ?: 'ar',
+            'dir' => 'rtl',
+            'categories' => ['shopping'],
+            'icons' => $icons,
+        ];
+
+        return response()->json($manifest, 200, [
+            'Content-Type' => 'application/manifest+json; charset=UTF-8',
+            'Cache-Control' => 'public, max-age=300',
+        ]);
+    }
+
+    protected function absolutePublicAsset(?string $path): string
+    {
+        if (! $path) {
+            return url('/pwa-512.png');
+        }
+
+        if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
+            return $path;
+        }
+
+        return url($path);
+    }
+
+    protected function guessImageMime(string $path): string
+    {
+        $lower = strtolower($path);
+
+        if (str_ends_with($lower, '.svg')) {
+            return 'image/svg+xml';
+        }
+        if (str_ends_with($lower, '.png')) {
+            return 'image/png';
+        }
+        if (str_ends_with($lower, '.webp')) {
+            return 'image/webp';
+        }
+
+        return 'image/jpeg';
+    }
+
     public function theme()
     {
         $store = MerchantContext::store();

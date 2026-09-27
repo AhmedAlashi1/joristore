@@ -7,6 +7,10 @@ declare global {
   }
 }
 
+export function dismissPreSplash() {
+  document.getElementById('pre-splash')?.remove();
+}
+
 export function dispatchSplashDone() {
   if (window.__joriSplashDone) return;
   window.__joriSplashDone = true;

@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { getAuthToken } from './auth';
+import { clearAuthToken, getAuthToken } from './auth';
 
 export const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
@@ -31,3 +31,17 @@ api.interceptors.request.use((config) => {
 
   return config;
 });
+
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (axios.isAxiosError(error) && error.response?.status === 401) {
+      clearAuthToken();
+      const path = window.location.pathname;
+      if (path.startsWith('/admin') && !path.startsWith('/admin/login')) {
+        window.location.replace('/admin/login');
+      }
+    }
+    return Promise.reject(error);
+  },
+);

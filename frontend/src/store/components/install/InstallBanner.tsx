@@ -53,9 +53,9 @@ export function InstallBanner() {
             {t.installButton}
           </button>
         ) : null}
-        {isIosDevice && !canNativeInstall ? (
+        {!canNativeInstall ? (
           <button type="button" className="btn-primary flex-1" onClick={openGuide}>
-            <Share size={18} />
+            {isIosDevice ? <Share size={18} /> : <Download size={18} />}
             {t.installGuideButton}
           </button>
         ) : null}

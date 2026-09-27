@@ -1,9 +1,10 @@
-import { ChevronLeft, FileText, Languages, Loader2, LogIn, LogOut, MapPin, MessageCircle, Package, Phone, Settings, User } from 'lucide-react';
+import { ChevronLeft, FileText, Languages, Loader2, LogIn, LogOut, MapPin, MessageCircle, Package, Phone, RefreshCw, Settings, User } from 'lucide-react';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useCustomer } from '../providers/customer-provider';
 import { AppearanceSettings } from '../components/settings/AppearanceSettings';
 import { PushNotificationToggle } from '../components/settings/PushNotificationToggle';
+import { clearStorefrontCaches } from '../lib/app-cache-purge';
 import { useLocale } from '../providers/locale-provider';
 
 export function AccountPage() {
@@ -17,6 +18,17 @@ export function AccountPage() {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [clearingCache, setClearingCache] = useState(false);
+
+  const handleClearCache = async () => {
+    setClearingCache(true);
+    try {
+      await clearStorefrontCaches();
+      window.location.reload();
+    } catch {
+      setClearingCache(false);
+    }
+  };
 
   const handleAuth = async () => {
     setLoading(true);
@@ -157,6 +169,17 @@ export function AccountPage() {
           </button>
           <AppearanceSettings />
           <PushNotificationToggle />
+          <button
+            type="button"
+            onClick={handleClearCache}
+            disabled={clearingCache}
+            className="glass flex w-full items-center justify-between rounded-xl px-4 py-3.5 text-sm disabled:opacity-60"
+          >
+            <span className="flex items-center gap-2">
+              {clearingCache ? <Loader2 size={16} className="animate-spin text-[var(--primary)]" /> : <RefreshCw size={16} className="text-[var(--primary)]" />}
+              {ar ? 'مسح الكاش وتحديث التطبيق' : 'Clear cache & refresh'}
+            </span>
+          </button>
           <Link to="/contact" className="glass flex w-full items-center justify-between rounded-xl px-4 py-3.5 text-sm">
             <span className="flex items-center gap-2"><MessageCircle size={16} className="text-[var(--primary)]" /> {t.contactUs}</span>
             <ChevronLeft size={18} className="text-[#8a8da8] rtl:rotate-180" />

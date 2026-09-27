@@ -74,37 +74,8 @@ html:has(.store-app) body::-webkit-scrollbar {
   height: 0;
 }
 
-#boot-splash {
-  position: fixed;
-  inset: 0;
-  z-index: 9999;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  background: var(--bg);
-  color: var(--fg);
-  font-family: 'Cairo', system-ui, sans-serif;
-}
-
-#boot-splash img {
-  width: 120px;
-  height: 120px;
-  animation: boot-logo-in 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
-}
-
-#boot-splash p {
-  margin: 0;
-  font-size: 1.25rem;
-  font-weight: 700;
-  opacity: 0;
-  animation: boot-text-in 0.5s ease 0.3s forwards;
-}
-
-@keyframes boot-logo-in {
-  from { opacity: 0; transform: scale(0.6); }
-  to { opacity: 1; transform: scale(1); }
+.splash-logo-placeholder {
+  visibility: hidden;
 }
 
 @keyframes boot-text-in {

@@ -5,6 +5,7 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { api } from '../lib/api';
 import { setAdminAuthInfo, setAuthToken, type AdminAuthInfo } from '../lib/auth';
+import { getApiErrorMessage } from '../lib/http-error';
 import { useI18n } from '../providers/i18n-provider';
 
 export function LoginPage() {
@@ -31,8 +32,15 @@ export function LoginPage() {
       setAuthToken(token);
       setAdminAuthInfo(user);
       navigate('/admin/dashboard', { replace: true });
-    } catch (err: any) {
-      setError(err?.response?.data?.message || 'Login failed');
+    } catch (err: unknown) {
+      setError(
+        getApiErrorMessage(
+          err,
+          ar
+            ? 'فشل تسجيل الدخول — تحقق من البريد وكلمة المرور، وتأكد أن السيرفر (Laravel) يعمل على المنفذ 8000'
+            : 'Login failed — check credentials and that the API server is running',
+        ),
+      );
     } finally {
       setLoading(false);
     }

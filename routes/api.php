@@ -193,6 +193,7 @@ Route::middleware('store.context')->prefix('store')->group(function () {
 
     Route::controller(StorefrontController::class)->group(function () {
         Route::get('/', 'storeInfo');
+        Route::get('manifest.webmanifest', 'pwaManifest');
         Route::get('theme', 'theme');
         Route::get('categories', 'categories');
         Route::get('brands', 'brands');

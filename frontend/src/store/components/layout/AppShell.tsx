@@ -9,6 +9,7 @@ import { EnablePushBar } from '../notifications/EnablePushBar';
 import { useCart } from '../../providers/cart-provider';
 import { useWishlist } from '../../providers/wishlist-provider';
 import { useLocale } from '../../providers/locale-provider';
+import { WhatsAppFab } from '../social/WhatsAppFab';
 import { cn } from '../../lib/utils';
 
 const tabs = [
@@ -46,6 +47,7 @@ export function AppShell() {
 
       <InstallGuideModal />
       <InstallBanner />
+      <WhatsAppFab />
 
       <div className="bottom-nav-dock fixed inset-x-0 bottom-0 z-50 mx-auto max-w-[480px] px-3" style={{ paddingBottom: 'calc(6px + var(--safe-bottom))' }}>
         <nav className="bottom-nav glass-strong flex items-stretch justify-around rounded-[28px] px-1 py-1.5">

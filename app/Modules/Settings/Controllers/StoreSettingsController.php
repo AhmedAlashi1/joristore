@@ -43,6 +43,7 @@ class StoreSettingsController extends Controller
                 'name' => $merchant->store->name,
                 'description' => $merchant->store->description,
                 'logo' => $merchant->store->logo,
+                'pwa_short_name' => StoreSettingService::get($merchant->store->id, 'pwa_short_name', ''),
                 'email' => $merchant->store->email,
                 'phone' => $merchant->store->phone,
                 'country_code' => $merchant->store->country_code,
@@ -76,6 +77,7 @@ class StoreSettingsController extends Controller
             'store_name' => 'sometimes|required|string|max:255',
             'store_description' => 'nullable|string',
             'store_logo' => 'nullable|string|max:500',
+            'pwa_short_name' => 'nullable|string|max:32',
             'store_email' => 'nullable|email|max:255',
             'store_phone' => 'nullable|string|max:20',
         ]);
@@ -113,6 +115,16 @@ class StoreSettingsController extends Controller
 
         if (array_key_exists('currency_symbol', $data)) {
             StoreSettingService::setCurrencySymbol($merchant->store->id, $data['currency_symbol']);
+        }
+
+        if (array_key_exists('pwa_short_name', $data)) {
+            StoreSettingService::set(
+                $merchant->store->id,
+                'pwa_short_name',
+                $data['pwa_short_name'] ?: null,
+                true,
+                'store'
+            );
         }
 
         $this->activityLog->log('settings.updated', 'settings', 'Store settings updated', Store::class, $merchant->store->id, request: $request);

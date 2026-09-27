@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { prefetchStoreHome } from '../../lib/prefetch-home';
 import { useStoreBrand } from '../../providers/store-brand-provider';
+import { dismissPreSplash } from '../../lib/splash-done';
 import { cn } from '../../lib/utils';
 
 const SPLASH_MS = 2600;
@@ -18,9 +19,7 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
   const [logoSettled, setLogoSettled] = useState(false);
 
   useEffect(() => {
-    requestAnimationFrame(() => {
-      document.getElementById('boot-splash')?.remove();
-    });
+    dismissPreSplash();
     void prefetchStoreHome();
   }, []);
 
@@ -112,7 +111,11 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
         )}
       >
         <div className="splash-logo-glow" />
-        <img src={logo} alt={name} className="splash-logo" width={120} height={120} />
+        {logo ? (
+          <img src={logo} alt={name} className="splash-logo" width={120} height={120} />
+        ) : (
+          <div className="splash-logo splash-logo-placeholder" aria-hidden />
+        )}
         <div className="splash-shimmer" />
       </div>
 

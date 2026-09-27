@@ -19,14 +19,6 @@ function isIos() {
   return /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as Window & { MSStream?: unknown }).MSStream;
 }
 
-function isMobileDevice() {
-  return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
-}
-
-function shouldOfferInstall() {
-  return isMobileDevice() || isIos();
-}
-
 function installDismissed() {
   try {
     return sessionStorage.getItem(INSTALL_DISMISS_KEY) === '1';
@@ -61,8 +53,6 @@ export function InstallProvider({ children }: { children: ReactNode }) {
 
   const revealInstallUi = useCallback(() => {
     if (installed || installDismissed()) return;
-    if (!shouldOfferInstall()) return;
-
     setIconVisible(true);
     setBannerVisible(true);
   }, [installed]);
@@ -70,10 +60,14 @@ export function InstallProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (installed) return;
 
-    const early = window.__deferredInstallPrompt;
-    if (early) {
-      setDeferred(early as BeforeInstallPromptEvent);
-    }
+    const syncDeferred = () => {
+      const early = window.__deferredInstallPrompt;
+      if (early) {
+        setDeferred(early as BeforeInstallPromptEvent);
+      }
+    };
+
+    syncDeferred();
 
     const onPrompt = (e: Event) => {
       e.preventDefault();
@@ -89,6 +83,9 @@ export function InstallProvider({ children }: { children: ReactNode }) {
 
     if (window.__joriSplashDone) {
       revealInstallUi();
+    } else {
+      // Fallback if splash event already ran before this provider mounted
+      queueMicrotask(() => revealInstallUi());
     }
 
     return () => {
