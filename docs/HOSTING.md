@@ -5,7 +5,10 @@
 | Role | URL | Document root (typical cPanel) |
 |------|-----|--------------------------------|
 | **Storefront (React PWA)** | https://joristore.com | `~/public_html` ← contents of `public/spa` after `npm run build` |
-| **Laravel (API + admin + uploads)** | https://dashboard.joristore.com | `~/joristore/public` |
+| **Laravel (API + admin + uploads)** | https://dashboard.joristore.com | `~/joristore/public` (document root **must** be `public/`) |
+
+If `POST /api/admin/login` returns **404** but `POST /index.php/api/admin/login` works, enable **mod_rewrite** / point the subdomain to `public/`, or set  
+`VITE_API_BASE_URL=https://dashboard.joristore.com/index.php/api` before `npm run build`.
 
 - **Admin:** https://dashboard.joristore.com/admin  
 - **API:** https://dashboard.joristore.com/api  

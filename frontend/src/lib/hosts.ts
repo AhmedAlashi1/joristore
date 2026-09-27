@@ -31,19 +31,28 @@ export function backendPublicOrigin(): string {
   return JORI_HOSTS.dashboardOrigin;
 }
 
-/** Axios base URL (`…/api`). */
+/**
+ * Laravel API base (`…/api`).
+ * On this host, `/api/*` often 404s until mod_rewrite is fixed — `/index.php/api` works (LiteSpeed/cPanel).
+ */
 export function resolveApiBaseUrl(): string {
   const fromEnv = import.meta.env.VITE_API_BASE_URL;
   if (fromEnv && String(fromEnv).trim()) {
     return String(fromEnv).replace(/\/$/, '');
   }
 
+  const dashboardApi = import.meta.env.PROD
+    ? `${JORI_HOSTS.dashboardOrigin}/index.php/api`
+    : `${JORI_HOSTS.dashboardOrigin}/api`;
+
   if (typeof window !== 'undefined') {
     if (isStorefrontHost(window.location.hostname)) {
-      return `${JORI_HOSTS.dashboardOrigin}/api`;
+      return dashboardApi;
     }
     if (isDashboardHost(window.location.hostname)) {
-      return `${window.location.origin}/api`;
+      return import.meta.env.PROD
+        ? `${window.location.origin}/index.php/api`
+        : `${window.location.origin}/api`;
     }
   }
 
