@@ -32,6 +32,18 @@ function apiPathPrefix(): string {
   return useIndexPhpApi() ? '/index.php' : '';
 }
 
+/** Fix baked `.env` like `https://dashboard…/api` (LiteSpeed 404 without `index.php`). */
+function normalizeApiBaseUrl(raw: string): string {
+  const url = raw.trim().replace(/\/$/, '');
+  if (!useIndexPhpApi()) return url;
+
+  const dash = JORI_HOSTS.dashboardOrigin;
+  if (url === `${dash}/api` || url.startsWith(`${dash}/api/`)) {
+    return url.replace(`${dash}/api`, `${dash}/index.php/api`);
+  }
+  return url;
+}
+
 /** Laravel app URL (API + `/storage`). */
 export function backendPublicOrigin(): string {
   const fromEnv = envBackendOrigin();
@@ -51,7 +63,11 @@ export function backendPublicOrigin(): string {
 export function resolveApiBaseUrl(): string {
   const fromEnv = import.meta.env.VITE_API_BASE_URL;
   if (fromEnv && String(fromEnv).trim()) {
-    return String(fromEnv).replace(/\/$/, '');
+    const envVal = String(fromEnv).trim().replace(/\/$/, '');
+    // Dev proxy path must not ship in production builds (store would call joristore.com/api).
+    if (!(envVal === '/api' && !import.meta.env.DEV)) {
+      return normalizeApiBaseUrl(envVal);
+    }
   }
 
   if (import.meta.env.DEV) {

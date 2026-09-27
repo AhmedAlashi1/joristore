@@ -38,7 +38,7 @@ rsync -av ../public/spa/ ~/public_html/
 Recommended production env (`frontend/.env.production`):
 
 ```env
-VITE_API_BASE_URL=https://dashboard.joristore.com/api
+VITE_API_BASE_URL=https://dashboard.joristore.com/index.php/api
 VITE_BACKEND_ORIGIN=https://dashboard.joristore.com
 VITE_STORE_SLUG=jori-store
 ```

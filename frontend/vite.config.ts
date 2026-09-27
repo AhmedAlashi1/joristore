@@ -68,14 +68,9 @@ export default defineConfig(({ mode }) => {
             options: { cacheName: 'google-fonts-cache', expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 * 365 } },
           },
           {
-            urlPattern: /\/api\/store\/.*/i,
+            urlPattern: /^https:\/\/dashboard\.joristore\.com\/index.php\/api\/store\/.*/i,
             handler: 'NetworkFirst',
-            options: { cacheName: 'store-api-cache', networkTimeoutSeconds: 5 },
-          },
-          {
-            urlPattern: /^https:\/\/dashboard\.joristore\.com\/api\/store\/.*/i,
-            handler: 'NetworkFirst',
-            options: { cacheName: 'store-api-cache-remote', networkTimeoutSeconds: 5 },
+            options: { cacheName: 'store-api-cache', networkTimeoutSeconds: 8 },
           },
           {
             urlPattern: ({ url }) => url.pathname.startsWith('/storage/'),
