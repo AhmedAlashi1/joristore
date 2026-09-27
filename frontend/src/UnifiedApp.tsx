@@ -1,6 +1,7 @@
-import { Route, Routes, useLocation } from 'react-router-dom';
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { useEffect } from 'react';
 import { AdminRoot } from './AdminRoot';
+import { isDashboardHost } from './lib/hosts';
 import { StoreRoot } from './store/StoreRoot';
 
 function AppModeSync() {
@@ -15,12 +16,19 @@ function AppModeSync() {
 }
 
 export default function UnifiedApp() {
+  const dashboardOnly =
+    typeof window !== 'undefined' && isDashboardHost(window.location.hostname);
+
   return (
     <>
       <AppModeSync />
       <Routes>
         <Route path="/admin/*" element={<AdminRoot />} />
-        <Route path="/*" element={<StoreRoot />} />
+        {dashboardOnly ? (
+          <Route path="*" element={<Navigate to="/admin/login" replace />} />
+        ) : (
+          <Route path="/*" element={<StoreRoot />} />
+        )}
       </Routes>
     </>
   );

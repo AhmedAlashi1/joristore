@@ -34,10 +34,15 @@ if (! function_exists('publicFileResponse')) {
 }
 
 Route::get('/', function () {
+    $appHost = parse_url((string) config('app.url'), PHP_URL_HOST);
+    if ($appHost && strcasecmp($appHost, request()->getHost()) === 0) {
+        return redirect('/admin/login');
+    }
+
     return response()->json([
         'app' => config('app.name'),
         'type' => 'api',
-        'message' => 'Jori Store API — frontend runs separately (see /frontend)',
+        'message' => 'Jori Store API — storefront at https://joristore.com',
         'api' => url('/api'),
         'storage' => url('/storage'),
     ]);

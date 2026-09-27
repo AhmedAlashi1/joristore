@@ -25,9 +25,12 @@ export function LoginPage() {
 
     try {
       const res = await api.post('/admin/login', { email, password });
-      const token = res?.data?.data?.token;
-      const user = res?.data?.data?.user as AdminAuthInfo | undefined;
-      if (!token) throw new Error('Token not found');
+      const body = res?.data as { data?: { token?: string; user?: AdminAuthInfo }; message?: string } | undefined;
+      const token = body?.data?.token;
+      const user = body?.data?.user;
+      if (!token) {
+        throw new Error(body?.message || (ar ? 'لم يرجع السيرفر token — تحقق من APP_URL و/api/admin/login' : 'API did not return a token'));
+      }
       if (!user) throw new Error('User data not found');
       setAuthToken(token);
       setAdminAuthInfo(user);

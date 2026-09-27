@@ -54,11 +54,15 @@ cd ~/joristore/frontend && npm ci && npm run build
 # Storefront (joristore.com)
 rsync -av ~/joristore/public/spa/ ~/public_html/
 
-# Dashboard (Laravel public — /admin + /assets)
-rsync -av ~/joristore/public/spa/ ~/joristore/public/
+# Dashboard (Laravel — /admin + /assets; do NOT leave public/index.html or `/` shows the shop)
+rsync -av --exclude index.html ~/joristore/public/spa/ ~/joristore/public/
+mkdir -p ~/joristore/public/spa
+rsync -av ~/joristore/public/spa/index.html ~/joristore/public/spa/
 ```
 
-Without the second `rsync`, `https://dashboard.joristore.com/admin` returns **404** (Laravel has no Blade admin — only the React shell).
+Or: `bash scripts/publish-spa.sh` from the repo root.
+
+Without assets in `public/`, `/admin` **404**s. With `public/index.html`, `/` shows the **storefront** instead of admin login.
 
 4. Confirm logo URL returns `Content-Type: image/jpeg`, not `text/html`
 
