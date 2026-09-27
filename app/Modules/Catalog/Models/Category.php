@@ -13,7 +13,7 @@ class Category extends Model
     use BelongsToMerchant, SoftDeletes;
 
     protected $fillable = [
-        'merchant_id', 'parent_id', 'name', 'slug', 'description', 'image',
+        'merchant_id', 'parent_id', 'name', 'name_en', 'slug', 'description', 'description_en', 'image',
         'status', 'sort_order', 'created_by', 'updated_by',
     ];
 

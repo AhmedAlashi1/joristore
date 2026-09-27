@@ -144,11 +144,12 @@ class StorefrontController extends Controller
             ->where('status', 'active')
             ->orderBy('sort_order')
             ->orderBy('name')
-            ->get(['id', 'name', 'slug', 'parent_id', 'image', 'sort_order']);
+            ->get(['id', 'name', 'name_en', 'slug', 'parent_id', 'image', 'sort_order']);
 
         $mapped = $items->map(fn (Category $c) => [
             'id' => $c->id,
             'name' => $c->name,
+            'name_en' => $c->name_en,
             'slug' => $c->slug,
             'parent_id' => $c->parent_id,
             'image' => $c->image,
@@ -334,7 +335,7 @@ class StorefrontController extends Controller
 
         $query = $this->baseStorefrontProductQuery($request)
             ->with([
-                'category:id,name',
+                'category:id,name,name_en',
                 'brand:id,name',
                 'defaultVariant.inventory',
                 'images' => fn ($q) => $q->orderByDesc('is_primary')->orderBy('sort_order')->limit(1),
@@ -346,6 +347,16 @@ class StorefrontController extends Controller
             $query->withCount('orderItems as sales_count')->orderByDesc('sales_count')->orderByDesc('id');
         } elseif ($sort === 'new') {
             $query->orderByDesc('created_at')->orderByDesc('id');
+        } elseif ($sort === 'price_asc' || $sort === 'price_desc') {
+            $direction = $sort === 'price_asc' ? 'asc' : 'desc';
+            $query->orderBy(
+                ProductVariant::query()
+                    ->select('price_amount')
+                    ->whereColumn('product_id', 'products.id')
+                    ->where('is_default', true)
+                    ->limit(1),
+                $direction
+            )->orderByDesc('products.id');
         } else {
             $query->orderByDesc('featured')->orderByDesc('id');
         }
@@ -369,7 +380,7 @@ class StorefrontController extends Controller
     {
         $product = Product::query()
             ->with([
-                'category:id,name',
+                'category:id,name,name_en',
                 'brand:id,name',
                 'variants.inventory',
                 'defaultVariant.inventory',
@@ -406,11 +417,14 @@ class StorefrontController extends Controller
         $data = [
             'id' => $product->id,
             'name' => $product->name,
+            'name_en' => $product->name_en,
             'slug' => $product->slug,
             'short_description' => $product->short_description,
+            'short_description_en' => $product->short_description_en,
             'featured' => $product->featured,
             'category_id' => $product->category_id,
             'category_name' => $product->category?->name,
+            'category_name_en' => $product->category?->name_en,
             'price' => MoneyHelper::fromMinor($variant?->price_amount),
             'compare_at_price' => MoneyHelper::fromMinor($variant?->compare_at_price_amount),
             'in_stock' => ($inventory?->quantity ?? 0) > 0,
@@ -425,6 +439,7 @@ class StorefrontController extends Controller
 
         if ($detailed) {
             $data['description'] = $product->description;
+            $data['description_en'] = $product->description_en;
             $data['quantity'] = $inventory?->quantity ?? 0;
             $data['product_group_id'] = $product->product_group_id;
             $variants = $product->relationLoaded('variants') ? $product->variants : collect();

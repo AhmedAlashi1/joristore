@@ -15,6 +15,9 @@ import { LoginPage } from './pages/LoginPage';
 import { NotificationsPage } from './pages/NotificationsPage';
 import { OrdersPage } from './pages/OrdersPage';
 import { ProductsPage } from './pages/ProductsPage';
+import { ProductCreatePage } from './pages/products/ProductCreatePage';
+import { ProductEditPage } from './pages/products/ProductEditPage';
+import { ProductViewPage } from './pages/products/ProductViewPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { RolesPage } from './pages/RolesPage';
 import { SettingsPage } from './pages/SettingsPage';
@@ -41,6 +44,9 @@ export default function AdminApp() {
         <Route path="dashboard" element={<PermissionRoute permission="dashboard.view"><DashboardPage /></PermissionRoute>} />
         <Route path="orders" element={<PermissionRoute permission="orders.view"><OrdersPage /></PermissionRoute>} />
         <Route path="customers" element={<PermissionRoute permission="customers.view"><CustomersPage /></PermissionRoute>} />
+        <Route path="products/new" element={<PermissionRoute permission="products.create"><ProductCreatePage /></PermissionRoute>} />
+        <Route path="products/:id/edit" element={<PermissionRoute permission="products.update"><ProductEditPage /></PermissionRoute>} />
+        <Route path="products/:id" element={<PermissionRoute permission="products.view"><ProductViewPage /></PermissionRoute>} />
         <Route path="products" element={<PermissionRoute permission="products.view"><ProductsPage /></PermissionRoute>} />
         <Route path="categories" element={<PermissionRoute permission="categories.view"><CategoriesPage /></PermissionRoute>} />
         <Route path="brands" element={<PermissionRoute permission="brands.view"><BrandsPage /></PermissionRoute>} />

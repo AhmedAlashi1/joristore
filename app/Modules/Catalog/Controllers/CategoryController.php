@@ -5,6 +5,7 @@ namespace App\Modules\Catalog\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\Catalog\Models\Category;
 use App\Shared\Services\ActivityLogService;
+use App\Shared\Services\CatalogTranslationService;
 use App\Shared\Services\MerchantContext;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
@@ -13,7 +14,10 @@ use Illuminate\Validation\Rule;
 
 class CategoryController extends Controller
 {
-    public function __construct(protected ActivityLogService $activityLog) {}
+    public function __construct(
+        protected ActivityLogService $activityLog,
+        protected CatalogTranslationService $catalogTranslation,
+    ) {}
 
     public function index(Request $request)
     {
@@ -57,7 +61,11 @@ class CategoryController extends Controller
         }
 
         $data = $validator->validated();
-        $slug = $this->uniqueSlug($data['slug'] ?? $data['name'], $merchantId);
+        $data = $this->catalogTranslation->applyEnglishFromArabic($data, [
+            'name' => 'name_en',
+            'description' => 'description_en',
+        ]);
+        $slug = $this->uniqueSlug($data['slug'] ?? $data['name_en'] ?? $data['name'], $merchantId);
 
         $category = Category::create([
             ...$data,
@@ -106,8 +114,13 @@ class CategoryController extends Controller
         }
 
         $data = $validator->validated();
+        $data = $this->catalogTranslation->applyEnglishFromArabic($data, [
+            'name' => 'name_en',
+            'description' => 'description_en',
+        ]);
         if (isset($data['name']) || isset($data['slug'])) {
-            $data['slug'] = $this->uniqueSlug($data['slug'] ?? $data['name'] ?? $category->name, $merchantId, $category->id);
+            $slugSource = $data['slug'] ?? $data['name_en'] ?? $data['name'] ?? $category->name_en ?? $category->name;
+            $data['slug'] = $this->uniqueSlug($slugSource, $merchantId, $category->id);
         }
 
         $data['updated_by'] = auth()->id();
@@ -159,10 +172,12 @@ class CategoryController extends Controller
         return [
             'id' => $category->id,
             'name' => $category->name,
+            'name_en' => $category->name_en,
             'slug' => $category->slug,
             'parent_id' => $category->parent_id,
             'parent_name' => $category->parent?->name,
             'description' => $category->description,
+            'description_en' => $category->description_en,
             'image' => $category->image,
             'status' => $category->status,
             'sort_order' => $category->sort_order,

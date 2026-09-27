@@ -9,6 +9,8 @@ type StoreMediaImageProps = {
   className?: string;
   /** cover for photos, contain for logo fallback */
   fit?: 'cover' | 'contain';
+  /** fill parent box vs natural width (full image visible, no letterboxing) */
+  layout?: 'fill' | 'intrinsic';
 };
 
 export function StoreMediaImage({
@@ -16,6 +18,7 @@ export function StoreMediaImage({
   alt,
   className,
   fit = 'cover',
+  layout = 'fill',
 }: StoreMediaImageProps) {
   const { logo } = useStoreBrand();
   const [failed, setFailed] = useState(false);
@@ -36,12 +39,26 @@ export function StoreMediaImage({
     );
   }
 
+  if (layout === 'intrinsic') {
+    return (
+      <img
+        src={resolved}
+        alt={alt}
+        className={cn('block h-auto w-full max-w-full', className)}
+        loading="lazy"
+        decoding="async"
+        onError={() => setFailed(true)}
+      />
+    );
+  }
+
   return (
     <img
       src={resolved}
       alt={alt}
       className={cn('h-full w-full', fit === 'cover' ? 'object-cover' : 'object-contain', className)}
       loading="lazy"
+      decoding="async"
       onError={() => setFailed(true)}
     />
   );

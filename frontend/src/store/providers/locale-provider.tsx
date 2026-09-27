@@ -75,6 +75,11 @@ type Dict = {
   filterColor: string;
   filterSize: string;
   clearFilters: string;
+  filtersAndSort: string;
+  sortByPrice: string;
+  sortPriceLowHigh: string;
+  sortPriceHighLow: string;
+  showResults: string;
   contactUs: string;
   followUs: string;
   termsAndConditions: string;
@@ -160,7 +165,12 @@ const dicts: Record<Locale, Dict> = {
     filterBrand: 'الماركة',
     filterColor: 'اللون',
     filterSize: 'المقاس',
-    clearFilters: 'مسح الفلاتر',
+    clearFilters: 'مسح الكل',
+    filtersAndSort: 'فلترة وترتيب',
+    sortByPrice: 'ترتيب السعر',
+    sortPriceLowHigh: 'من الأقل للأعلى',
+    sortPriceHighLow: 'من الأعلى للأقل',
+    showResults: 'عرض النتائج',
     contactUs: 'تواصل معنا',
     followUs: 'تابعنا على السوشال ميديا',
     termsAndConditions: 'الشروط والأحكام',
@@ -244,7 +254,12 @@ const dicts: Record<Locale, Dict> = {
     filterBrand: 'Brand',
     filterColor: 'Color',
     filterSize: 'Size',
-    clearFilters: 'Clear filters',
+    clearFilters: 'Clear all',
+    filtersAndSort: 'Filter & sort',
+    sortByPrice: 'Sort by price',
+    sortPriceLowHigh: 'Low to high',
+    sortPriceHighLow: 'High to low',
+    showResults: 'Show results',
     contactUs: 'Contact us',
     followUs: 'Follow us on social media',
     termsAndConditions: 'Terms & Conditions',

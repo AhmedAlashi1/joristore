@@ -15,8 +15,9 @@ class Product extends Model
 
     protected $fillable = [
         'merchant_id', 'category_id', 'brand_id', 'product_group_id', 'color_name', 'color_hex',
-        'name', 'slug', 'product_type',
-        'status', 'short_description', 'description', 'seo_title', 'seo_description',
+        'name', 'name_en', 'slug', 'product_type',
+        'status', 'short_description', 'short_description_en', 'description', 'description_en',
+        'seo_title', 'seo_description',
         'featured', 'requires_shipping', 'is_taxable', 'published_at',
         'created_by', 'updated_by',
     ];

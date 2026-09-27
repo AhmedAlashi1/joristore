@@ -5,6 +5,7 @@ use App\Modules\Catalog\Controllers\BrandController;
 use App\Modules\Catalog\Controllers\CategoryController;
 use App\Modules\Catalog\Controllers\GymController;
 use App\Modules\Catalog\Controllers\ProductController;
+use App\Modules\Customers\Controllers\CustomerController;
 use App\Modules\Customers\Controllers\CustomerNotificationController;
 use App\Modules\Dashboard\Controllers\ActivityLogController;
 use App\Modules\Dashboard\Controllers\DashboardController;
@@ -75,6 +76,8 @@ Route::middleware(['auth:sanctum', 'merchant.context'])->prefix('admin')->group(
     Route::controller(ProductController::class)->group(function () {
         Route::get('products/options', 'options')->middleware('merchant.permission:products.view|orders.view');
         Route::get('products', 'index')->middleware('merchant.permission:products.view');
+        Route::post('products/bulk-delete', 'bulkDestroy')->middleware('merchant.permission:products.delete');
+        Route::post('products/delete-all', 'destroyAll')->middleware('merchant.permission:products.delete');
         Route::post('products', 'store')->middleware('merchant.permission:products.create');
         Route::post('products/{id}/duplicate', 'duplicate')->middleware('merchant.permission:products.create');
         Route::get('products/{id}', 'show')->middleware('merchant.permission:products.view');
@@ -147,15 +150,15 @@ Route::middleware(['auth:sanctum', 'merchant.context'])->prefix('admin')->group(
         Route::delete('shipping-methods/{id}', 'destroy')->middleware('merchant.permission:shipping.manage');
     });
 
-    Route::controller(DeliveryRegionController::class)->prefix('delivery-regions')->group(function () {
-        Route::get('/', 'index')->middleware('merchant.permission:shipping.manage');
-        Route::post('/', 'store')->middleware('merchant.permission:shipping.manage');
-        Route::get('{id}', 'show')->middleware('merchant.permission:shipping.manage');
-        Route::put('{id}', 'update')->middleware('merchant.permission:shipping.manage');
-        Route::delete('{id}', 'destroy')->middleware('merchant.permission:shipping.manage');
-        Route::post('{id}/streets', 'storeStreet')->middleware('merchant.permission:shipping.manage');
-        Route::put('{id}/streets/{streetId}', 'updateStreet')->middleware('merchant.permission:shipping.manage');
-        Route::delete('{id}/streets/{streetId}', 'destroyStreet')->middleware('merchant.permission:shipping.manage');
+    Route::controller(DeliveryRegionController::class)->group(function () {
+        Route::get('delivery-regions', 'index')->middleware('merchant.permission:shipping.manage');
+        Route::post('delivery-regions', 'store')->middleware('merchant.permission:shipping.manage');
+        Route::get('delivery-regions/{id}', 'show')->middleware('merchant.permission:shipping.manage');
+        Route::put('delivery-regions/{id}', 'update')->middleware('merchant.permission:shipping.manage');
+        Route::delete('delivery-regions/{id}', 'destroy')->middleware('merchant.permission:shipping.manage');
+        Route::post('delivery-regions/{id}/streets', 'storeStreet')->middleware('merchant.permission:shipping.manage');
+        Route::put('delivery-regions/{id}/streets/{streetId}', 'updateStreet')->middleware('merchant.permission:shipping.manage');
+        Route::delete('delivery-regions/{id}/streets/{streetId}', 'destroyStreet')->middleware('merchant.permission:shipping.manage');
     });
 
     Route::controller(StaffController::class)->group(function () {

@@ -1,11 +1,14 @@
 import { Link } from 'react-router-dom';
 import { FavoriteButton } from './FavoriteButton';
 import { StoreMediaImage } from '../media/StoreMediaImage';
+import { pickLocalizedText } from '../../lib/localized-text';
+import { useLocale } from '../../providers/locale-provider';
 import { cn, formatPrice } from '../../lib/utils';
 
 export type ProductCardData = {
   id: number;
   name: string;
+  name_en?: string | null;
   price: number;
   variant_id?: number;
   compare_at_price?: number;
@@ -30,6 +33,9 @@ export function ProductCard({
   compact?: boolean;
   rail?: boolean;
 }) {
+  const { locale } = useLocale();
+  const displayName = pickLocalizedText(locale, product.name, product.name_en);
+
   return (
     <Link
       to={`/product/${product.id}`}
@@ -42,11 +48,12 @@ export function ProductCard({
       )}
       style={compact ? undefined : { animationDelay: `${index * 0.07}s` }}
     >
-      <div className="relative flex aspect-[4/5] items-center justify-center overflow-hidden bg-[var(--primary-soft)]">
+      <div className="relative overflow-hidden bg-neutral-100">
         <StoreMediaImage
           src={product.image}
-          alt={product.name}
-          className="transition-transform duration-500 group-active:scale-105"
+          alt={displayName}
+          layout="intrinsic"
+          className="transition-transform duration-500 group-active:scale-[1.02]"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-white/40 to-transparent opacity-0 transition-opacity duration-300 group-active:opacity-100" />
         {product.featured ? (
@@ -64,7 +71,7 @@ export function ProductCard({
             product={{
               productId: product.id,
               productVariantId: product.variant_id,
-              name: product.name,
+              name: displayName,
               price: product.price,
               compare_at_price: product.compare_at_price,
               in_stock: product.in_stock,
@@ -75,7 +82,7 @@ export function ProductCard({
         </div>
       </div>
       <div className={cn('p-2.5', compact && 'p-2')}>
-        <p className="line-clamp-2 text-sm font-bold leading-snug text-[var(--fg)]">{product.name}</p>
+        <p className="line-clamp-2 text-sm font-bold leading-snug text-[var(--fg)]">{displayName}</p>
         {product.brand_name ? (
           <p className="mt-0.5 text-[10px] font-bold uppercase tracking-wide text-[var(--primary)]">{product.brand_name}</p>
         ) : null}

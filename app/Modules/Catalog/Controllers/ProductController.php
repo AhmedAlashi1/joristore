@@ -9,6 +9,7 @@ use App\Modules\Catalog\Models\Product;
 use App\Modules\Catalog\Models\ProductImage;
 use App\Modules\Catalog\Models\ProductVariant;
 use App\Shared\Services\ActivityLogService;
+use App\Shared\Services\CatalogTranslationService;
 use App\Shared\Services\MerchantContext;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -18,7 +19,10 @@ use Illuminate\Validation\Rule;
 
 class ProductController extends Controller
 {
-    public function __construct(protected ActivityLogService $activityLog) {}
+    public function __construct(
+        protected ActivityLogService $activityLog,
+        protected CatalogTranslationService $catalogTranslation,
+    ) {}
 
     public function index(Request $request)
     {
@@ -86,6 +90,8 @@ class ProductController extends Controller
             'cost' => 'nullable|numeric|min:0',
             'quantity' => 'nullable|integer|min:0',
             'image' => 'nullable|string|max:500',
+            'gallery' => 'nullable|array',
+            'gallery.*' => 'nullable|string|max:500',
             'product_group_id' => 'nullable|uuid',
             'color_name' => 'nullable|string|max:64',
             'color_hex' => 'nullable|string|max:16',
@@ -101,7 +107,12 @@ class ProductController extends Controller
         }
 
         $data = $validator->validated();
-        $slug = $this->uniqueSlug($data['slug'] ?? $data['name'], $merchantId);
+        $data = $this->catalogTranslation->applyEnglishFromArabic($data, [
+            'name' => 'name_en',
+            'short_description' => 'short_description_en',
+            'description' => 'description_en',
+        ]);
+        $slug = $this->uniqueSlug($data['slug'] ?? $data['name_en'] ?? $data['name'], $merchantId);
 
         $groupId = $data['product_group_id'] ?? null;
         if (! $groupId && ! empty($data['color_name'])) {
@@ -111,6 +122,7 @@ class ProductController extends Controller
         $product = DB::transaction(function () use ($data, $slug, $merchantId, $groupId) {
             $product = Product::create([
                 'name' => $data['name'],
+                'name_en' => $data['name_en'] ?? null,
                 'slug' => $slug,
                 'category_id' => $data['category_id'] ?? null,
                 'brand_id' => $data['brand_id'] ?? null,
@@ -120,7 +132,9 @@ class ProductController extends Controller
                 'product_type' => 'simple',
                 'status' => $data['status'] ?? 'draft',
                 'short_description' => $data['short_description'] ?? null,
+                'short_description_en' => $data['short_description_en'] ?? null,
                 'description' => $data['description'] ?? null,
+                'description_en' => $data['description_en'] ?? null,
                 'featured' => $data['featured'] ?? false,
                 'published_at' => ($data['status'] ?? 'draft') === 'active' ? now() : null,
                 'created_by' => auth()->id(),
@@ -160,8 +174,8 @@ class ProductController extends Controller
             return $product->load(['category', 'brand', 'defaultVariant.inventory', 'variants.inventory', 'images']);
         });
 
-        $this->syncPrimaryImage($product, $data['image'] ?? null);
-        $product->load(['images' => fn ($q) => $q->orderByDesc('is_primary')->orderBy('sort_order')->limit(1)]);
+        $this->syncProductImages($product, $data['image'] ?? null, $data['gallery'] ?? []);
+        $product->load(['images' => fn ($q) => $q->orderByDesc('is_primary')->orderBy('sort_order')]);
 
         $this->activityLog->log('product.created', 'products', "Product {$product->name} created", Product::class, $product->id, request: $request);
 
@@ -202,6 +216,8 @@ class ProductController extends Controller
             'cost' => 'nullable|numeric|min:0',
             'quantity' => 'nullable|integer|min:0',
             'image' => 'nullable|string|max:500',
+            'gallery' => 'nullable|array',
+            'gallery.*' => 'nullable|string|max:500',
             'product_group_id' => 'nullable|uuid',
             'color_name' => 'nullable|string|max:64',
             'color_hex' => 'nullable|string|max:16',
@@ -217,10 +233,16 @@ class ProductController extends Controller
         }
 
         $data = $validator->validated();
+        $data = $this->catalogTranslation->applyEnglishFromArabic($data, [
+            'name' => 'name_en',
+            'short_description' => 'short_description_en',
+            'description' => 'description_en',
+        ]);
 
         DB::transaction(function () use ($product, $data, $merchantId) {
             $productData = array_filter([
                 'name' => $data['name'] ?? null,
+                'name_en' => $data['name_en'] ?? null,
                 'category_id' => array_key_exists('category_id', $data) ? $data['category_id'] : null,
                 'brand_id' => array_key_exists('brand_id', $data) ? $data['brand_id'] : null,
                 'product_group_id' => array_key_exists('product_group_id', $data) ? $data['product_group_id'] : null,
@@ -228,13 +250,20 @@ class ProductController extends Controller
                 'color_hex' => array_key_exists('color_hex', $data) ? $data['color_hex'] : null,
                 'status' => $data['status'] ?? null,
                 'short_description' => $data['short_description'] ?? null,
+                'short_description_en' => $data['short_description_en'] ?? null,
                 'description' => $data['description'] ?? null,
+                'description_en' => $data['description_en'] ?? null,
                 'featured' => $data['featured'] ?? null,
                 'updated_by' => auth()->id(),
             ], fn ($v) => $v !== null);
 
             if (isset($data['name']) || isset($data['slug'])) {
-                $productData['slug'] = $this->uniqueSlug($data['slug'] ?? $data['name'] ?? $product->name, $merchantId, $product->id);
+                $slugSource = $data['slug']
+                    ?? $data['name_en']
+                    ?? $data['name']
+                    ?? $product->name_en
+                    ?? $product->name;
+                $productData['slug'] = $this->uniqueSlug($slugSource, $merchantId, $product->id);
             }
 
             if (isset($data['status']) && $data['status'] === 'active' && ! $product->published_at) {
@@ -269,8 +298,14 @@ class ProductController extends Controller
                 }
             }
 
-            if (array_key_exists('image', $data)) {
-                $this->syncPrimaryImage($product, $data['image']);
+            if (array_key_exists('image', $data) || array_key_exists('gallery', $data)) {
+                $primary = array_key_exists('image', $data)
+                    ? ($data['image'] ?? null)
+                    : $this->primaryImagePath($product);
+                $gallery = array_key_exists('gallery', $data)
+                    ? ($data['gallery'] ?? [])
+                    : $product->images()->where('is_primary', false)->orderBy('sort_order')->pluck('file_path')->all();
+                $this->syncProductImages($product, $primary, $gallery);
             }
         });
 
@@ -294,6 +329,66 @@ class ProductController extends Controller
         return sendResponse([], 'Product deleted');
     }
 
+    public function bulkDestroy(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'ids' => 'required|array|min:1|max:500',
+            'ids.*' => 'integer|distinct',
+        ]);
+
+        if ($validator->fails()) {
+            return sendError($validator->errors()->first(), $validator->errors()->toArray(), 422);
+        }
+
+        $ids = $validator->validated()['ids'];
+        $products = Product::query()->whereIn('id', $ids)->get();
+        if ($products->isEmpty()) {
+            return sendError('No products found', [], 404);
+        }
+
+        $deleted = 0;
+        foreach ($products as $product) {
+            $product->delete();
+            $deleted++;
+        }
+
+        $this->activityLog->log(
+            'product.bulk_deleted',
+            'products',
+            "Bulk deleted {$deleted} products",
+            Product::class,
+            null,
+            request: $request
+        );
+
+        return sendResponse(['deleted' => $deleted], 'Products deleted');
+    }
+
+    public function destroyAll(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'confirm' => 'required|string|in:DELETE_ALL_PRODUCTS',
+        ]);
+
+        if ($validator->fails()) {
+            return sendError($validator->errors()->first(), $validator->errors()->toArray(), 422);
+        }
+
+        $count = Product::query()->count();
+        Product::query()->delete();
+
+        $this->activityLog->log(
+            'product.delete_all',
+            'products',
+            "Deleted all products ({$count})",
+            Product::class,
+            null,
+            request: $request
+        );
+
+        return sendResponse(['deleted' => $count], 'All products deleted');
+    }
+
     public function duplicate(Request $request, int $id)
     {
         $source = Product::with(['variants.inventory', 'images'])->find($id);
@@ -313,6 +408,7 @@ class ProductController extends Controller
 
             $product = Product::create([
                 'name' => $source->name,
+                'name_en' => $source->name_en,
                 'slug' => $slug,
                 'category_id' => $source->category_id,
                 'brand_id' => $source->brand_id,
@@ -322,7 +418,9 @@ class ProductController extends Controller
                 'product_type' => $source->product_type,
                 'status' => 'draft',
                 'short_description' => $source->short_description,
+                'short_description_en' => $source->short_description_en,
                 'description' => $source->description,
+                'description_en' => $source->description_en,
                 'featured' => $source->featured,
                 'requires_shipping' => $source->requires_shipping,
                 'is_taxable' => $source->is_taxable,
@@ -431,10 +529,12 @@ class ProductController extends Controller
         $base = [
             'id' => $product->id,
             'name' => $product->name,
+            'name_en' => $product->name_en,
             'slug' => $product->slug,
             'status' => $product->status,
             'category_id' => $product->category_id,
             'category_name' => $product->category?->name,
+            'category_name_en' => $product->category?->name_en,
             'brand_id' => $product->brand_id,
             'brand_name' => $product->brand?->name,
             'featured' => $product->featured,
@@ -442,6 +542,8 @@ class ProductController extends Controller
             'quantity' => $inventory?->quantity ?? 0,
             'sku' => $variant?->sku,
             'image' => $this->primaryImagePath($product),
+            'gallery' => $this->galleryImagePaths($product),
+            'images' => $this->allImagePaths($product),
             'created_at' => $product->created_at,
         ];
 
@@ -460,17 +562,12 @@ class ProductController extends Controller
                 ])->values()->all()
             : [];
 
-        if ($detailed) {
-            $base['short_description'] = $product->short_description;
-            $base['description'] = $product->description;
-            $base['compare_at_price'] = $this->fromMinorUnits($variant?->compare_at_price_amount);
-            $base['cost'] = $this->fromMinorUnits($variant?->cost_amount);
-        } else {
-            $base['short_description'] = $product->short_description;
-            $base['description'] = $product->description;
-            $base['compare_at_price'] = $this->fromMinorUnits($variant?->compare_at_price_amount);
-            $base['cost'] = $this->fromMinorUnits($variant?->cost_amount);
-        }
+        $base['short_description'] = $product->short_description;
+        $base['short_description_en'] = $product->short_description_en;
+        $base['description'] = $product->description;
+        $base['description_en'] = $product->description_en;
+        $base['compare_at_price'] = $this->fromMinorUnits($variant?->compare_at_price_amount);
+        $base['cost'] = $this->fromMinorUnits($variant?->cost_amount);
 
         return $base;
     }
@@ -560,30 +657,80 @@ class ProductController extends Controller
         }
     }
 
-    protected function syncPrimaryImage(Product $product, ?string $path): void
+    /** @return list<string> */
+    protected function galleryImagePaths(Product $product): array
     {
-        $existing = $product->images()->where('is_primary', true)->first();
-
-        if (! $path) {
-            $existing?->delete();
-
-            return;
+        if (! $product->relationLoaded('images')) {
+            return $product->images()->where('is_primary', false)->orderBy('sort_order')->pluck('file_path')->all();
         }
 
-        if ($existing) {
-            if ($existing->file_path !== $path) {
-                $existing->update(['file_path' => $path]);
+        return $product->images
+            ->where('is_primary', false)
+            ->sortBy('sort_order')
+            ->pluck('file_path')
+            ->values()
+            ->all();
+    }
+
+    /** @return list<string> */
+    protected function allImagePaths(Product $product): array
+    {
+        if (! $product->relationLoaded('images')) {
+            return $product->images()
+                ->orderByDesc('is_primary')
+                ->orderBy('sort_order')
+                ->pluck('file_path')
+                ->all();
+        }
+
+        return $product->images
+            ->sortBy(fn (ProductImage $img) => [$img->is_primary ? 0 : 1, $img->sort_order])
+            ->pluck('file_path')
+            ->values()
+            ->all();
+    }
+
+    /** @param  list<string|null>  $gallery */
+    protected function syncProductImages(Product $product, ?string $primary, array $gallery = []): void
+    {
+        $paths = [];
+        if ($primary) {
+            $paths[] = $primary;
+        }
+        foreach ($gallery as $path) {
+            $path = is_string($path) ? trim($path) : '';
+            if ($path === '' || in_array($path, $paths, true)) {
+                continue;
             }
+            $paths[] = $path;
+        }
+
+        if ($paths === []) {
+            $product->images()->delete();
 
             return;
         }
 
-        ProductImage::create([
-            'product_id' => $product->id,
-            'file_path' => $path,
-            'is_primary' => true,
-            'sort_order' => 0,
-            'created_by' => auth()->id(),
-        ]);
+        $keepIds = [];
+        foreach ($paths as $index => $path) {
+            $image = $product->images()->where('file_path', $path)->first();
+            if (! $image) {
+                $image = ProductImage::create([
+                    'product_id' => $product->id,
+                    'file_path' => $path,
+                    'is_primary' => $index === 0,
+                    'sort_order' => $index,
+                    'created_by' => auth()->id(),
+                ]);
+            } else {
+                $image->update([
+                    'is_primary' => $index === 0,
+                    'sort_order' => $index,
+                ]);
+            }
+            $keepIds[] = $image->id;
+        }
+
+        $product->images()->whereNotIn('id', $keepIds)->delete();
     }
 }

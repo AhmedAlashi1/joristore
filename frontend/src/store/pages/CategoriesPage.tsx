@@ -10,6 +10,7 @@ import {
   rootCategories,
   type StoreCategory,
 } from '../lib/category-tree';
+import { pickLocalizedText } from '../lib/localized-text';
 import { useLocale } from '../providers/locale-provider';
 
 export function CategoriesPage() {
@@ -42,6 +43,8 @@ export function CategoriesPage() {
     return rootCategories(categories);
   }, [categories, parentId]);
 
+  const catLabel = (c: StoreCategory) => pickLocalizedText(locale, c.name, c.name_en);
+
   const openCategory = (cat: StoreCategory) => {
     if (hasChildren(categories, cat.id)) {
       setParams({ parent: String(cat.id) });
@@ -70,7 +73,7 @@ export function CategoriesPage() {
         <div className="min-w-0 flex-1">
           <h1 className="flex items-center gap-2 text-xl font-bold">
             <LayoutGrid size={22} className="text-[var(--primary)]" />
-            {current?.name ?? t.categoriesBrowse}
+            {current ? catLabel(current) : t.categoriesBrowse}
           </h1>
           <p className="text-xs text-store-muted">{t.sportsWorldSubtitle}</p>
         </div>
@@ -85,10 +88,10 @@ export function CategoriesPage() {
             <span key={c.id} className="flex items-center gap-1">
               <ChevronLeft size={12} className="opacity-50 rtl:rotate-180" />
               {c.id === parentId ? (
-                <span className="font-bold text-[var(--fg)]">{c.name}</span>
+                <span className="font-bold text-[var(--fg)]">{catLabel(c)}</span>
               ) : (
                 <button type="button" className="font-semibold text-[var(--primary)]" onClick={() => setParams({ parent: String(c.id) })}>
-                  {c.name}
+                  {catLabel(c)}
                 </button>
               )}
             </span>
@@ -101,7 +104,7 @@ export function CategoriesPage() {
           to={`/shop?category=${current.id}`}
           className="glass-strong block rounded-2xl px-4 py-3 text-center text-sm font-bold text-[var(--primary)]"
         >
-          {t.allInCategory}: {current.name}
+          {t.allInCategory}: {catLabel(current)}
         </Link>
       ) : null}
 
@@ -125,14 +128,14 @@ export function CategoriesPage() {
                 className="category-dept-card glass-strong glass-interactive flex flex-col overflow-hidden rounded-2xl text-start"
               >
                 <span className="category-dept-img relative block aspect-[4/3] w-full overflow-hidden bg-[var(--primary-soft)]">
-                  <StoreMediaImage src={cat.image} alt={cat.name} />
+                  <StoreMediaImage src={cat.image} alt={catLabel(cat)} />
                   {isBranch ? (
                     <span className="absolute bottom-2 start-2 rounded-lg bg-black/45 px-2 py-0.5 text-[10px] font-bold text-white">
                       {ar ? 'أقسام فرعية' : 'Subcategories'}
                     </span>
                   ) : null}
                 </span>
-                <span className="px-3 py-2.5 text-sm font-bold leading-snug">{cat.name}</span>
+                <span className="px-3 py-2.5 text-sm font-bold leading-snug">{catLabel(cat)}</span>
               </button>
             );
           })}

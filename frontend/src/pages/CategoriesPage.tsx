@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { CrudPage, FormField, FormGrid, SelectInput, type CrudColumn } from '../components/crud/CrudPage';
 import { Input } from '../components/ui/input';
+import { AutoEnglishPreview } from '../components/ui/AutoEnglishPreview';
 import { ImageUploadField } from '../components/ui/ImageUploadField';
 import { Badge } from '../components/ui/badge';
 import { mediaUrl } from '../lib/media';
@@ -18,12 +19,17 @@ type CategoryRow = {
   parent_id?: number | null;
   parent_name?: string;
   description?: string;
+  name_en?: string | null;
+  description_en?: string | null;
   image?: string | null;
   status: string;
   sort_order: number;
 };
 
-const emptyForm = { name: '', slug: '', parent_id: '', description: '', image: '', status: 'active', sort_order: 0 };
+const emptyForm = {
+  name: '', slug: '', parent_id: '', description: '', name_en: '', description_en: '',
+  image: '', status: 'active', sort_order: 0,
+};
 
 export function CategoriesPage() {
   const { locale } = useI18n();
@@ -55,7 +61,8 @@ export function CategoriesPage() {
       canDelete={hasPermission('categories.delete')}
       mapRowToForm={(row) => ({
         name: row.name, slug: row.slug, parent_id: row.parent_id ? String(row.parent_id) : '',
-        description: row.description ?? '', image: row.image ?? '', status: row.status, sort_order: row.sort_order,
+        description: row.description ?? '', name_en: row.name_en ?? '', description_en: row.description_en ?? '',
+        image: row.image ?? '', status: row.status, sort_order: row.sort_order,
       })}
       preparePayload={(form) => ({
         name: form.name,
@@ -68,9 +75,15 @@ export function CategoriesPage() {
       })}
       renderForm={(form, setForm) => (
         <FormGrid>
-          <FormField label={ar ? 'الاسم *' : 'Name *'}>
+          <FormField label={ar ? 'الاسم (عربي) *' : 'Name (Arabic) *'}>
             <Input value={String(form.name || '')} onChange={(e) => setForm({ ...form, name: e.target.value })} />
           </FormField>
+          <div className="col-span-full">
+            <AutoEnglishPreview
+              name_en={String(form.name_en || '')}
+              description_en_only={String(form.description_en || '')}
+            />
+          </div>
           <FormField label={ar ? 'الرابط' : 'Slug'}>
             <Input value={String(form.slug || '')} onChange={(e) => setForm({ ...form, slug: e.target.value })} placeholder="auto" />
           </FormField>
@@ -89,7 +102,7 @@ export function CategoriesPage() {
               <option value="inactive">{ar ? 'غير نشط' : 'Inactive'}</option>
             </SelectInput>
           </FormField>
-          <FormField label={ar ? 'الوصف' : 'Description'}>
+          <FormField label={ar ? 'الوصف (عربي)' : 'Description (Arabic)'}>
             <Input value={String(form.description || '')} onChange={(e) => setForm({ ...form, description: e.target.value })} />
           </FormField>
           <div className="col-span-full">

@@ -55,7 +55,7 @@ class StoreAiSearchService
 
         $builder = Product::query()
             ->with([
-                'category:id,name',
+                'category:id,name,name_en',
                 'defaultVariant.inventory',
                 'images' => fn ($q) => $q->orderByDesc('is_primary')->orderBy('sort_order')->limit(1),
             ])
@@ -65,9 +65,12 @@ class StoreAiSearchService
             foreach ($keywords as $word) {
                 $like = '%'.$word.'%';
                 $q->orWhere('name', 'like', $like)
+                    ->orWhere('name_en', 'like', $like)
                     ->orWhere('short_description', 'like', $like)
+                    ->orWhere('short_description_en', 'like', $like)
                     ->orWhere('description', 'like', $like)
-                    ->orWhereHas('category', fn ($c) => $c->where('name', 'like', $like));
+                    ->orWhere('description_en', 'like', $like)
+                    ->orWhereHas('category', fn ($c) => $c->where('name', 'like', $like)->orWhere('name_en', 'like', $like));
             }
         });
 
@@ -173,11 +176,14 @@ class StoreAiSearchService
         return [
             'id' => $product->id,
             'name' => $product->name,
+            'name_en' => $product->name_en,
             'slug' => $product->slug,
             'short_description' => $product->short_description,
+            'short_description_en' => $product->short_description_en,
             'featured' => $product->featured,
             'category_id' => $product->category_id,
             'category_name' => $product->category?->name,
+            'category_name_en' => $product->category?->name_en,
             'price' => MoneyHelper::fromMinor($variant?->price_amount),
             'compare_at_price' => MoneyHelper::fromMinor($variant?->compare_at_price_amount),
             'variant_id' => $variant?->id,

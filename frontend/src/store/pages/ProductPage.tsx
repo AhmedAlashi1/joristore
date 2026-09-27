@@ -3,9 +3,10 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { FavoriteButton } from '../components/product/FavoriteButton';
 import { storeApi, unwrap } from '../lib/api';
-import { StoreMediaImage } from '../components/media/StoreMediaImage';
+import { ProductImageGallery } from '../components/product/ProductImageGallery';
 import { cn, formatPrice } from '../lib/utils';
 import { useCart } from '../providers/cart-provider';
+import { pickLocalizedText } from '../lib/localized-text';
 import { useLocale } from '../providers/locale-provider';
 
 type SizeVariant = {
@@ -38,6 +39,11 @@ type ProductDetail = {
   category_name?: string;
   brand_name?: string;
   image?: string | null;
+  images?: string[];
+  name_en?: string | null;
+  short_description_en?: string | null;
+  description_en?: string | null;
+  category_name_en?: string | null;
   color_name?: string | null;
   color_hex?: string | null;
   color_siblings?: ColorSibling[];
@@ -47,7 +53,7 @@ type ProductDetail = {
 export function ProductPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
   const { addItem } = useCart();
   const [product, setProduct] = useState<ProductDetail | null>(null);
   const [selectedVariantId, setSelectedVariantId] = useState<number | null>(null);
@@ -81,12 +87,17 @@ export function ProductPage() {
     return <div className="glass aspect-square animate-pulse rounded-3xl" />;
   }
 
+  const displayName = pickLocalizedText(locale, product.name, product.name_en);
+  const displayShort = pickLocalizedText(locale, product.short_description, product.short_description_en);
+  const displayDescription = pickLocalizedText(locale, product.description, product.description_en);
+  const displayCategory = pickLocalizedText(locale, product.category_name, product.category_name_en);
+
   const handleAdd = () => {
     if (!canAdd || !variantIdForCart) return;
     addItem({
       productId: product.id,
       productVariantId: variantIdForCart,
-      name: activeVariant ? `${product.name} (${activeVariant.name})` : product.name,
+      name: activeVariant ? `${displayName} (${activeVariant.name})` : displayName,
       price: displayPrice,
     }, qty);
     setAdded(true);
@@ -106,7 +117,7 @@ export function ProductPage() {
           product={{
             productId: product.id,
             productVariantId: variantIdForCart,
-            name: product.name,
+            name: displayName,
             price: displayPrice,
             compare_at_price: product.compare_at_price,
             in_stock: canAdd,
@@ -118,16 +129,14 @@ export function ProductPage() {
       </div>
 
       <div className="glass-strong card-pop overflow-hidden rounded-3xl">
-        <div className="relative flex aspect-square items-center justify-center overflow-hidden bg-gradient-to-br from-[var(--primary-soft)] to-transparent">
-          <StoreMediaImage src={product.image} alt={product.name} className="p-6" />
-        </div>
+        <ProductImageGallery name={displayName} image={product.image} images={product.images} />
         <div className="p-5">
-          {product.category_name ? (
-            <p className="text-xs font-semibold text-[var(--primary)]">{product.category_name}</p>
+          {displayCategory ? (
+            <p className="text-xs font-semibold text-[var(--primary)]">{displayCategory}</p>
           ) : null}
-          <h1 className="mt-1 text-xl font-bold">{product.name}</h1>
-          {product.short_description ? (
-            <p className="mt-2 text-sm text-[#6f6b7d]">{product.short_description}</p>
+          <h1 className="mt-1 text-xl font-bold">{displayName}</h1>
+          {displayShort ? (
+            <p className="mt-2 text-sm text-[#6f6b7d]">{displayShort}</p>
           ) : null}
           <div className="mt-4 flex items-baseline gap-2">
             <span className="text-2xl font-bold text-[var(--primary)]">{formatPrice(displayPrice)}</span>
@@ -183,8 +192,8 @@ export function ProductPage() {
             </div>
           ) : null}
 
-          {product.description ? (
-            <p className="mt-4 text-sm leading-relaxed text-[#6f6b7d]">{product.description}</p>
+          {displayDescription ? (
+            <p className="mt-4 text-sm leading-relaxed text-[#6f6b7d]">{displayDescription}</p>
           ) : null}
         </div>
       </div>
