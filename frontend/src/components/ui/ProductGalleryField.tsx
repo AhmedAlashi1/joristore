@@ -67,7 +67,16 @@ export function ProductGalleryField({ primary, gallery, onChange }: ProductGalle
       setGallery([...gallery, result.path]);
       notify.success(ar ? 'تمت إضافة صورة للمعرض' : 'Gallery image added');
     } catch (error) {
-      notify.errorFrom(error, ar ? 'فشل رفع الصورة' : 'Upload failed');
+      const msg = error instanceof Error ? error.message : '';
+      if (msg === 'Invalid image' || msg === 'Could not compress image') {
+        notify.error(
+          ar
+            ? 'تعذّر قراءة الصورة. استخدم JPG أو PNG (حوّل HEIC من الجوال إلى JPG إن لزم).'
+            : 'Could not read this image. Use JPG or PNG (convert HEIC to JPG if needed).',
+        );
+      } else {
+        notify.errorFrom(error, ar ? 'فشل رفع الصورة' : 'Upload failed');
+      }
     } finally {
       setUploadingGallery(false);
     }

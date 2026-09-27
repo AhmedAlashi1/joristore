@@ -75,7 +75,16 @@ export function ImageUploadField({ value = '', onChange, folder, label }: ImageU
       onChange(result.path);
       notify.success(ar ? 'تم تجهيز الصورة ورفعها' : 'Image prepared and uploaded');
     } catch (error) {
-      notify.errorFrom(error, ar ? 'فشل رفع الصورة' : 'Upload failed');
+      const msg = error instanceof Error ? error.message : '';
+      if (msg === 'Invalid image' || msg === 'Could not compress image') {
+        notify.error(
+          ar
+            ? 'تعذّر قراءة الصورة. استخدم JPG أو PNG (حوّل HEIC من الجوال إلى JPG إن لزم).'
+            : 'Could not read this image. Use JPG or PNG (convert HEIC to JPG if needed).',
+        );
+      } else {
+        notify.errorFrom(error, ar ? 'فشل رفع الصورة' : 'Upload failed');
+      }
     } finally {
       setUploading(false);
     }

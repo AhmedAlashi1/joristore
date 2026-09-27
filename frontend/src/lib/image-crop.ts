@@ -35,7 +35,9 @@ export const IMAGE_CROP_PRESETS = {
 const DEFAULT_MAX_BYTES = 280_000;
 const DEFAULT_PRODUCT_LONG_EDGE = 1200;
 
-function loadImageFromBlob(blob: Blob): Promise<HTMLImageElement> {
+const INVALID_IMAGE = 'Invalid image';
+
+function loadImageViaObjectUrl(blob: Blob): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const url = URL.createObjectURL(blob);
     const img = new Image();
@@ -45,10 +47,37 @@ function loadImageFromBlob(blob: Blob): Promise<HTMLImageElement> {
     };
     img.onerror = () => {
       URL.revokeObjectURL(url);
-      reject(new Error('Invalid image'));
+      reject(new Error(INVALID_IMAGE));
     };
     img.src = url;
   });
+}
+
+function loadImageViaDataUrl(blob: Blob): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result;
+      if (typeof dataUrl !== 'string') {
+        reject(new Error(INVALID_IMAGE));
+        return;
+      }
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = () => reject(new Error(INVALID_IMAGE));
+      img.src = dataUrl;
+    };
+    reader.onerror = () => reject(new Error(INVALID_IMAGE));
+    reader.readAsDataURL(blob);
+  });
+}
+
+async function loadImageFromBlob(blob: Blob): Promise<HTMLImageElement> {
+  try {
+    return await loadImageViaObjectUrl(blob);
+  } catch {
+    return loadImageViaDataUrl(blob);
+  }
 }
 
 /** Reads phone EXIF orientation so canvas output matches what you see in the gallery. */
@@ -80,8 +109,12 @@ async function fileToCanvas(file: File, maxLongEdge: number): Promise<HTMLCanvas
     }
   }
 
-  const img = await loadImageFromBlob(file);
-  return imageToCanvas(img, maxLongEdge);
+  try {
+    const img = await loadImageFromBlob(file);
+    return imageToCanvas(img, maxLongEdge);
+  } catch {
+    return null;
+  }
 }
 
 /** Prefer same-origin /storage for canvas (avoids CORS taint). */
@@ -274,7 +307,12 @@ export async function cropImageFileForPreset(file: File, preset: CropPreset): Pr
   const pngBlob = await new Promise<Blob | null>((resolve) => oriented.toBlob(resolve, 'image/png'));
   if (!pngBlob) return file;
 
-  const img = await loadImageFromBlob(pngBlob);
+  let img: HTMLImageElement;
+  try {
+    img = await loadImageFromBlob(pngBlob);
+  } catch {
+    return file;
+  }
   const canvas = cropToCanvas(img, preset);
   if (!canvas) return file;
 
