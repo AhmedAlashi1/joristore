@@ -1,3 +1,4 @@
+import { resolveApiBaseUrl } from '../../lib/hosts';
 import { absoluteStorageUrl } from '../../lib/storage-origin';
 
 export type StoreTheme = {
@@ -155,7 +156,7 @@ export function snapshotFromStoreApiData(data: {
 }
 
 function storeApiBase(): string {
-  const base = import.meta.env.VITE_API_BASE_URL || '/api';
+  const base = resolveApiBaseUrl();
   return base.endsWith('/') ? base.slice(0, -1) : base;
 }
 

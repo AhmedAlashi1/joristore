@@ -1,8 +1,9 @@
 import axios from 'axios';
 import { clearAuthToken, getAuthToken } from './auth';
+import { resolveApiBaseUrl } from './hosts';
 
 export const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
+  baseURL: resolveApiBaseUrl(),
   timeout: 20000,
   headers: {
     Accept: 'application/json',

@@ -1,4 +1,5 @@
-import { absoluteStorageUrl, storagePublicOrigin } from './storage-origin';
+import { backendPublicOrigin } from './hosts';
+import { absoluteStorageUrl } from './storage-origin';
 
 export type CropPreset = {
   aspectRatio: number;
@@ -149,7 +150,7 @@ function watermarkAbsoluteUrls(pathOrUrl: string): string[] {
   const absolute = absoluteStorageUrl(rel);
   const bases = [
     absolute,
-    `${storagePublicOrigin()}${rel.startsWith('/') ? rel : `/${rel}`}`,
+    `${backendPublicOrigin()}${rel.startsWith('/') ? rel : `/${rel}`}`,
     window.location.origin + (rel.startsWith('/') ? rel : `/${rel}`),
   ];
   return [...new Set(bases.filter(Boolean))];
