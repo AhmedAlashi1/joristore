@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\SpaShellController;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Route;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
@@ -48,3 +49,7 @@ Route::get('/storage/{path}', function (string $path) {
 
     return publicFileResponse($storageFile);
 })->where('path', '.*');
+
+/** Admin UI (React) — static assets from `public/` or `public/spa/`; HTML shell here. */
+Route::get('/admin', [SpaShellController::class, 'admin']);
+Route::get('/admin/{spaPath}', [SpaShellController::class, 'admin'])->where('spaPath', '.*');

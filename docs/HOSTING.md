@@ -46,7 +46,20 @@ If unset, the app still uses **dashboard** for API and `/storage` when the site 
 
 1. `git pull` on `~/joristore`
 2. `php artisan migrate --force` · `config:clear` · `cache:clear`
-3. `cd frontend && npm run build && rsync -av ../public/spa/ ~/public_html/`
+3. Build and publish the **same** SPA to **both** hosts:
+
+```bash
+cd ~/joristore/frontend && npm ci && npm run build
+
+# Storefront (joristore.com)
+rsync -av ~/joristore/public/spa/ ~/public_html/
+
+# Dashboard (Laravel public — /admin + /assets)
+rsync -av ~/joristore/public/spa/ ~/joristore/public/
+```
+
+Without the second `rsync`, `https://dashboard.joristore.com/admin` returns **404** (Laravel has no Blade admin — only the React shell).
+
 4. Confirm logo URL returns `Content-Type: image/jpeg`, not `text/html`
 
 ## Local development
