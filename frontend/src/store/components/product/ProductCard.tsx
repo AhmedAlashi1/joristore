@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { AddToCartButton } from './AddToCartButton';
 import { FavoriteButton } from './FavoriteButton';
 import { StoreMediaImage } from '../media/StoreMediaImage';
 import { pickLocalizedText } from '../../lib/localized-text';
@@ -13,6 +14,8 @@ export type ProductCardData = {
   variant_id?: number;
   compare_at_price?: number;
   in_stock?: boolean;
+  quantity?: number;
+  has_size_options?: boolean;
   featured?: boolean;
   category_name?: string;
   brand_name?: string | null;
@@ -33,7 +36,7 @@ export function ProductCard({
   compact?: boolean;
   rail?: boolean;
 }) {
-  const { locale } = useLocale();
+  const { locale, t } = useLocale();
   const displayName = pickLocalizedText(locale, product.name, product.name_en);
 
   return (
@@ -63,7 +66,7 @@ export function ProductCard({
         ) : null}
         {product.in_stock === false ? (
           <span className="absolute inset-0 flex items-center justify-center bg-black/25 text-xs font-bold text-white backdrop-blur-sm">
-            نفذ
+            {t.outOfStock}
           </span>
         ) : null}
         <div className="absolute end-2 top-2 z-10">
@@ -77,6 +80,20 @@ export function ProductCard({
               in_stock: product.in_stock,
               category_name: product.category_name,
               featured: product.featured,
+            }}
+          />
+        </div>
+        <div className="absolute bottom-2 end-2 z-10">
+          <AddToCartButton
+            product={{
+              productId: product.id,
+              productVariantId: product.variant_id,
+              name: displayName,
+              price: product.price,
+              image: product.image,
+              in_stock: product.in_stock,
+              quantity: product.quantity,
+              has_size_options: product.has_size_options,
             }}
           />
         </div>

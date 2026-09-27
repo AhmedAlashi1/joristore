@@ -36,6 +36,13 @@ type Dict = {
   shippingMethod: string;
   paymentMethod: string;
   cashOnDelivery: string;
+  payWithWallet: string;
+  jawwalPay: string;
+  palPay: string;
+  walletBalance: string;
+  paymentReceipt: string;
+  paymentReceiptHint: string;
+  onlinePayInstructions: string;
   placeOrder: string;
   subtotal: string;
   shipping: string;
@@ -103,7 +110,7 @@ const dicts: Record<Locale, Dict> = {
     categories: 'التصنيفات',
     orders: 'طلباتي',
     addToCart: 'أضف للسلة',
-    outOfStock: 'غير متوفر',
+    outOfStock: 'تم نفاذ الكمية',
     installTitle: 'ثبّت تطبيق على شاشتك الرئيسية',
     installSubtitle: 'تجربة أسرع — مثل التطبيق بدون متجر',
     installButton: 'تثبيت الآن',
@@ -127,6 +134,13 @@ const dicts: Record<Locale, Dict> = {
     shippingMethod: 'طريقة الشحن',
     paymentMethod: 'طريقة الدفع',
     cashOnDelivery: 'الدفع عند الاستلام',
+    payWithWallet: 'الدفع من المحفظة',
+    jawwalPay: 'جوال بي',
+    palPay: 'بال بي',
+    walletBalance: 'رصيد المحفظة',
+    paymentReceipt: 'صورة إيصال الدفع',
+    paymentReceiptHint: 'ارفع لقطة شاشة بعد إتمام التحويل',
+    onlinePayInstructions: 'ادفع عبر التطبيق ثم ارفع صورة الإيصال قبل تأكيد الطلب.',
     placeOrder: 'تأكيد الطلب',
     subtotal: 'المجموع',
     shipping: 'الشحن',
@@ -216,6 +230,13 @@ const dicts: Record<Locale, Dict> = {
     shippingMethod: 'Shipping method',
     paymentMethod: 'Payment method',
     cashOnDelivery: 'Cash on delivery',
+    payWithWallet: 'Pay with wallet',
+    jawwalPay: 'Jawwal Pay',
+    palPay: 'PalPay',
+    walletBalance: 'Wallet balance',
+    paymentReceipt: 'Payment receipt screenshot',
+    paymentReceiptHint: 'Upload a screenshot after you complete the transfer',
+    onlinePayInstructions: 'Pay in the app, then upload your receipt before placing the order.',
     placeOrder: 'Place order',
     subtotal: 'Subtotal',
     shipping: 'Shipping',

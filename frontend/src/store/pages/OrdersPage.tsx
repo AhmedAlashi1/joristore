@@ -1,7 +1,8 @@
-import { Package } from 'lucide-react';
+import { ChevronLeft, Package } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { customerApi } from '../lib/api';
+import { orderStatusLabel } from '../lib/order-status';
 import { formatPrice } from '../lib/utils';
 import { useCustomer } from '../providers/customer-provider';
 import { useLocale } from '../providers/locale-provider';
@@ -20,8 +21,9 @@ export function OrdersPage() {
       setLoading(false);
       return;
     }
-    customerApi.orders()
-      .then((res) => setOrders(res.data || []))
+    customerApi
+      .orders(1)
+      .then((page) => setOrders(page.data ?? []))
       .catch(() => setOrders([]))
       .finally(() => setLoading(false));
   }, [isLoggedIn]);
@@ -29,33 +31,47 @@ export function OrdersPage() {
   if (!isLoggedIn) {
     return (
       <div className="py-16 text-center">
-        <Package size={48} className="mx-auto mb-4 text-[var(--primary)] opacity-40" />
-        <p className="font-bold">{ar ? 'سجّل دخول لعرض الطلبات' : 'Login to view orders'}</p>
-        <Link to="/account" className="btn-primary mt-4 inline-flex">{ar ? 'حسابي' : 'Account'}</Link>
+        <Package size={40} className="mx-auto mb-3 text-[var(--primary)] opacity-40" />
+        <p className="text-sm font-bold">{ar ? 'سجّل دخول لعرض الطلبات' : 'Login to view orders'}</p>
+        <Link to="/account" className="btn-primary mt-4 inline-flex text-sm">{ar ? 'حسابي' : 'Account'}</Link>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4 pb-4">
-      <h1 className="reveal-up text-xl font-bold">{ar ? 'طلباتي' : 'My Orders'}</h1>
+    <div className="space-y-3 pb-4">
+      <h1 className="text-lg font-bold">{ar ? 'طلباتي' : 'My Orders'}</h1>
       {loading ? (
-        <div className="space-y-3">{Array.from({ length: 3 }).map((_, i) => <div key={i} className="skeleton-shimmer h-20 rounded-2xl" />)}</div>
+        <div className="space-y-2">{Array.from({ length: 4 }).map((_, i) => <div key={i} className="skeleton-shimmer h-14 rounded-xl" />)}</div>
       ) : orders.length === 0 ? (
-        <div className="glass rounded-2xl py-16 text-center text-sm text-[#8a8da8]">{ar ? 'لا توجد طلبات بعد' : 'No orders yet'}</div>
+        <div className="glass rounded-xl py-12 text-center text-xs text-[#8a8da8]">{ar ? 'لا توجد طلبات بعد' : 'No orders yet'}</div>
       ) : (
-        orders.map((o, i) => (
-          <div key={o.id} className={`glass-strong card-pop rounded-2xl p-4 stagger-${Math.min(i + 1, 4)}`}>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-bold">{o.order_number}</p>
-                <p className="text-xs text-[#8a8da8]">{o.placed_at ? new Date(o.placed_at).toLocaleDateString() : '—'}</p>
-              </div>
-              <span className="rounded-lg bg-[var(--primary-soft)] px-2 py-1 text-xs font-bold text-[var(--primary)]">{o.status}</span>
-            </div>
-            <p className="mt-2 text-lg font-bold text-[var(--primary)]">{formatPrice(o.total)}</p>
-          </div>
-        ))
+        <ul className="space-y-2">
+          {orders.map((o) => (
+            <li key={o.id}>
+              <Link
+                to={`/orders/${o.id}`}
+                className="glass flex items-center gap-2.5 rounded-xl px-3 py-2.5 transition active:scale-[0.99]"
+              >
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--primary-soft)] text-[var(--primary)]">
+                  <Package size={16} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-bold">{o.order_number}</p>
+                  <p className="text-[10px] text-[#8a8da8]">
+                    {o.placed_at ? new Date(o.placed_at).toLocaleDateString(ar ? 'ar' : 'en') : '—'}
+                    {' · '}
+                    {orderStatusLabel(o.status, ar)}
+                  </p>
+                </div>
+                <div className="shrink-0 text-end">
+                  <p className="text-sm font-bold text-[var(--primary)]">{formatPrice(o.total)}</p>
+                </div>
+                <ChevronLeft size={16} className="shrink-0 text-[#8a8da8] ltr:rotate-180" />
+              </Link>
+            </li>
+          ))}
+        </ul>
       )}
     </div>
   );

@@ -80,8 +80,17 @@ export function ProductPage() {
   }, [product, selectedVariantId]);
 
   const displayPrice = activeVariant?.price ?? product?.price ?? 0;
-  const canAdd = activeVariant ? activeVariant.in_stock : (product?.in_stock ?? false);
+  const stockMax = activeVariant ? activeVariant.quantity : (product?.quantity ?? 0);
+  const canAdd = activeVariant ? activeVariant.in_stock && stockMax > 0 : (product?.in_stock ?? false) && stockMax > 0;
   const variantIdForCart = activeVariant?.id ?? product?.variant_id;
+
+  useEffect(() => {
+    if (!product) return;
+    setQty((q) => {
+      const cap = stockMax > 0 ? stockMax : 1;
+      return Math.min(Math.max(1, q), cap);
+    });
+  }, [selectedVariantId, stockMax, product]);
 
   if (!product) {
     return <div className="glass aspect-square animate-pulse rounded-3xl" />;
@@ -99,6 +108,8 @@ export function ProductPage() {
       productVariantId: variantIdForCart,
       name: activeVariant ? `${displayName} (${activeVariant.name})` : displayName,
       price: displayPrice,
+      image: product.image,
+      maxQuantity: stockMax,
     }, qty);
     setAdded(true);
     setTimeout(() => setAdded(false), 1500);
@@ -205,7 +216,12 @@ export function ProductPage() {
             <Minus size={16} />
           </button>
           <span className="min-w-[2rem] text-center font-bold">{qty}</span>
-          <button type="button" onClick={() => setQty((q) => q + 1)} className="glass flex h-9 w-9 items-center justify-center rounded-xl">
+          <button
+            type="button"
+            disabled={stockMax > 0 && qty >= stockMax}
+            onClick={() => setQty((q) => (stockMax > 0 ? Math.min(stockMax, q + 1) : q + 1))}
+            className="glass flex h-9 w-9 items-center justify-center rounded-xl disabled:opacity-40"
+          >
             <Plus size={16} />
           </button>
         </div>

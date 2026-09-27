@@ -33,6 +33,18 @@ export const IMAGE_CROP_PRESETS = {
     hintAr: 'يُقصّ تلقائياً إلى 16:9 للبانر',
     hintEn: 'Auto-cropped to 16:9 for banners',
   },
+  'payment-qr': {
+    aspectRatio: 1,
+    maxWidth: 800,
+    hintAr: 'ارفع صورة QR للدفع (مربعة)',
+    hintEn: 'Upload square payment QR image',
+  },
+  'payment-receipts': {
+    aspectRatio: 3 / 4,
+    maxWidth: 1200,
+    hintAr: 'صورة إيصال أو إشعار الدفع',
+    hintEn: 'Payment receipt screenshot',
+  },
 } satisfies Record<string, CropPreset>;
 
 const DEFAULT_MAX_BYTES = 280_000;

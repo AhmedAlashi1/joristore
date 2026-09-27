@@ -44,6 +44,7 @@ export const storeApi = {
   deliveryQuote: (params: { delivery_region_id: number; street?: string }) =>
     api.get('/store/delivery-quote', { params, ...storeHeaders }),
   legal: () => api.get('/store/legal', storeHeaders),
+  paymentMethods: () => api.get('/store/payment-methods', storeHeaders),
   gyms: (params?: Record<string, unknown>) => api.get('/store/gyms', { params, ...storeHeaders }),
   gym: (id: number) => api.get(`/store/gyms/${id}`, storeHeaders),
 };
@@ -64,6 +65,27 @@ export const customerApi = {
     unwrap<Paginated<{ id: number; order_number: string; status: string; total: number; placed_at?: string }>>(
       await api.get('/store/customer/orders', { params: { page }, ...storeHeaders }),
     ),
+  order: async (id: number) =>
+    unwrap<{
+      id: number;
+      order_number: string;
+      status: string;
+      payment_status: string;
+      shipping_status: string;
+      subtotal: number;
+      shipping: number;
+      total: number;
+      placed_at?: string;
+      items: Array<{
+        id: number;
+        product_name: string;
+        variant_name?: string;
+        quantity: number;
+        unit_price: number;
+        total: number;
+      }>;
+      tracking_steps: Array<{ status: string; note?: string | null; at?: string }>;
+    }>(await api.get(`/store/customer/orders/${id}`, storeHeaders)),
   addAddress: async (data: Record<string, unknown>) =>
     unwrap<CustomerAddress>(await api.post('/store/customer/addresses', data, storeHeaders)),
   updateAddress: async (id: number, data: Record<string, unknown>) =>
@@ -73,6 +95,26 @@ export const customerApi = {
     unwrap<{ id: number; order_number: string; status: string; total: number }>(
       await api.post('/store/customer/orders', data, storeHeaders),
     ),
+  validateCoupon: async (data: { code: string; subtotal: number; shipping: number }) =>
+    unwrap<{
+      code: string;
+      name: string;
+      type: string;
+      applies_to: 'subtotal' | 'shipping';
+      subtotal_discount: number;
+      shipping: number;
+      savings: number;
+    }>(await api.post('/store/customer/coupons/validate', data, storeHeaders)),
+  uploadPaymentReceipt: async (file: File) => {
+    const form = new FormData();
+    form.append('file', file);
+    return unwrap<{ path: string; url: string }>(
+      await api.post('/store/customer/media/payment-receipt', form, {
+        ...storeHeaders,
+        headers: { ...storeHeaders.headers, 'Content-Type': 'multipart/form-data' },
+      }),
+    );
+  },
   notifications: async (page = 1) =>
     unwrap<{ data: Array<{ id: number; title: string; message: string; read_at?: string; created_at?: string }> }>(
       await api.get('/store/customer/notifications', { params: { page }, ...storeHeaders }),

@@ -2,7 +2,7 @@ import { api } from './api';
 import { ensureApiSuccess } from './api-response';
 import { absoluteStorageUrl } from './storage-origin';
 
-export type UploadFolder = 'logos' | 'banners' | 'categories' | 'products';
+export type UploadFolder = 'logos' | 'banners' | 'categories' | 'products' | 'payment-qr' | 'payment-receipts';
 
 type UploadResult = { path: string; url: string };
 

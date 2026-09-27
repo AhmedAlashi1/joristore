@@ -13,6 +13,7 @@ import { GymsPage } from './pages/GymsPage';
 import { InventoryPage } from './pages/InventoryPage';
 import { LoginPage } from './pages/LoginPage';
 import { NotificationsPage } from './pages/NotificationsPage';
+import { OrderDetailPage } from './pages/OrderDetailPage';
 import { OrdersPage } from './pages/OrdersPage';
 import { ProductsPage } from './pages/ProductsPage';
 import { ProductCreatePage } from './pages/products/ProductCreatePage';
@@ -20,6 +21,7 @@ import { ProductEditPage } from './pages/products/ProductEditPage';
 import { ProductViewPage } from './pages/products/ProductViewPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { RolesPage } from './pages/RolesPage';
+import { PaymentMethodsPage } from './pages/PaymentMethodsPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { DeliveryRegionsPage } from './pages/DeliveryRegionsPage';
 import { ShippingPage } from './pages/ShippingPage';
@@ -43,6 +45,7 @@ export default function AdminApp() {
         <Route index element={<Navigate to="dashboard" replace />} />
         <Route path="dashboard" element={<PermissionRoute permission="dashboard.view"><DashboardPage /></PermissionRoute>} />
         <Route path="orders" element={<PermissionRoute permission="orders.view"><OrdersPage /></PermissionRoute>} />
+        <Route path="orders/:id" element={<PermissionRoute permission="orders.view"><OrderDetailPage /></PermissionRoute>} />
         <Route path="customers" element={<PermissionRoute permission="customers.view"><CustomersPage /></PermissionRoute>} />
         <Route path="products/new" element={<PermissionRoute permission="products.create"><ProductCreatePage /></PermissionRoute>} />
         <Route path="products/:id/edit" element={<PermissionRoute permission="products.update"><ProductEditPage /></PermissionRoute>} />
@@ -61,6 +64,7 @@ export default function AdminApp() {
         <Route path="admins" element={<Navigate to="../staff" replace />} />
         <Route path="roles" element={<PermissionRoute permission="roles.manage"><RolesPage /></PermissionRoute>} />
         <Route path="settings" element={<PermissionRoute permission="settings.view"><SettingsPage /></PermissionRoute>} />
+        <Route path="payment-methods" element={<PermissionRoute permission="settings.view"><PaymentMethodsPage /></PermissionRoute>} />
         <Route path="activity-logs" element={<PermissionRoute permission="activity_logs.view"><ActivityLogsPage /></PermissionRoute>} />
         <Route path="profile" element={<ProfilePage />} />
       </Route>

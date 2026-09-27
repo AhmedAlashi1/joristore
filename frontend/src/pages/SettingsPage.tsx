@@ -10,6 +10,7 @@ import { ensureApiSuccess } from '../lib/api-response';
 import { getApiErrorMessage } from '../lib/http-error';
 import { useNotify } from '../lib/notify';
 import { formatPrice, setAdminCurrencySymbol } from '../lib/format-price';
+import { Link } from 'react-router-dom';
 import { useI18n } from '../providers/i18n-provider';
 
 type SettingsData = {
@@ -101,7 +102,6 @@ export function SettingsPage() {
         setSocial((prev) => ({ ...prev, ...Object.fromEntries(Object.entries(data).map(([k, v]) => [k, v ?? ''])) }));
       })
       .catch(() => undefined);
-
     return () => {
       cancelled = true;
     };
@@ -301,6 +301,18 @@ export function SettingsPage() {
               {ar ? 'حفظ الألوان' : 'Save colors'}
             </Button>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card className="glass-strong border-0">
+        <CardContent className="flex flex-wrap items-center justify-between gap-3 py-5">
+          <div>
+            <p className="font-bold">{ar ? 'طرق الدفع' : 'Payment methods'}</p>
+            <p className="text-sm text-[#8a8da8]">{ar ? 'جدول تفعيل و QR من صفحة مخصصة' : 'Enable/disable and QR in dedicated page'}</p>
+          </div>
+          <Link to="/admin/payment-methods" className="btn-primary inline-flex text-sm">
+            {ar ? 'فتح جدول طرق الدفع' : 'Open payment methods'}
+          </Link>
         </CardContent>
       </Card>
 

@@ -21,6 +21,7 @@ type Dictionary = {
   staff: string;
   roles: string;
   settings: string;
+  paymentMethods: string;
   activityLogs: string;
   profile: string;
   navGeneral: string;
@@ -56,6 +57,7 @@ const dictionaries: Record<Locale, Dictionary> = {
     staff: 'Staff',
     roles: 'Roles',
     settings: 'Settings',
+    paymentMethods: 'Payment methods',
     activityLogs: 'Activity Log',
     profile: 'Profile',
     navGeneral: 'General',
@@ -89,6 +91,7 @@ const dictionaries: Record<Locale, Dictionary> = {
     staff: 'الموظفون',
     roles: 'الأدوار',
     settings: 'الإعدادات',
+    paymentMethods: 'طرق الدفع',
     activityLogs: 'سجل النشاطات',
     profile: 'الملف الشخصي',
     navGeneral: 'عام',

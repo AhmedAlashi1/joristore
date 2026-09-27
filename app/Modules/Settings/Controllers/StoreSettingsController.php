@@ -236,4 +236,44 @@ class StoreSettingsController extends Controller
 
         return sendResponse(StoreSettingService::getSocial($store->id), 'Social links updated');
     }
+
+    public function paymentMethods()
+    {
+        $store = MerchantContext::merchant()?->store;
+        if (! $store) {
+            return sendError('Store not found', [], 404);
+        }
+
+        return sendResponse(StoreSettingService::getPaymentMethods($store->id), 'Payment methods fetched');
+    }
+
+    public function updatePaymentMethods(Request $request)
+    {
+        $store = MerchantContext::merchant()?->store;
+        if (! $store) {
+            return sendError('Store not found', [], 404);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'methods' => 'required|array',
+            'methods.*.id' => 'required|string|max:64',
+            'methods.*.enabled' => 'nullable|boolean',
+            'methods.*.label_ar' => 'nullable|string|max:120',
+            'methods.*.label_en' => 'nullable|string|max:120',
+            'methods.*.instructions_ar' => 'nullable|string|max:2000',
+            'methods.*.instructions_en' => 'nullable|string|max:2000',
+            'methods.*.requires_receipt' => 'nullable|boolean',
+            'methods.*.qr_image' => 'nullable|string|max:500',
+        ]);
+
+        if ($validator->fails()) {
+            return sendError($validator->errors()->first(), $validator->errors()->toArray(), 422);
+        }
+
+        StoreSettingService::setPaymentMethods($store->id, $validator->validated()['methods']);
+
+        $this->activityLog->log('settings.payment_methods_updated', 'settings', 'Payment methods updated', Store::class, $store->id, request: $request);
+
+        return sendResponse(StoreSettingService::getPaymentMethods($store->id), 'Payment methods updated');
+    }
 }

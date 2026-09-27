@@ -37,7 +37,8 @@ class CouponController extends Controller
         $validator = Validator::make($request->all(), [
             'code' => 'required|string|max:50',
             'name' => 'required|string|max:255',
-            'type' => 'required|in:percentage,fixed_amount,free_shipping',
+            'type' => 'required|in:percentage,fixed_amount',
+            'applies_to' => 'required|in:subtotal,shipping',
             'value' => 'required|numeric|min:0',
             'minimum_order_amount' => 'nullable|numeric|min:0',
             'maximum_discount_amount' => 'nullable|numeric|min:0',
@@ -53,10 +54,15 @@ class CouponController extends Controller
         }
 
         $data = $validator->validated();
+        if ($data['type'] === 'percentage' && (float) $data['value'] > 100) {
+            return sendError('Percentage cannot exceed 100', [], 422);
+        }
+
         $coupon = Coupon::create([
             'code' => Str::upper($data['code']),
             'name' => $data['name'],
             'type' => $data['type'],
+            'applies_to' => $data['applies_to'],
             'value' => $data['type'] === 'percentage' ? (int) $data['value'] : MoneyHelper::toMinor((float) $data['value']),
             'minimum_order_amount' => isset($data['minimum_order_amount']) ? MoneyHelper::toMinor((float) $data['minimum_order_amount']) : null,
             'maximum_discount_amount' => isset($data['maximum_discount_amount']) ? MoneyHelper::toMinor((float) $data['maximum_discount_amount']) : null,
@@ -93,6 +99,7 @@ class CouponController extends Controller
         $validator = Validator::make($request->all(), [
             'name' => 'sometimes|required|string|max:255',
             'type' => 'sometimes|required|in:percentage,fixed_amount,free_shipping',
+            'applies_to' => 'sometimes|required|in:subtotal,shipping',
             'value' => 'sometimes|required|numeric|min:0',
             'minimum_order_amount' => 'nullable|numeric|min:0',
             'maximum_discount_amount' => 'nullable|numeric|min:0',
@@ -111,6 +118,7 @@ class CouponController extends Controller
         $update = array_filter([
             'name' => $data['name'] ?? null,
             'type' => $data['type'] ?? null,
+            'applies_to' => $data['applies_to'] ?? null,
             'usage_limit' => $data['usage_limit'] ?? null,
             'usage_limit_per_customer' => $data['usage_limit_per_customer'] ?? null,
             'starts_at' => $data['starts_at'] ?? null,
@@ -156,6 +164,7 @@ class CouponController extends Controller
             'code' => $c->code,
             'name' => $c->name,
             'type' => $c->type,
+            'applies_to' => $c->applies_to ?? ($c->type === 'free_shipping' ? 'shipping' : 'subtotal'),
             'value' => $c->type === 'percentage' ? $c->value : MoneyHelper::fromMinor($c->value),
             'minimum_order_amount' => MoneyHelper::fromMinor($c->minimum_order_amount),
             'maximum_discount_amount' => MoneyHelper::fromMinor($c->maximum_discount_amount),

@@ -10,7 +10,7 @@ class Coupon extends Model
     use BelongsToMerchant;
 
     protected $fillable = [
-        'merchant_id', 'code', 'name', 'type', 'value', 'minimum_order_amount',
+        'merchant_id', 'code', 'name', 'type', 'applies_to', 'value', 'minimum_order_amount',
         'maximum_discount_amount', 'usage_limit', 'usage_limit_per_customer',
         'used_count', 'starts_at', 'expires_at', 'status', 'created_by',
     ];

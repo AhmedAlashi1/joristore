@@ -1,5 +1,6 @@
 import { Minus, Plus, ShoppingBag, Trash2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { StoreMediaImage } from '../components/media/StoreMediaImage';
 import { formatPrice } from '../lib/utils';
 import { useCart } from '../providers/cart-provider';
 import { useLocale } from '../providers/locale-provider';
@@ -27,8 +28,8 @@ export function CartPage() {
       <div className="space-y-3">
         {items.map((item) => (
           <div key={item.productVariantId} className="glass-strong card-pop flex gap-3 rounded-2xl p-3">
-            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-[var(--primary-soft)] text-lg font-bold text-[var(--primary)]">
-              {item.name.charAt(0)}
+            <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-neutral-100">
+              <StoreMediaImage src={item.image} alt={item.name} fit="cover" layout="fill" className="h-full w-full" />
             </div>
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-semibold">{item.name}</p>
@@ -38,7 +39,12 @@ export function CartPage() {
                   <Minus size={14} />
                 </button>
                 <span className="text-sm font-bold">{item.quantity}</span>
-                <button type="button" onClick={() => updateQty(item.productVariantId, item.quantity + 1)} className="glass flex h-7 w-7 items-center justify-center rounded-lg">
+                <button
+                  type="button"
+                  disabled={item.maxQuantity != null && item.maxQuantity > 0 && item.quantity >= item.maxQuantity}
+                  onClick={() => updateQty(item.productVariantId, item.quantity + 1)}
+                  className="glass flex h-7 w-7 items-center justify-center rounded-lg disabled:opacity-40"
+                >
                   <Plus size={14} />
                 </button>
               </div>

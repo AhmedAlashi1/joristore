@@ -8,6 +8,7 @@ import { CartPage } from './pages/CartPage';
 import { CheckoutPage } from './pages/CheckoutPage';
 import { HomePage } from './pages/HomePage';
 import { CustomerNotificationsPage } from './pages/NotificationsPage';
+import { OrderDetailPage } from './pages/OrderDetailPage';
 import { OrdersPage } from './pages/OrdersPage';
 import { ProductPage } from './pages/ProductPage';
 import { ShopPage } from './pages/ShopPage';
@@ -24,6 +25,7 @@ export default function StoreApp() {
         <Route path="shop" element={<ShopPage />} />
         <Route path="categories" element={<CategoriesPage />} />
         <Route path="orders" element={<OrdersPage />} />
+        <Route path="orders/:id" element={<OrderDetailPage />} />
         <Route path="notifications" element={<CustomerNotificationsPage />} />
         <Route path="terms" element={<TermsPage />} />
         <Route path="contact" element={<ContactPage />} />

@@ -18,6 +18,7 @@ export type CustomerProfile = {
   phone?: string;
   orders_count: number;
   total_spent: number;
+  wallet_balance?: number;
   addresses?: CustomerAddress[];
 };
 

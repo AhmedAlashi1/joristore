@@ -13,7 +13,7 @@ import {
 import { useNotify } from '../../lib/notify';
 import { useI18n } from '../../providers/i18n-provider';
 
-type UploadFolder = 'logos' | 'banners' | 'categories' | 'products';
+type UploadFolder = 'logos' | 'banners' | 'categories' | 'products' | 'payment-qr' | 'payment-receipts';
 
 type ImageUploadFieldProps = {
   value?: string;

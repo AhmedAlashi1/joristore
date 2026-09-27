@@ -3,6 +3,7 @@
 namespace App\Shared\Services;
 
 use App\Modules\Merchants\Models\StoreSetting;
+use App\Shared\Support\PaymentMethods;
 
 class StoreSettingService
 {
@@ -124,5 +125,141 @@ class StoreSettingService
             true,
             'general',
         );
+    }
+
+    /** @return list<array<string, mixed>> */
+    public static function paymentMethodsDefaults(): array
+    {
+        return [
+            [
+                'id' => 'cash_on_delivery',
+                'enabled' => true,
+                'label_ar' => 'دفع عند الاستلام',
+                'label_en' => 'Cash on delivery',
+                'instructions_ar' => '',
+                'instructions_en' => '',
+                'requires_receipt' => false,
+                'qr_image' => null,
+            ],
+            [
+                'id' => 'jawwal_pay',
+                'enabled' => true,
+                'label_ar' => 'جوال بي',
+                'label_en' => 'Jawwal Pay',
+                'instructions_ar' => 'امسح رمز QR وادفع المبلغ، ثم ارفع صورة الإشعار.',
+                'instructions_en' => 'Scan the QR code, pay the amount, then upload the receipt screenshot.',
+                'requires_receipt' => true,
+                'qr_image' => null,
+            ],
+            [
+                'id' => 'pal_pay',
+                'enabled' => true,
+                'label_ar' => 'بال بي',
+                'label_en' => 'PalPay',
+                'instructions_ar' => 'امسح رمز QR وادفع المبلغ، ثم ارفع صورة الإشعار.',
+                'instructions_en' => 'Scan the QR code, pay the amount, then upload the receipt screenshot.',
+                'requires_receipt' => true,
+                'qr_image' => null,
+            ],
+            [
+                'id' => 'wallet',
+                'enabled' => true,
+                'label_ar' => 'المحفظة',
+                'label_en' => 'Wallet',
+                'instructions_ar' => '',
+                'instructions_en' => '',
+                'requires_receipt' => false,
+                'qr_image' => null,
+            ],
+        ];
+    }
+
+    /** @return list<array<string, mixed>> */
+    public static function getPaymentMethods(int $storeId): array
+    {
+        $raw = self::get($storeId, 'payment_methods_json');
+        $saved = $raw ? json_decode($raw, true) : [];
+        if (! is_array($saved)) {
+            $saved = [];
+        }
+
+        return self::mergePaymentMethodsDefaults($saved);
+    }
+
+    /** @param  list<array<string, mixed>>  $saved */
+    /** @return list<array<string, mixed>> */
+    protected static function mergePaymentMethodsDefaults(array $saved): array
+    {
+        $byId = collect($saved)->keyBy('id');
+        $out = [];
+        foreach (self::paymentMethodsDefaults() as $def) {
+            $id = $def['id'];
+            $row = $byId->get($id);
+            $merged = is_array($row) ? array_merge($def, $row) : $def;
+            $merged['id'] = $id;
+            $merged['enabled'] = (bool) ($merged['enabled'] ?? false);
+            $merged['requires_receipt'] = (bool) ($merged['requires_receipt'] ?? false);
+            $out[] = $merged;
+        }
+
+        return $out;
+    }
+
+    /** @param  list<array<string, mixed>>  $methods */
+    public static function setPaymentMethods(int $storeId, array $methods): void
+    {
+        $allowed = array_flip(PaymentMethods::STOREFRONT);
+        $byId = collect($methods)->keyBy('id');
+        $normalized = [];
+
+        foreach (self::paymentMethodsDefaults() as $def) {
+            $id = $def['id'];
+            if (! isset($allowed[$id])) {
+                continue;
+            }
+            $row = $byId->get($id);
+            if (! is_array($row)) {
+                $row = $def;
+            }
+            $normalized[] = [
+                'id' => $id,
+                'enabled' => (bool) ($row['enabled'] ?? $def['enabled']),
+                'label_ar' => mb_substr((string) ($row['label_ar'] ?? $def['label_ar']), 0, 120),
+                'label_en' => mb_substr((string) ($row['label_en'] ?? $def['label_en']), 0, 120),
+                'instructions_ar' => (string) ($row['instructions_ar'] ?? ''),
+                'instructions_en' => (string) ($row['instructions_en'] ?? ''),
+                'requires_receipt' => (bool) ($row['requires_receipt'] ?? $def['requires_receipt']),
+                'qr_image' => ! empty($row['qr_image']) ? (string) $row['qr_image'] : null,
+            ];
+        }
+
+        self::set(
+            $storeId,
+            'payment_methods_json',
+            json_encode($normalized, JSON_UNESCAPED_UNICODE),
+            true,
+            'payments',
+        );
+    }
+
+    /** @return list<array<string, mixed>> */
+    public static function getEnabledPaymentMethods(int $storeId): array
+    {
+        return array_values(array_filter(
+            self::getPaymentMethods($storeId),
+            fn (array $m) => (bool) ($m['enabled'] ?? false),
+        ));
+    }
+
+    /** @return array<string, mixed>|null */
+    public static function findPaymentMethod(int $storeId, string $id): ?array
+    {
+        foreach (self::getPaymentMethods($storeId) as $method) {
+            if (($method['id'] ?? '') === $id) {
+                return $method;
+            }
+        }
+
+        return null;
     }
 }

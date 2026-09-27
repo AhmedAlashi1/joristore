@@ -22,6 +22,7 @@ use App\Modules\Shipping\Controllers\ShippingMethodController;
 use App\Modules\Storefront\Controllers\StorefrontController;
 use App\Modules\Storefront\Controllers\StorefrontPushController;
 use App\Modules\Storefront\Controllers\StorefrontCustomerController;
+use App\Modules\Storefront\Controllers\StorefrontMediaController;
 use App\Modules\Staff\Controllers\MerchantRoleController;
 use App\Modules\Staff\Controllers\StaffController;
 use Illuminate\Support\Facades\Route;
@@ -50,6 +51,8 @@ Route::middleware(['auth:sanctum', 'merchant.context'])->prefix('admin')->group(
         Route::put('settings/theme', 'updateTheme')->middleware('merchant.permission:settings.update');
         Route::get('settings/social', 'social')->middleware('merchant.permission:settings.view');
         Route::put('settings/social', 'updateSocial')->middleware('merchant.permission:settings.update');
+        Route::get('settings/payment-methods', 'paymentMethods')->middleware('merchant.permission:settings.view');
+        Route::put('settings/payment-methods', 'updatePaymentMethods')->middleware('merchant.permission:settings.update');
     });
 
     Route::post('media/upload', [MediaUploadController::class, 'store'])
@@ -211,6 +214,7 @@ Route::middleware('store.context')->prefix('store')->group(function () {
         Route::get('delivery-regions', 'deliveryRegions');
         Route::get('delivery-quote', 'deliveryQuote');
         Route::get('legal', 'legal');
+        Route::get('payment-methods', 'paymentMethods');
     });
 
     Route::controller(StorefrontCustomerController::class)->prefix('customer')->group(function () {
@@ -220,7 +224,11 @@ Route::middleware('store.context')->prefix('store')->group(function () {
             Route::get('profile', 'profile');
             Route::put('profile', 'updateProfile');
             Route::get('orders', 'orders');
+            Route::get('orders/{id}', 'orderShow');
             Route::post('orders', 'storeOrder');
+            Route::post('coupons/validate', 'validateCoupon');
+            Route::get('wallet/transactions', 'walletTransactions');
+            Route::post('media/payment-receipt', [StorefrontMediaController::class, 'uploadPaymentReceipt']);
             Route::get('notifications', 'notifications');
             Route::get('notifications/unread-count', 'unreadNotificationsCount');
             Route::post('notifications/read-all', 'markAllNotificationsRead');

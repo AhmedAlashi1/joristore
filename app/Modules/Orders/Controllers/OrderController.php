@@ -5,6 +5,7 @@ namespace App\Modules\Orders\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\Catalog\Models\ProductVariant;
 use App\Modules\Customers\Models\Customer;
+use App\Modules\Customers\Services\WalletService;
 use App\Modules\Dashboard\Models\Notification;
 use App\Modules\Inventory\Services\InventoryService;
 use App\Modules\Orders\Models\Order;
@@ -15,6 +16,7 @@ use App\Modules\Orders\Models\Payment;
 use App\Modules\Orders\Models\Shipment;
 use App\Modules\Shipping\Models\ShippingMethod;
 use App\Shared\Helpers\MoneyHelper;
+use App\Shared\Support\PaymentMethods;
 use App\Shared\Services\ActivityLogService;
 use App\Shared\Services\MerchantContext;
 use Illuminate\Http\Request;
@@ -26,6 +28,7 @@ class OrderController extends Controller
     public function __construct(
         protected InventoryService $inventoryService,
         protected ActivityLogService $activityLog,
+        protected WalletService $walletService,
     ) {}
 
     public function index(Request $request)
@@ -64,7 +67,7 @@ class OrderController extends Controller
             'customer_phone' => 'nullable|string|max:20',
             'customer_note' => 'nullable|string',
             'admin_note' => 'nullable|string',
-            'payment_method' => 'nullable|in:cash_on_delivery,bank_transfer,card,wallet',
+            'payment_method' => 'nullable|'.PaymentMethods::validationRule(),
             'shipping_method_id' => 'nullable|integer|exists:shipping_methods,id',
             'status' => 'nullable|in:pending,confirmed,processing,ready,shipped,completed',
             'items' => 'required|array|min:1',
@@ -267,9 +270,16 @@ class OrderController extends Controller
             'created_at' => now(),
         ]);
 
+        if ($newStatus === 'returned') {
+            $this->walletService->creditForReturnedOrder($order->fresh());
+            if ($order->payment_status !== 'refunded') {
+                $order->update(['payment_status' => 'refunded']);
+            }
+        }
+
         $this->activityLog->log('order.status_changed', 'orders', "Order {$order->order_number}: {$oldStatus} → {$newStatus}", Order::class, $order->id, request: $request);
 
-        return sendResponse($this->formatDetail($order->fresh()->load(['items', 'statusHistories'])), 'Status updated');
+        return sendResponse($this->formatDetail($order->fresh()->load(['items', 'addresses', 'statusHistories', 'payments', 'shipments'])), 'Status updated');
     }
 
     public function update(Request $request, int $id)
@@ -289,13 +299,18 @@ class OrderController extends Controller
             return sendError($validator->errors()->first(), $validator->errors()->toArray(), 422);
         }
 
-        $order->update($validator->validated());
+        $data = $validator->validated();
+        $order->update($data);
 
         if ($request->has('payment_status') && $request->input('payment_status') === 'paid') {
             $order->payments()->update(['status' => 'paid', 'paid_at' => now()]);
         }
 
-        return sendResponse($this->formatDetail($order->fresh()->load(['items', 'payments'])), 'Order updated');
+        if ($request->has('payment_status') && $request->input('payment_status') === 'refunded') {
+            $this->walletService->creditForReturnedOrder($order->fresh());
+        }
+
+        return sendResponse($this->formatDetail($order->fresh()->load(['items', 'addresses', 'payments', 'statusHistories', 'shipments'])), 'Order updated');
     }
 
     public function destroy(Request $request, int $id)
@@ -356,8 +371,26 @@ class OrderController extends Controller
             ]),
             'addresses' => $o->addresses,
             'status_histories' => $o->statusHistories,
-            'payments' => $o->payments,
+            'payments' => $o->payments->map(fn (Payment $p) => $this->formatPayment($p)),
             'shipments' => $o->shipments,
+        ];
+    }
+
+    protected function formatPayment(Payment $p): array
+    {
+        $meta = $p->metadata ?? [];
+        $receiptPath = $meta['receipt_path'] ?? null;
+
+        return [
+            'id' => $p->id,
+            'payment_method' => $p->payment_method,
+            'payment_provider' => $p->payment_provider,
+            'status' => $p->status,
+            'amount' => MoneyHelper::fromMinor($p->amount),
+            'currency' => $p->currency,
+            'paid_at' => $p->paid_at,
+            'metadata' => $meta,
+            'receipt_url' => $receiptPath ? url($receiptPath) : null,
         ];
     }
 }

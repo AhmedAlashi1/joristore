@@ -13,7 +13,8 @@ class Customer extends Model
 
     protected $fillable = [
         'merchant_id', 'first_name', 'last_name', 'email', 'phone', 'gender',
-        'birth_date', 'status', 'orders_count', 'total_spent_amount', 'last_order_at', 'notes',
+        'birth_date', 'status', 'orders_count', 'total_spent_amount', 'wallet_balance_amount',
+        'last_order_at', 'notes',
     ];
 
     protected function casts(): array
@@ -29,6 +30,11 @@ class Customer extends Model
     public function orders(): HasMany
     {
         return $this->hasMany(\App\Modules\Orders\Models\Order::class);
+    }
+
+    public function walletTransactions(): HasMany
+    {
+        return $this->hasMany(CustomerWalletTransaction::class);
     }
 
     public function getFullNameAttribute(): string

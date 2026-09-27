@@ -1,4 +1,4 @@
-import { Activity, Bell, Dumbbell, FolderTree, Image, LayoutDashboard, LogOut, MapPinned, Menu, Moon, Package, Settings, Shield, ShoppingCart, Sparkles, Sun, Tag, Ticket, Truck, User, UserCog, Users, Warehouse, X } from 'lucide-react';
+import { Activity, Bell, CreditCard, Dumbbell, FolderTree, Image, LayoutDashboard, LogOut, MapPinned, Menu, Moon, Package, Settings, Shield, ShoppingCart, Sparkles, Sun, Tag, Ticket, Truck, User, UserCog, Users, Warehouse, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/button';
@@ -42,6 +42,7 @@ const navSections = [
       { to: '/admin/staff', labelKey: 'staff' as const, icon: UserCog, permission: 'staff.view' },
       { to: '/admin/roles', labelKey: 'roles' as const, icon: Shield, permission: 'roles.manage' },
       { to: '/admin/settings', labelKey: 'settings' as const, icon: Settings, permission: 'settings.view' },
+      { to: '/admin/payment-methods', labelKey: 'paymentMethods' as const, icon: CreditCard, permission: 'settings.view' },
       { to: '/admin/activity-logs', labelKey: 'activityLogs' as const, icon: Activity, permission: 'activity_logs.view' },
       { to: '/admin/profile', labelKey: 'profile' as const, icon: User, permission: 'dashboard.view' },
     ],

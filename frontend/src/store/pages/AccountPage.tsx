@@ -1,10 +1,11 @@
-import { ChevronLeft, FileText, Languages, Loader2, LogIn, LogOut, MapPin, MessageCircle, Package, Phone, RefreshCw, Settings, User } from 'lucide-react';
+import { ChevronLeft, FileText, Languages, Loader2, LogIn, LogOut, MapPin, MessageCircle, Package, Phone, RefreshCw, Settings, User, Wallet } from 'lucide-react';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useCustomer } from '../providers/customer-provider';
 import { AppearanceSettings } from '../components/settings/AppearanceSettings';
 import { PushNotificationToggle } from '../components/settings/PushNotificationToggle';
 import { clearStorefrontCaches } from '../lib/app-cache-purge';
+import { formatPrice } from '../lib/utils';
 import { useLocale } from '../providers/locale-provider';
 
 export function AccountPage() {
@@ -125,6 +126,10 @@ export function AccountPage() {
           <p className="truncate text-lg font-bold">{customer?.full_name}</p>
           <p className="text-xs text-[#8a8da8]" dir="ltr">{customer?.phone}</p>
           <p className="text-xs text-[var(--primary)]">{customer?.orders_count} {ar ? 'طلب' : 'orders'}</p>
+          <p className="mt-1 flex items-center gap-1 text-xs font-bold text-[#28c76f]">
+            <Wallet size={14} />
+            {t.walletBalance}: {formatPrice(customer?.wallet_balance ?? 0)}
+          </p>
         </div>
         <button type="button" onClick={logout} className="glass rounded-xl p-2.5 text-[#ea5455]">
           <LogOut size={18} />

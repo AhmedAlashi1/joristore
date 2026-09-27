@@ -1,5 +1,6 @@
 import { Eye, Loader2, Plus, Trash2 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { FormField, FormGrid, SelectInput } from '../components/crud/CrudPage';
 import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
@@ -9,6 +10,7 @@ import { api } from '../lib/api';
 import { ensureApiSuccess } from '../lib/api-response';
 import { hasPermission } from '../lib/auth';
 import { useNotify } from '../lib/notify';
+import { ORDER_STATUSES, orderStatusLabel, paymentStatusLabel, statusVariant } from '../lib/order-status';
 import { useI18n } from '../providers/i18n-provider';
 
 type OrderRow = {
@@ -23,26 +25,9 @@ type OrderRow = {
   placed_at?: string;
 };
 
-type OrderDetail = OrderRow & {
-  customer_email?: string;
-  customer_note?: string;
-  admin_note?: string;
-  subtotal: number;
-  shipping: number;
-  items: Array<{ product_name: string; variant_name?: string; quantity: number; unit_price: number; total: number }>;
-  status_histories?: Array<{ from_status?: string; to_status: string; note?: string; created_at: string }>;
-};
-
 type ProductOption = { id: number; name: string; price: number };
 type CustomerOption = { id: number; name: string; email?: string; phone?: string };
 type ShippingOption = { id: number; name: string; price_amount: number };
-
-const statusVariant: Record<string, 'default' | 'success' | 'warning' | 'destructive'> = {
-  pending: 'warning', confirmed: 'default', processing: 'default', ready: 'default',
-  shipped: 'success', completed: 'success', canceled: 'destructive', returned: 'destructive',
-};
-
-const statuses = ['pending', 'confirmed', 'processing', 'ready', 'shipped', 'completed', 'canceled'];
 
 export function OrdersPage() {
   const { locale } = useI18n();
@@ -58,11 +43,7 @@ export function OrdersPage() {
   const [statusFilter, setStatusFilter] = useState('');
 
   const [createOpen, setCreateOpen] = useState(false);
-  const [detailOpen, setDetailOpen] = useState(false);
-  const [detail, setDetail] = useState<OrderDetail | null>(null);
   const [saving, setSaving] = useState(false);
-  const [newStatus, setNewStatus] = useState('');
-  const [statusNote, setStatusNote] = useState('');
 
   const [products, setProducts] = useState<ProductOption[]>([]);
   const [customers, setCustomers] = useState<CustomerOption[]>([]);
@@ -107,19 +88,6 @@ export function OrdersPage() {
     }).catch(() => undefined);
   }, [createOpen]);
 
-  const openDetail = async (id: number) => {
-    try {
-      const res = await api.get(`/admin/orders/${id}`);
-      const data = ensureApiSuccess<OrderDetail>(res, '');
-      setDetail(data);
-      setNewStatus(data?.status || '');
-      setStatusNote('');
-      setDetailOpen(true);
-    } catch (error) {
-      notify.errorFrom(error, ar ? 'فشل تحميل التفاصيل' : 'Failed to load details');
-    }
-  };
-
   const handleCreate = async () => {
     if (!form.customer_name || !form.items.some((i) => i.product_variant_id)) {
       notify.error(ar ? 'أكمل البيانات المطلوبة' : 'Fill required fields');
@@ -155,21 +123,6 @@ export function OrdersPage() {
     }
   };
 
-  const handleStatusUpdate = async () => {
-    if (!detail || !newStatus) return;
-    setSaving(true);
-    try {
-      await api.put(`/admin/orders/${detail.id}/status`, { status: newStatus, note: statusNote || null });
-      notify.success(ar ? 'تم تحديث الحالة' : 'Status updated');
-      await openDetail(detail.id);
-      await load();
-    } catch (error) {
-      notify.errorFrom(error, ar ? 'فشل تحديث الحالة' : 'Failed to update status');
-    } finally {
-      setSaving(false);
-    }
-  };
-
   const handleDelete = async (row: OrderRow) => {
     if (!window.confirm(ar ? 'حذف الطلب؟' : 'Delete order?')) return;
     try {
@@ -196,6 +149,7 @@ export function OrdersPage() {
     { key: 'order', label: ar ? 'الطلب' : 'Order' },
     { key: 'customer', label: ar ? 'العميل' : 'Customer' },
     { key: 'status', label: ar ? 'الحالة' : 'Status' },
+    { key: 'payment', label: ar ? 'الدفع' : 'Payment' },
     { key: 'source', label: ar ? 'المصدر' : 'Source' },
     { key: 'total', label: ar ? 'الإجمالي' : 'Total' },
     { key: 'actions', label: ar ? 'إجراءات' : 'Actions' },
@@ -220,7 +174,9 @@ export function OrdersPage() {
         <Input value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} placeholder={ar ? 'بحث...' : 'Search...'} className="max-w-xs" />
         <SelectInput variant="filter" value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}>
           <option value="">{ar ? 'كل الحالات' : 'All statuses'}</option>
-          {statuses.map((s) => <option key={s} value={s}>{s}</option>)}
+          {ORDER_STATUSES.map((s) => (
+            <option key={s} value={s}>{orderStatusLabel(s, ar)}</option>
+          ))}
         </SelectInput>
       </div>
 
@@ -249,7 +205,12 @@ export function OrdersPage() {
                       <p className="text-xs text-[#8a8da8]">{row.customer_phone ?? '—'}</p>
                     </td>
                     <td className="px-4 py-3">
-                      <Badge variant={statusVariant[row.status] ?? 'default'}>{row.status}</Badge>
+                      <Badge variant={statusVariant[row.status] ?? 'default'}>{orderStatusLabel(row.status, ar)}</Badge>
+                    </td>
+                    <td className="px-4 py-3">
+                      <Badge variant={row.payment_status === 'paid' ? 'success' : 'warning'}>
+                        {paymentStatusLabel(row.payment_status, ar)}
+                      </Badge>
                     </td>
                     <td className="px-4 py-3">
                       <Badge variant={row.source === 'storefront' ? 'success' : 'default'}>
@@ -259,7 +220,9 @@ export function OrdersPage() {
                     <td className="px-4 py-3 font-semibold">{row.total.toFixed(2)} SAR</td>
                     <td className="px-4 py-3">
                       <div className="flex gap-2">
-                        <Button variant="secondary" size="sm" onClick={() => openDetail(row.id)}><Eye className="h-4 w-4" /></Button>
+                        <Link to={`/admin/orders/${row.id}`} className="inline-flex">
+                          <Button variant="secondary" size="sm" type="button"><Eye className="h-4 w-4" /></Button>
+                        </Link>
                         {hasPermission('orders.cancel') && ['pending', 'canceled'].includes(row.status) ? (
                           <Button variant="destructive" size="sm" onClick={() => handleDelete(row)}><Trash2 className="h-4 w-4" /></Button>
                         ) : null}
@@ -310,7 +273,9 @@ export function OrdersPage() {
                 </FormField>
                 <FormField label={ar ? 'الحالة' : 'Status'}>
                   <SelectInput value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
-                    {statuses.filter((s) => s !== 'canceled').map((s) => <option key={s} value={s}>{s}</option>)}
+                    {ORDER_STATUSES.filter((s) => s !== 'canceled' && s !== 'returned').map((s) => (
+                      <option key={s} value={s}>{orderStatusLabel(s, ar)}</option>
+                    ))}
                   </SelectInput>
                 </FormField>
               </FormGrid>
@@ -353,40 +318,6 @@ export function OrdersPage() {
         </div>
       ) : null}
 
-      {detailOpen && detail ? (
-        <div className="modal-backdrop-enter fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
-          <div className="modal-panel-enter glass-strong max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl p-6">
-            <h3 className="mb-1 text-lg font-bold">{detail.order_number}</h3>
-            <p className="mb-4 text-sm text-[#8a8da8]">{detail.customer_name} · {detail.total.toFixed(2)} SAR</p>
-
-            <div className="mb-4 space-y-2">
-              {detail.items?.map((item, i) => (
-                <div key={i} className="flex justify-between rounded-xl bg-white/30 px-3 py-2 text-sm dark:bg-white/5">
-                  <span>{item.product_name} × {item.quantity}</span>
-                  <span>{item.total.toFixed(2)} SAR</span>
-                </div>
-              ))}
-            </div>
-
-            {hasPermission('orders.change_status') ? (
-              <div className="mb-4 space-y-2 rounded-xl border border-white/20 p-3">
-                <p className="text-sm font-medium">{ar ? 'تحديث الحالة' : 'Update status'}</p>
-                <div className="flex flex-wrap gap-2">
-                  <SelectInput value={newStatus} onChange={(e) => setNewStatus(e.target.value)}>
-                    {statuses.map((s) => <option key={s} value={s}>{s}</option>)}
-                  </SelectInput>
-                  <Input placeholder={ar ? 'ملاحظة' : 'Note'} value={statusNote} onChange={(e) => setStatusNote(e.target.value)} className="flex-1" />
-                  <Button onClick={handleStatusUpdate} disabled={saving}>{ar ? 'تحديث' : 'Update'}</Button>
-                </div>
-              </div>
-            ) : null}
-
-            <div className="flex justify-end">
-              <Button variant="secondary" onClick={() => setDetailOpen(false)}>{ar ? 'إغلاق' : 'Close'}</Button>
-            </div>
-          </div>
-        </div>
-      ) : null}
     </div>
   );
 }

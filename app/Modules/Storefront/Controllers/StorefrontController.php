@@ -339,6 +339,14 @@ class StorefrontController extends Controller
                 'brand:id,name',
                 'defaultVariant.inventory',
                 'images' => fn ($q) => $q->orderByDesc('is_primary')->orderBy('sort_order')->limit(1),
+            ])
+            ->withCount([
+                'variants as sized_variants_count' => fn ($q) => $q->where('name', '!=', 'Default'),
+            ])
+            ->withExists([
+                'variants as has_variant_stock' => fn ($q) => $q
+                    ->where('name', '!=', 'Default')
+                    ->whereHas('inventory', fn ($iq) => $iq->where('quantity', '>', 0)),
             ]);
 
         $this->applyStorefrontProductFilters($query, $request);
@@ -386,6 +394,9 @@ class StorefrontController extends Controller
                 'defaultVariant.inventory',
                 'images' => fn ($q) => $q->orderByDesc('is_primary')->orderBy('sort_order'),
             ])
+            ->withCount([
+                'variants as sized_variants_count' => fn ($q) => $q->where('name', '!=', 'Default'),
+            ])
             ->where('status', 'active')
             ->find($id);
 
@@ -409,6 +420,16 @@ class StorefrontController extends Controller
         ], 'Legal content');
     }
 
+    public function paymentMethods()
+    {
+        $store = MerchantContext::store();
+
+        return sendResponse(
+            StoreSettingService::getEnabledPaymentMethods($store->id),
+            'Payment methods',
+        );
+    }
+
     protected function formatProduct(Product $product, bool $detailed = false): array
     {
         $variant = $product->defaultVariant;
@@ -427,7 +448,9 @@ class StorefrontController extends Controller
             'category_name_en' => $product->category?->name_en,
             'price' => MoneyHelper::fromMinor($variant?->price_amount),
             'compare_at_price' => MoneyHelper::fromMinor($variant?->compare_at_price_amount),
-            'in_stock' => ($inventory?->quantity ?? 0) > 0,
+            'in_stock' => $this->productInStock($product, $inventory),
+            'quantity' => $inventory?->quantity ?? 0,
+            'has_size_options' => ($product->sized_variants_count ?? 0) > 1,
             'variant_id' => $variant?->id,
             'sku' => $variant?->sku,
             'image' => $this->productImagePath($product),
@@ -476,6 +499,16 @@ class StorefrontController extends Controller
         }
 
         return $data;
+    }
+
+    protected function productInStock(Product $product, $defaultInventory): bool
+    {
+        $multiSized = ($product->sized_variants_count ?? 0) > 0;
+        if ($multiSized) {
+            return (bool) ($product->has_variant_stock ?? false);
+        }
+
+        return ($defaultInventory?->quantity ?? 0) > 0;
     }
 
     public function gyms(Request $request)
