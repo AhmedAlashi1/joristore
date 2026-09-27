@@ -1,3 +1,5 @@
+import { absoluteStorageUrl, storagePublicOrigin } from './storage-origin';
+
 export type CropPreset = {
   aspectRatio: number;
   maxWidth: number;
@@ -142,17 +144,15 @@ function watermarkAbsoluteUrls(pathOrUrl: string): string[] {
   const rel = resolveWatermarkFetchUrl(pathOrUrl);
   if (!rel) return [];
 
-  const bases = [
-    window.location.origin,
-    import.meta.env.VITE_BACKEND_ORIGIN,
-    import.meta.env.VITE_API_ORIGIN,
-  ].filter((v): v is string => Boolean(v && String(v).trim()));
-
   if (/^https?:\/\//i.test(rel)) return [rel];
 
-  const path = rel.startsWith('/') ? rel : `/${rel}`;
-  const uniq = new Set(bases.map((base) => `${base.replace(/\/$/, '')}${path}`));
-  return [...uniq];
+  const absolute = absoluteStorageUrl(rel);
+  const bases = [
+    absolute,
+    `${storagePublicOrigin()}${rel.startsWith('/') ? rel : `/${rel}`}`,
+    window.location.origin + (rel.startsWith('/') ? rel : `/${rel}`),
+  ];
+  return [...new Set(bases.filter(Boolean))];
 }
 
 function responseLooksLikeImage(contentType: string, blob: Blob): boolean {
@@ -167,7 +167,7 @@ function responseLooksLikeImage(contentType: string, blob: Blob): boolean {
 async function loadImageForWatermark(pathOrUrl: string): Promise<HTMLImageElement | null> {
   for (const absolute of watermarkAbsoluteUrls(pathOrUrl)) {
     try {
-      const res = await fetch(absolute, { credentials: 'include' });
+      const res = await fetch(absolute, { mode: 'cors', credentials: 'omit' });
       if (!res.ok) continue;
 
       const contentType = res.headers.get('content-type') || '';

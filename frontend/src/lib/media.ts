@@ -1,20 +1,13 @@
 import { api } from './api';
 import { ensureApiSuccess } from './api-response';
+import { absoluteStorageUrl } from './storage-origin';
 
 export type UploadFolder = 'logos' | 'banners' | 'categories' | 'products';
 
 type UploadResult = { path: string; url: string };
 
 export function mediaUrl(path?: string | null): string {
-  if (!path) return '';
-  if (/^https?:\/\//i.test(path)) return path;
-  if (path.startsWith('/storage/')) {
-    const origin = import.meta.env.VITE_API_ORIGIN || import.meta.env.VITE_BACKEND_ORIGIN;
-    if (origin) return `${origin}${path}`;
-    return path;
-  }
-  if (path.startsWith('/')) return path;
-  return `/${path.replace(/^\/+/, '')}`;
+  return absoluteStorageUrl(path);
 }
 
 export async function uploadMedia(file: File, folder: UploadFolder): Promise<UploadResult> {

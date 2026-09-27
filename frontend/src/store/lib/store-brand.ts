@@ -1,3 +1,5 @@
+import { absoluteStorageUrl } from '../../lib/storage-origin';
+
 export type StoreTheme = {
   primary: string;
   background: string;
@@ -239,14 +241,7 @@ export async function persistLogoForOffline(logoPath?: string | null): Promise<v
 
 export function resolveBrandAsset(path?: string | null): string {
   if (!path) return DEFAULT_LOGO;
-  if (/^https?:\/\//i.test(path)) return path;
-  if (path.startsWith('/storage/')) {
-    const origin = import.meta.env.VITE_API_ORIGIN || import.meta.env.VITE_BACKEND_ORIGIN;
-    if (origin) return `${origin}${path}`;
-    return path;
-  }
-  if (path.startsWith('/')) return path;
-  return `/${path.replace(/^\/+/, '')}`;
+  return absoluteStorageUrl(path) || DEFAULT_LOGO;
 }
 
 /** Apply cached theme/logo before React mounts (called from main.tsx). */

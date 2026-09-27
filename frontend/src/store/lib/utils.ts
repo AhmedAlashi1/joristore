@@ -6,16 +6,4 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export { formatPrice, getCurrencySymbol } from '../../lib/format-price';
-
-/** Resolve category/product image paths from API (relative or absolute URL). */
-export function resolveMediaUrl(path?: string | null): string {
-  if (!path) return '';
-  if (/^https?:\/\//i.test(path)) return path;
-  if (path.startsWith('/storage/')) {
-    const origin = import.meta.env.VITE_API_ORIGIN || import.meta.env.VITE_BACKEND_ORIGIN;
-    if (origin) return `${origin}${path}`;
-    return path;
-  }
-  if (path.startsWith('/')) return path;
-  return `/${path.replace(/^\/+/, '')}`;
-}
+export { absoluteStorageUrl as resolveMediaUrl } from '../../lib/storage-origin';
