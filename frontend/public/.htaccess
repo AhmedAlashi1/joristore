@@ -8,9 +8,9 @@
   RewriteBase /
 
   # Laravel /storage/* (repo at ~/joristore next to ~/public_html on cPanel)
-  RewriteCond %{REQUEST_URI} ^/storage/
-  RewriteCond %{DOCUMENT_ROOT}/../joristore/public/storage/$1 -f
-  RewriteRule ^storage/(.*)$ %{DOCUMENT_ROOT}/../joristore/public/storage/$1 [L]
+  RewriteCond %{REQUEST_URI} ^/storage/(.+)$
+  RewriteCond %{DOCUMENT_ROOT}/../joristore/public/storage/%1 -f
+  RewriteRule ^storage/(.+)$ %{DOCUMENT_ROOT}/../joristore/public/storage/$1 [L]
 
   # Same if you symlink: ln -sfn ~/joristore/public/storage ~/public_html/storage
   # Serve existing files and directories as-is (assets, favicon, etc.)
