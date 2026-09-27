@@ -142,14 +142,22 @@ async function loadImageForWatermark(pathOrUrl: string): Promise<HTMLImageElemen
   const fetchUrl = resolveWatermarkFetchUrl(pathOrUrl);
   if (!fetchUrl) return null;
 
+  const absolute = fetchUrl.startsWith('http')
+    ? fetchUrl
+    : `${window.location.origin}${fetchUrl}`;
+
   try {
-    const absolute = fetchUrl.startsWith('http')
-      ? fetchUrl
-      : `${window.location.origin}${fetchUrl}`;
     const res = await fetch(absolute, { credentials: 'same-origin' });
     if (res.ok) {
       const blob = await res.blob();
-      return loadImageFromBlob(blob);
+      const type = blob.type.toLowerCase();
+      if (!type || type.startsWith('image/') || type === 'application/octet-stream') {
+        try {
+          return await loadImageFromBlob(blob);
+        } catch {
+          // fall through to <img>
+        }
+      }
     }
   } catch {
     // fall through
@@ -160,7 +168,7 @@ async function loadImageForWatermark(pathOrUrl: string): Promise<HTMLImageElemen
     img.crossOrigin = 'anonymous';
     img.onload = () => resolve(img);
     img.onerror = () => resolve(null);
-    img.src = fetchUrl.startsWith('http') ? fetchUrl : `${window.location.origin}${fetchUrl}`;
+    img.src = absolute;
   });
 }
 
@@ -220,6 +228,24 @@ function imageToCanvas(img: HTMLImageElement, maxLongEdge: number): HTMLCanvasEl
   return canvas;
 }
 
+async function canvasToJpegFile(canvas: HTMLCanvasElement, baseName: string, maxBytes: number): Promise<File | null> {
+  let quality = 0.88;
+  let blob: Blob | null = null;
+
+  while (quality >= 0.55) {
+    blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', quality));
+    if (blob && blob.size <= maxBytes) break;
+    quality -= 0.07;
+  }
+
+  if (!blob) {
+    blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.8));
+  }
+  if (!blob) return null;
+
+  return new File([blob], `${baseName}.jpg`, { type: 'image/jpeg' });
+}
+
 async function canvasToWebpFile(canvas: HTMLCanvasElement, baseName: string, maxBytes: number): Promise<File> {
   let quality = 0.82;
   let blob: Blob | null = null;
@@ -233,7 +259,10 @@ async function canvasToWebpFile(canvas: HTMLCanvasElement, baseName: string, max
   if (!blob) {
     blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/webp', 0.75));
   }
+
   if (!blob) {
+    const jpeg = await canvasToJpegFile(canvas, baseName, maxBytes);
+    if (jpeg) return jpeg;
     throw new Error('Could not compress image');
   }
 
@@ -241,23 +270,27 @@ async function canvasToWebpFile(canvas: HTMLCanvasElement, baseName: string, max
 }
 
 async function drawWatermark(canvas: HTMLCanvasElement, watermarkLogoPathOrUrl: string): Promise<boolean> {
-  const logo = await loadImageForWatermark(watermarkLogoPathOrUrl);
-  if (!logo) return false;
+  try {
+    const logo = await loadImageForWatermark(watermarkLogoPathOrUrl);
+    if (!logo || logo.naturalWidth < 1 || logo.naturalHeight < 1) return false;
 
-  const ctx = canvas.getContext('2d');
-  if (!ctx) return false;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return false;
 
-  const outW = canvas.width;
-  const outH = canvas.height;
-  const pad = Math.round(outW * 0.035);
-  const logoW = Math.round(outW * 0.15);
-  const logoH = Math.round((logo.naturalHeight / logo.naturalWidth) * logoW);
+    const outW = canvas.width;
+    const outH = canvas.height;
+    const pad = Math.round(outW * 0.035);
+    const logoW = Math.round(outW * 0.15);
+    const logoH = Math.round((logo.naturalHeight / logo.naturalWidth) * logoW);
 
-  ctx.save();
-  ctx.globalAlpha = 0.9;
-  ctx.drawImage(logo, outW - logoW - pad, outH - logoH - pad, logoW, logoH);
-  ctx.restore();
-  return true;
+    ctx.save();
+    ctx.globalAlpha = 0.9;
+    ctx.drawImage(logo, outW - logoW - pad, outH - logoH - pad, logoW, logoH);
+    ctx.restore();
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export type ProductImagePublishOptions = {
@@ -283,6 +316,9 @@ export async function prepareProductImageForPublish(
 
   const canvas = await fileToCanvas(file, options?.maxLongEdge ?? DEFAULT_PRODUCT_LONG_EDGE);
   if (!canvas) {
+    if (/heic|heif/i.test(file.type) || /\.heif?$/i.test(file.name)) {
+      throw new Error('HEIC');
+    }
     return { file, logoApplied: false };
   }
 
@@ -293,8 +329,14 @@ export async function prepareProductImageForPublish(
   }
 
   const base = file.name.replace(/\.[^.]+$/, '') || 'product';
-  const outFile = await canvasToWebpFile(canvas, base, options?.maxBytes ?? DEFAULT_MAX_BYTES);
-  return { file: outFile, logoApplied };
+  try {
+    const outFile = await canvasToWebpFile(canvas, base, options?.maxBytes ?? DEFAULT_MAX_BYTES);
+    return { file: outFile, logoApplied };
+  } catch {
+    const jpeg = await canvasToJpegFile(canvas, base, options?.maxBytes ?? DEFAULT_MAX_BYTES);
+    if (jpeg) return { file: jpeg, logoApplied };
+    return { file, logoApplied: false };
+  }
 }
 
 /** Center-crop to aspect ratio and resize (categories, banners, logos). */

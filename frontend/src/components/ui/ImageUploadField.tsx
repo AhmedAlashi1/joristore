@@ -76,11 +76,11 @@ export function ImageUploadField({ value = '', onChange, folder, label }: ImageU
       notify.success(ar ? 'تم تجهيز الصورة ورفعها' : 'Image prepared and uploaded');
     } catch (error) {
       const msg = error instanceof Error ? error.message : '';
-      if (msg === 'Invalid image' || msg === 'Could not compress image') {
+      if (msg === 'HEIC' || msg === 'Invalid image' || msg === 'Could not compress image') {
         notify.error(
           ar
-            ? 'تعذّر قراءة الصورة. استخدم JPG أو PNG (حوّل HEIC من الجوال إلى JPG إن لزم).'
-            : 'Could not read this image. Use JPG or PNG (convert HEIC to JPG if needed).',
+            ? 'تعذّر قراءة الصورة. استخدم JPG أو PNG (من الآيفون: Most Compatible أو حوّل HEIC).'
+            : 'Could not read this image. Use JPG or PNG (on iPhone: Most Compatible or convert HEIC).',
         );
       } else {
         notify.errorFrom(error, ar ? 'فشل رفع الصورة' : 'Upload failed');
