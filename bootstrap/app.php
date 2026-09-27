@@ -6,7 +6,6 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Artisan;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -20,7 +19,7 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->redirectGuestsTo(function (Request $request) {
-            if ($request->is('api/*') || $request->expectsJson()) {
+            if ($request->is('api/*', 'index.php/api/*') || $request->expectsJson()) {
                 return null;
             }
 
@@ -75,9 +74,7 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withSchedule(function (Schedule $schedule) {
-        $schedule->call(function () {
-            Artisan::call('route:cache');
-        })->weekly();
+        //
     })
     ->withExceptions(function (Exceptions $exceptions) {
         $exceptions->dontFlash([
@@ -88,7 +85,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $exceptions->render(function (\Throwable $e, Request $request) {
             if ($e instanceof AuthenticationException) {
-                if ($request->is('api/*') || $request->expectsJson()) {
+                if ($request->is('api/*', 'index.php/api/*') || $request->expectsJson()) {
                     return sendError('Unauthenticated', [], 401);
                 }
 
@@ -96,7 +93,7 @@ return Application::configure(basePath: dirname(__DIR__))
             }
 
             if ($e instanceof ValidationException) {
-                if ($request->is('api/*') || $request->expectsJson()) {
+                if ($request->is('api/*', 'index.php/api/*') || $request->expectsJson()) {
                     return sendError(
                         $e->validator->errors()->first(),
                         $e->errors(),
@@ -107,7 +104,7 @@ return Application::configure(basePath: dirname(__DIR__))
                 return null;
             }
 
-            if ($request->is('api/*') || $request->expectsJson()) {
+            if ($request->is('api/*', 'index.php/api/*') || $request->expectsJson()) {
                 if ($e instanceof \Symfony\Component\HttpKernel\Exception\HttpExceptionInterface) {
                     return sendError($e->getMessage() ?: 'Error', [], $e->getStatusCode());
                 }

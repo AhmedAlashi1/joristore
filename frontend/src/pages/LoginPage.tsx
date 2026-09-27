@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { api } from '../lib/api';
+import { ensureApiSuccess } from '../lib/api-response';
 import { setAdminAuthInfo, setAuthToken, type AdminAuthInfo } from '../lib/auth';
 import { getApiErrorMessage } from '../lib/http-error';
 import { useI18n } from '../providers/i18n-provider';
@@ -25,13 +26,13 @@ export function LoginPage() {
 
     try {
       const res = await api.post('/admin/login', { email, password });
-      const body = res?.data as { data?: { token?: string; user?: AdminAuthInfo }; message?: string } | undefined;
-      const token = body?.data?.token;
-      const user = body?.data?.user;
+      const payload = ensureApiSuccess<{ token?: string; user?: AdminAuthInfo }>(res, ar ? 'فشل تسجيل الدخول' : 'Login failed');
+      const token = payload.token;
+      const user = payload.user;
       if (!token) {
-        throw new Error(body?.message || (ar ? 'لم يرجع السيرفر token — تحقق من APP_URL و/api/admin/login' : 'API did not return a token'));
+        throw new Error(ar ? 'لم يرجع السيرفر token' : 'API did not return a token');
       }
-      if (!user) throw new Error('User data not found');
+      if (!user) throw new Error(ar ? 'بيانات المستخدم ناقصة' : 'User data not found');
       setAuthToken(token);
       setAdminAuthInfo(user);
       navigate('/admin/dashboard', { replace: true });

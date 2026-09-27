@@ -72,8 +72,30 @@ Without assets in `public/`, `/admin` **404**s. With `public/index.html`, `/` sh
 ## Local development
 
 ```bash
-php artisan serve --port=8000
+php artisan serve --host=127.0.0.1 --port=8000
 cd frontend && npm run dev
 ```
 
-Uses Vite proxy to `127.0.0.1:8000` for `/api` and `/storage`.
+| URL | Purpose |
+|-----|---------|
+| http://127.0.0.1:5173 | Store + admin UI |
+| http://127.0.0.1:5173/admin/login | Admin login |
+| http://127.0.0.1:8000 | JSON API only (not the shop UI) |
+
+Vite proxies `/api` and `/storage` to port 8000. **Do not** open the shop on `:8000` unless `public/index.html` exists.
+
+## If store is empty or admin login fails
+
+On the server:
+
+```bash
+cd ~/joristore
+php artisan route:clear
+php artisan config:clear
+php artisan cache:clear
+php artisan optimize:clear
+```
+
+Rebuild and publish SPA (see checklist above). In the browser: hard refresh or clear site data for joristore.com and dashboard.
+
+Check API: `curl -s -o /dev/null -w "%{http_code}" -H "X-Store-Slug: jori-store" https://dashboard.joristore.com/index.php/api/store` → **200**.
