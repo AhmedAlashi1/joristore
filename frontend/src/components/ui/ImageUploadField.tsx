@@ -54,12 +54,35 @@ export function ImageUploadField({ value = '', onChange, folder, label }: ImageU
       if (folder === 'products') {
         const logoPath = await fetchStoreLogoPath(storeLogoPathRef.current);
         storeLogoPathRef.current = logoPath;
-        const { file: out, logoApplied } = await prepareProductImageForPublish(file, { watermarkLogoPath: logoPath });
-        prepared = out;
-        const result = await uploadMedia(prepared, folder);
-        onChange(result.path);
+        let out = file;
+        let logoApplied = false;
+        try {
+          const prepResult = await prepareProductImageForPublish(file, { watermarkLogoPath: logoPath });
+          out = prepResult.file;
+          logoApplied = prepResult.logoApplied;
+        } catch (prepErr) {
+          const msg = prepErr instanceof Error ? prepErr.message : '';
+          if (msg === 'HEIC') throw prepErr;
+        }
+        try {
+          prepared = out;
+          const result = await uploadMedia(prepared, folder);
+          onChange(result.path);
+        } catch (uploadErr) {
+          if (out !== file) {
+            const result = await uploadMedia(file, folder);
+            onChange(result.path);
+            notify.success(ar ? 'تم الرفع (بدون ضغط)' : 'Uploaded (original file, no compression)');
+            return;
+          }
+          throw uploadErr;
+        }
         if (logoPath && !logoApplied) {
-          notify.error(ar ? 'رفعت الصورة لكن الشعار لم يُطبّق — تأكد من شعار المتجر في الإعدادات' : 'Uploaded but logo was not applied — check store logo in settings');
+          notify.success(
+            ar
+              ? 'تم الرفع. الشعار لم يُطبّق — تأكد أن /storage يفتح صورة وليس صفحة المتجر.'
+              : 'Uploaded. Logo skipped — /storage must serve images, not the store HTML.',
+          );
         } else {
           notify.success(
             logoApplied

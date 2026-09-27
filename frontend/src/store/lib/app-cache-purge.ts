@@ -1,7 +1,7 @@
 import { STORE_BRAND_CACHE_KEY } from './store-brand';
 
 /** Bump when old SW / localStorage causes hangs or stale UI after deploy. */
-export const APP_CACHE_REVISION = '2026-09-27-v2';
+export const APP_CACHE_REVISION = '2026-09-27-v3';
 
 const REVISION_KEY = 'jori-app-cache-revision';
 const RELOAD_FLAG = 'jori-cache-purge-reloaded';

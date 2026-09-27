@@ -59,8 +59,26 @@ export function ProductGalleryField({ primary, gallery, onChange }: ProductGalle
     try {
       const logoPath = await fetchStoreLogoPath(storeLogoPathRef.current);
       storeLogoPathRef.current = logoPath;
-      const { file: prepared, logoApplied } = await prepareProductImageForPublish(file, { watermarkLogoPath: logoPath });
-      const result = await uploadMedia(prepared, 'products');
+      let prepared = file;
+      let logoApplied = false;
+      try {
+        const out = await prepareProductImageForPublish(file, { watermarkLogoPath: logoPath });
+        prepared = out.file;
+        logoApplied = out.logoApplied;
+      } catch (prepErr) {
+        const msg = prepErr instanceof Error ? prepErr.message : '';
+        if (msg === 'HEIC') throw prepErr;
+      }
+      let result;
+      try {
+        result = await uploadMedia(prepared, 'products');
+      } catch (uploadErr) {
+        if (prepared !== file) {
+          result = await uploadMedia(file, 'products');
+        } else {
+          throw uploadErr;
+        }
+      }
       if (logoPath && !logoApplied) {
         notify.error(ar ? 'الصورة رُفعت بدون شعار' : 'Uploaded without logo stamp');
       }

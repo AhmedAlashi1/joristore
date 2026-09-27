@@ -138,38 +138,53 @@ export function resolveWatermarkFetchUrl(pathOrUrl: string): string {
   return trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
 }
 
+function watermarkAbsoluteUrls(pathOrUrl: string): string[] {
+  const rel = resolveWatermarkFetchUrl(pathOrUrl);
+  if (!rel) return [];
+
+  const bases = [
+    window.location.origin,
+    import.meta.env.VITE_BACKEND_ORIGIN,
+    import.meta.env.VITE_API_ORIGIN,
+  ].filter((v): v is string => Boolean(v && String(v).trim()));
+
+  if (/^https?:\/\//i.test(rel)) return [rel];
+
+  const path = rel.startsWith('/') ? rel : `/${rel}`;
+  const uniq = new Set(bases.map((base) => `${base.replace(/\/$/, '')}${path}`));
+  return [...uniq];
+}
+
+function responseLooksLikeImage(contentType: string, blob: Blob): boolean {
+  const ct = contentType.toLowerCase();
+  if (ct.includes('text/html') || ct.includes('application/json')) return false;
+  const bt = blob.type.toLowerCase();
+  if (bt.includes('text/html') || bt.includes('application/json')) return false;
+  if (ct.startsWith('image/') || bt.startsWith('image/')) return true;
+  return bt === '' || bt === 'application/octet-stream';
+}
+
 async function loadImageForWatermark(pathOrUrl: string): Promise<HTMLImageElement | null> {
-  const fetchUrl = resolveWatermarkFetchUrl(pathOrUrl);
-  if (!fetchUrl) return null;
+  for (const absolute of watermarkAbsoluteUrls(pathOrUrl)) {
+    try {
+      const res = await fetch(absolute, { credentials: 'include' });
+      if (!res.ok) continue;
 
-  const absolute = fetchUrl.startsWith('http')
-    ? fetchUrl
-    : `${window.location.origin}${fetchUrl}`;
-
-  try {
-    const res = await fetch(absolute, { credentials: 'same-origin' });
-    if (res.ok) {
+      const contentType = res.headers.get('content-type') || '';
       const blob = await res.blob();
-      const type = blob.type.toLowerCase();
-      if (!type || type.startsWith('image/') || type === 'application/octet-stream') {
-        try {
-          return await loadImageFromBlob(blob);
-        } catch {
-          // fall through to <img>
-        }
-      }
-    }
-  } catch {
-    // fall through
-  }
+      if (!responseLooksLikeImage(contentType, blob)) continue;
 
-  return new Promise((resolve) => {
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = () => resolve(img);
-    img.onerror = () => resolve(null);
-    img.src = absolute;
-  });
+      try {
+        const img = await loadImageFromBlob(blob);
+        if (img.naturalWidth > 0 && img.naturalHeight > 0) return img;
+      } catch {
+        // try next URL
+      }
+    } catch {
+      // try next URL
+    }
+  }
+  return null;
 }
 
 function cropToCanvas(img: HTMLImageElement, preset: CropPreset): HTMLCanvasElement | null {
@@ -310,31 +325,36 @@ export async function prepareProductImageForPublish(
   file: File,
   options?: ProductImagePublishOptions,
 ): Promise<ProductImagePublishResult> {
-  if (file.type === 'image/svg+xml') {
-    return { file, logoApplied: false };
-  }
-
-  const canvas = await fileToCanvas(file, options?.maxLongEdge ?? DEFAULT_PRODUCT_LONG_EDGE);
-  if (!canvas) {
-    if (/heic|heif/i.test(file.type) || /\.heif?$/i.test(file.name)) {
-      throw new Error('HEIC');
-    }
-    return { file, logoApplied: false };
-  }
-
-  let logoApplied = false;
-  const logoPath = options?.watermarkLogoPath?.trim();
-  if (logoPath) {
-    logoApplied = await drawWatermark(canvas, logoPath);
-  }
-
-  const base = file.name.replace(/\.[^.]+$/, '') || 'product';
   try {
-    const outFile = await canvasToWebpFile(canvas, base, options?.maxBytes ?? DEFAULT_MAX_BYTES);
-    return { file: outFile, logoApplied };
-  } catch {
-    const jpeg = await canvasToJpegFile(canvas, base, options?.maxBytes ?? DEFAULT_MAX_BYTES);
-    if (jpeg) return { file: jpeg, logoApplied };
+    if (file.type === 'image/svg+xml') {
+      return { file, logoApplied: false };
+    }
+
+    const canvas = await fileToCanvas(file, options?.maxLongEdge ?? DEFAULT_PRODUCT_LONG_EDGE);
+    if (!canvas) {
+      if (/heic|heif/i.test(file.type) || /\.heif?$/i.test(file.name)) {
+        throw new Error('HEIC');
+      }
+      return { file, logoApplied: false };
+    }
+
+    let logoApplied = false;
+    const logoPath = options?.watermarkLogoPath?.trim();
+    if (logoPath) {
+      logoApplied = await drawWatermark(canvas, logoPath);
+    }
+
+    const base = file.name.replace(/\.[^.]+$/, '') || 'product';
+    try {
+      const outFile = await canvasToWebpFile(canvas, base, options?.maxBytes ?? DEFAULT_MAX_BYTES);
+      return { file: outFile, logoApplied };
+    } catch {
+      const jpeg = await canvasToJpegFile(canvas, base, options?.maxBytes ?? DEFAULT_MAX_BYTES);
+      if (jpeg) return { file: jpeg, logoApplied };
+      return { file, logoApplied: false };
+    }
+  } catch (e) {
+    if (e instanceof Error && e.message === 'HEIC') throw e;
     return { file, logoApplied: false };
   }
 }
