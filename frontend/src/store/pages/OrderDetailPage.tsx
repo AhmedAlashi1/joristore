@@ -86,7 +86,9 @@ export function OrderDetailPage() {
               {ar ? 'تم استلام الطلب' : 'Order received'}
             </li>
           ) : (
-            order.tracking_steps.map((step, i) => (
+            order.tracking_steps
+              .filter((step) => step.status !== 'shipping_not_required' && step.status !== 'not_required')
+              .map((step, i) => (
               <li key={`${step.status}-${i}`} className="relative pb-3 last:pb-0">
                 <span className="absolute -start-[1.05rem] top-1 h-2.5 w-2.5 rounded-full bg-[var(--primary)] ring-2 ring-white" />
                 <p className="text-xs font-bold">{orderStatusLabel(step.status, ar)}</p>

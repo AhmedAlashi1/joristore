@@ -1,6 +1,6 @@
 import { Loader2, Sparkles, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { ProductCard, type ProductCardData } from '../product/ProductCard';
 import { storeApi, unwrap } from '../../lib/api';
 import { useLocale } from '../../providers/locale-provider';
@@ -21,6 +21,7 @@ type SmartSearchOverlayProps = {
 export function SmartSearchOverlay({ open, onClose }: SmartSearchOverlayProps) {
   const { t, locale } = useLocale();
   const navigate = useNavigate();
+  const location = useLocation();
   const inputRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
@@ -34,6 +35,15 @@ export function SmartSearchOverlay({ open, onClose }: SmartSearchOverlayProps) {
       window.setTimeout(() => inputRef.current?.focus(), 80);
     }
   }, [open]);
+
+  const locationKeyRef = useRef(`${location.pathname}${location.search}`);
+
+  useEffect(() => {
+    const nextKey = `${location.pathname}${location.search}`;
+    if (locationKeyRef.current === nextKey) return;
+    locationKeyRef.current = nextKey;
+    if (open) onClose();
+  }, [location.pathname, location.search, open, onClose]);
 
   if (!open) return null;
 
@@ -66,27 +76,29 @@ export function SmartSearchOverlay({ open, onClose }: SmartSearchOverlayProps) {
         className="search-panel absolute inset-x-0 top-0 mx-auto flex max-h-[92dvh] max-w-[480px] flex-col px-4 pt-[calc(12px+var(--safe-top))]"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="glass-strong flex items-center gap-2 rounded-2xl px-3 py-2 shadow-xl">
-          <Sparkles size={18} className="shrink-0 text-[var(--primary)]" />
-          <input
-            ref={inputRef}
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') void runSearch();
-              if (e.key === 'Escape') onClose();
-            }}
-            placeholder={t.smartSearchPlaceholder}
-            className="w-full bg-transparent text-sm outline-none"
-          />
-          <button type="button" onClick={onClose} className="rounded-lg p-1 text-store-muted">
-            <X size={18} />
+        <div className="flex flex-col gap-3">
+          <div className="glass-strong flex items-center gap-2 rounded-2xl px-3 py-2.5 shadow-xl">
+            <Sparkles size={18} className="shrink-0 text-[var(--primary)]" />
+            <input
+              ref={inputRef}
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') void runSearch();
+                if (e.key === 'Escape') onClose();
+              }}
+              placeholder={t.smartSearchPlaceholder}
+              className="w-full bg-transparent text-sm text-[var(--fg)] outline-none placeholder:text-store-muted"
+            />
+            <button type="button" onClick={onClose} className="rounded-lg p-1 text-store-muted">
+              <X size={18} />
+            </button>
+          </div>
+
+          <button type="button" onClick={() => void runSearch()} disabled={loading || !query.trim()} className="btn-primary w-full py-2.5 text-sm">
+            {loading ? <Loader2 className="mx-auto h-4 w-4 animate-spin" /> : t.smartSearch}
           </button>
         </div>
-
-        <button type="button" onClick={() => void runSearch()} disabled={loading || !query.trim()} className="btn-primary mt-3 w-full py-2.5 text-sm">
-          {loading ? <Loader2 className="mx-auto h-4 w-4 animate-spin" /> : t.smartSearch}
-        </button>
 
         {error ? <p className="mt-3 text-center text-xs font-semibold text-[#ea5455]">{error}</p> : null}
 
@@ -112,7 +124,7 @@ export function SmartSearchOverlay({ open, onClose }: SmartSearchOverlayProps) {
               <>
                 <div className="product-grid">
                   {result.products.slice(0, 6).map((p, i) => (
-                    <ProductCard key={p.id} product={p} index={i} compact />
+                    <ProductCard key={p.id} product={p} index={i} compact onNavigate={onClose} />
                   ))}
                 </div>
                 {result.products.length > 6 ? (

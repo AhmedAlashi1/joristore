@@ -144,7 +144,7 @@ class StorefrontController extends Controller
             ->where('status', 'active')
             ->orderBy('sort_order')
             ->orderBy('name')
-            ->get(['id', 'name', 'name_en', 'slug', 'parent_id', 'image', 'sort_order']);
+            ->get(['id', 'name', 'name_en', 'slug', 'parent_id', 'image', 'sort_order', 'updated_at']);
 
         $mapped = $items->map(fn (Category $c) => [
             'id' => $c->id,
@@ -154,6 +154,7 @@ class StorefrontController extends Controller
             'parent_id' => $c->parent_id,
             'image' => $c->image,
             'sort_order' => $c->sort_order,
+            'updated_at' => $c->updated_at?->toIso8601String(),
         ]);
 
         return sendResponse($mapped, 'Categories fetched');
@@ -224,7 +225,7 @@ class StorefrontController extends Controller
             ->where('status', 'active')
             ->orderBy('sort_order')
             ->orderByDesc('id')
-            ->get(['id', 'title', 'title_en', 'image', 'link']);
+            ->get(['id', 'title', 'title_en', 'image', 'link', 'updated_at']);
 
         $mapped = $items->map(fn (PromoBanner $b) => [
             'id' => $b->id,
@@ -232,6 +233,7 @@ class StorefrontController extends Controller
             'title_en' => $b->title_en,
             'image' => $b->image,
             'link' => $b->link ?: '/shop',
+            'updated_at' => $b->updated_at?->toIso8601String(),
         ]);
 
         return sendResponse($mapped, 'Promo banners fetched');
@@ -423,11 +425,18 @@ class StorefrontController extends Controller
     public function paymentMethods()
     {
         $store = MerchantContext::store();
+        $methods = StoreSettingService::getEnabledPaymentMethods($store->id);
 
-        return sendResponse(
-            StoreSettingService::getEnabledPaymentMethods($store->id),
-            'Payment methods',
-        );
+        $methods = array_map(function (array $method) {
+            $qr = $method['qr_image'] ?? null;
+            if (is_string($qr) && $qr !== '' && ! str_starts_with($qr, 'http')) {
+                $method['qr_image'] = url($qr);
+            }
+
+            return $method;
+        }, $methods);
+
+        return sendResponse($methods, 'Payment methods');
     }
 
     protected function formatProduct(Product $product, bool $detailed = false): array

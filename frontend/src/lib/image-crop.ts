@@ -12,8 +12,8 @@ export const IMAGE_CROP_PRESETS = {
   products: {
     aspectRatio: 1,
     maxWidth: 1600,
-    hintAr: 'ارفع الصورة كما هي — نضيف شعار المتجر ونضغطها WebP للجودة والحجم المناسب للمتجر.',
-    hintEn: 'Upload as-is — we stamp the store logo and compress to WebP for quality and size.',
+    hintAr: 'ارفع الصورة — نضغطها WebP للجودة والحجم. الشعار اختياري من خانة «إضافة شعار المتجر» أعلى قسم الصور.',
+    hintEn: 'Upload — we compress to WebP for quality and size. Logo is optional via «Stamp store logo» above the images section.',
   },
   categories: {
     aspectRatio: 4 / 3,

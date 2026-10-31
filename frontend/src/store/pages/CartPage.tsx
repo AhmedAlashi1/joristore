@@ -1,6 +1,7 @@
 import { Minus, Plus, ShoppingBag, Trash2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { StoreMediaImage } from '../components/media/StoreMediaImage';
+import { useCartItemImages } from '../lib/use-cart-item-images';
 import { formatPrice } from '../lib/utils';
 import { useCart } from '../providers/cart-provider';
 import { useLocale } from '../providers/locale-provider';
@@ -8,6 +9,7 @@ import { useLocale } from '../providers/locale-provider';
 export function CartPage() {
   const { t } = useLocale();
   const { items, total, updateQty, removeItem } = useCart();
+  const { resolveImage } = useCartItemImages(items);
 
   if (items.length === 0) {
     return (
@@ -28,8 +30,8 @@ export function CartPage() {
       <div className="space-y-3">
         {items.map((item) => (
           <div key={item.productVariantId} className="glass-strong card-pop flex gap-3 rounded-2xl p-3">
-            <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-neutral-100">
-              <StoreMediaImage src={item.image} alt={item.name} fit="cover" layout="fill" className="h-full w-full" />
+            <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-[#eceef4] dark:bg-[#252538]">
+              <StoreMediaImage src={resolveImage(item)} alt={item.name} fit="cover" layout="fill" />
             </div>
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-semibold">{item.name}</p>

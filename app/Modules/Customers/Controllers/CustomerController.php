@@ -4,6 +4,8 @@ namespace App\Modules\Customers\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Customers\Models\Customer;
+use App\Modules\Customers\Models\CustomerWalletRequest;
+use App\Modules\Customers\Models\CustomerWalletTransaction;
 use App\Shared\Helpers\MoneyHelper;
 use App\Shared\Services\ActivityLogService;
 use Illuminate\Http\Request;
@@ -209,6 +211,94 @@ class CustomerController extends Controller
         return sendResponse([], 'Address deleted');
     }
 
+    public function cart(int $id)
+    {
+        $customer = Customer::find($id);
+        if (! $customer) {
+            return sendError('Customer not found', [], 404);
+        }
+
+        $items = is_array($customer->cart_snapshot) ? $customer->cart_snapshot : [];
+        $total = 0.0;
+        $count = 0;
+        foreach ($items as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            $qty = max(1, (int) ($row['quantity'] ?? 1));
+            $price = (float) ($row['price'] ?? 0);
+            $total += $price * $qty;
+            $count += $qty;
+        }
+
+        return sendResponse([
+            'customer_id' => $customer->id,
+            'customer_name' => $customer->full_name,
+            'items' => $items,
+            'item_count' => $count,
+            'total' => round($total, 2),
+            'synced_at' => $customer->cart_synced_at,
+        ], 'Customer cart');
+    }
+
+    public function walletActivity(int $id)
+    {
+        $customer = Customer::find($id);
+        if (! $customer) {
+            return sendError('Customer not found', [], 404);
+        }
+
+        $pendingTopUp = CustomerWalletRequest::query()
+            ->where('customer_id', $customer->id)
+            ->where('type', CustomerWalletRequest::TYPE_TOP_UP)
+            ->where('status', CustomerWalletRequest::STATUS_PENDING)
+            ->sum('amount');
+
+        $pendingWithdrawal = CustomerWalletRequest::query()
+            ->where('customer_id', $customer->id)
+            ->where('type', CustomerWalletRequest::TYPE_WITHDRAWAL)
+            ->where('status', CustomerWalletRequest::STATUS_PENDING)
+            ->sum('amount');
+
+        $transactions = CustomerWalletTransaction::query()
+            ->where('customer_id', $customer->id)
+            ->orderByDesc('id')
+            ->limit(50)
+            ->get()
+            ->map(fn (CustomerWalletTransaction $tx) => [
+                'id' => $tx->id,
+                'type' => $tx->type,
+                'amount' => MoneyHelper::fromMinor($tx->amount),
+                'balance_after' => MoneyHelper::fromMinor($tx->balance_after),
+                'note' => $tx->note,
+                'created_at' => $tx->created_at,
+            ]);
+
+        $requests = CustomerWalletRequest::query()
+            ->where('customer_id', $customer->id)
+            ->orderByDesc('id')
+            ->limit(30)
+            ->get()
+            ->map(fn (CustomerWalletRequest $r) => [
+                'id' => $r->id,
+                'type' => $r->type,
+                'amount' => MoneyHelper::fromMinor($r->amount),
+                'status' => $r->status,
+                'payment_method' => $r->payment_method,
+                'created_at' => $r->created_at,
+            ]);
+
+        return sendResponse([
+            'customer_id' => $customer->id,
+            'customer_name' => $customer->full_name,
+            'balance' => MoneyHelper::fromMinor($customer->wallet_balance_amount ?? 0),
+            'pending_top_up' => MoneyHelper::fromMinor((int) $pendingTopUp),
+            'pending_withdrawal' => MoneyHelper::fromMinor((int) $pendingWithdrawal),
+            'transactions' => $transactions,
+            'requests' => $requests,
+        ], 'Wallet activity');
+    }
+
     protected function format(Customer $c, bool $detailed = false): array
     {
         $data = [
@@ -221,6 +311,7 @@ class CustomerController extends Controller
             'status' => $c->status,
             'orders_count' => $c->orders_count,
             'total_spent' => MoneyHelper::fromMinor($c->total_spent_amount),
+            'wallet_balance' => MoneyHelper::fromMinor($c->wallet_balance_amount ?? 0),
             'last_order_at' => $c->last_order_at,
             'created_at' => $c->created_at,
             'addresses_count' => $detailed ? null : ($c->addresses_count ?? $c->addresses()->count()),

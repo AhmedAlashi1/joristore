@@ -1,7 +1,5 @@
-import { Bell, Download, Search } from 'lucide-react';
-import { useState } from 'react';
+import { Bell, Download } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
-import { SmartSearchOverlay } from '../search/SmartSearchOverlay';
 import { useInstall } from '../../providers/install-provider';
 import { useNotifications } from '../../providers/notification-provider';
 import { useLocale } from '../../providers/locale-provider';
@@ -14,8 +12,6 @@ export function AppHeader() {
   const { iconVisible: installVisible, openGuide } = useInstall();
   const { name: storeName, logo } = useStoreBrand();
   const location = useLocation();
-  const [searchOpen, setSearchOpen] = useState(false);
-
   return (
     <>
       <header className="app-header fixed inset-x-0 top-0 z-40 mx-auto max-w-[480px] px-4 pt-[calc(6px+var(--safe-top))]">
@@ -33,10 +29,6 @@ export function AppHeader() {
           </Link>
 
           <div className="flex shrink-0 items-center gap-1">
-            <button type="button" onClick={() => setSearchOpen(true)} className="header-icon-btn" aria-label={t.smartSearch}>
-              <Search size={18} />
-            </button>
-
             <Link
               to="/notifications"
               className={cn('header-icon-btn relative', location.pathname === '/notifications' && 'header-icon-btn-active')}
@@ -58,8 +50,6 @@ export function AppHeader() {
           </div>
         </div>
       </header>
-
-      <SmartSearchOverlay open={searchOpen} onClose={() => setSearchOpen(false)} />
     </>
   );
 }

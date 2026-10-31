@@ -1,10 +1,13 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { DEFAULT_LOGO } from '../../lib/store-brand';
 import { useStoreBrand } from '../../providers/store-brand-provider';
+import { getMediaCacheBust } from '../../lib/media-cache-bust';
 import { cn, resolveMediaUrl } from '../../lib/utils';
 
 type StoreMediaImageProps = {
   src?: string | null;
+  /** Category/product updated_at or pull-refresh bust — skips stale PWA image cache */
+  cacheVersion?: string | number | null;
   alt: string;
   className?: string;
   /** cover for photos, contain for logo fallback */
@@ -15,6 +18,7 @@ type StoreMediaImageProps = {
 
 export function StoreMediaImage({
   src,
+  cacheVersion,
   alt,
   className,
   fit = 'cover',
@@ -22,8 +26,16 @@ export function StoreMediaImage({
 }: StoreMediaImageProps) {
   const { logo } = useStoreBrand();
   const [failed, setFailed] = useState(false);
-  const resolved = src ? resolveMediaUrl(src) : '';
+  const [loaded, setLoaded] = useState(false);
+  const bust = getMediaCacheBust();
+  const version = cacheVersion ?? (bust || undefined);
+  const resolved = src ? resolveMediaUrl(src, version) : '';
   const showLogo = !resolved || failed;
+
+  useEffect(() => {
+    setFailed(false);
+    setLoaded(false);
+  }, [src, version]);
 
   if (showLogo) {
     return (
@@ -31,7 +43,7 @@ export function StoreMediaImage({
         src={logo || DEFAULT_LOGO}
         alt={alt}
         className={cn(
-          'h-full w-full bg-[var(--primary-soft)] object-contain p-3',
+          'h-full w-full bg-[var(--primary-soft)] object-contain p-3 opacity-100',
           className,
         )}
         loading="lazy"
@@ -56,9 +68,15 @@ export function StoreMediaImage({
     <img
       src={resolved}
       alt={alt}
-      className={cn('h-full w-full', fit === 'cover' ? 'object-cover' : 'object-contain', className)}
+      className={cn(
+        'h-full w-full transition-opacity duration-300 ease-out',
+        fit === 'cover' ? 'object-cover object-center' : 'object-contain',
+        loaded ? 'opacity-100 product-img-reveal' : 'opacity-0',
+        className,
+      )}
       loading="lazy"
       decoding="async"
+      onLoad={() => setLoaded(true)}
       onError={() => setFailed(true)}
     />
   );

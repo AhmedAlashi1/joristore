@@ -17,6 +17,7 @@ import {
   quickStatusActions,
   statusVariant,
 } from '../lib/order-status';
+import { uploadMedia } from '../lib/media';
 import { useNotify } from '../lib/notify';
 import { useI18n } from '../providers/i18n-provider';
 
@@ -58,6 +59,9 @@ type OrderDetail = {
     status: string;
     amount: number;
     receipt_url?: string | null;
+    transfer_reference?: string | null;
+    account_holder_name?: string | null;
+    admin_transfer_receipt_url?: string | null;
     metadata?: Record<string, unknown>;
   }>;
   status_histories?: Array<{
@@ -79,6 +83,8 @@ export function OrderDetailPage() {
   const [saving, setSaving] = useState(false);
   const [statusNote, setStatusNote] = useState('');
   const [adminNote, setAdminNote] = useState('');
+  const [adminReceiptPath, setAdminReceiptPath] = useState<string | null>(null);
+  const [receiptUploading, setReceiptUploading] = useState(false);
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -115,12 +121,29 @@ export function OrderDetailPage() {
     }
   };
 
+  const onAdminReceipt = async (file: File | null) => {
+    if (!file) return;
+    setReceiptUploading(true);
+    try {
+      const uploaded = await uploadMedia(file, 'payment-receipts');
+      setAdminReceiptPath(uploaded.path);
+    } catch (error) {
+      notify.errorFrom(error, ar ? 'فشل رفع الصورة' : 'Upload failed');
+    } finally {
+      setReceiptUploading(false);
+    }
+  };
+
   const markPaymentPaid = async () => {
     if (!detail) return;
     setSaving(true);
     try {
-      await api.put(`/admin/orders/${detail.id}`, { payment_status: 'paid' });
-      notify.success(ar ? 'تم تأكيد الدفع' : 'Payment marked paid');
+      await api.put(`/admin/orders/${detail.id}`, {
+        payment_status: 'paid',
+        admin_transfer_receipt_path: adminReceiptPath ?? undefined,
+      });
+      notify.success(ar ? 'تم تأكيد الدفع وإرسال إشعار للعميل' : 'Payment confirmed and customer notified');
+      setAdminReceiptPath(null);
       await load();
     } catch (error) {
       notify.errorFrom(error, ar ? 'فشل تأكيد الدفع' : 'Failed');
@@ -194,17 +217,42 @@ export function OrderDetailPage() {
             <Badge variant="default">{detail.shipping_status}</Badge>
           </div>
           <p className="text-lg font-bold">{detail.total.toFixed(2)} SAR</p>
+          {payment?.transfer_reference || payment?.account_holder_name ? (
+            <div className="space-y-1 rounded-xl bg-white/30 p-3 text-xs dark:bg-white/5">
+              {payment.transfer_reference ? (
+                <p dir="ltr"><span className="font-semibold">{ar ? 'رقم التحويل:' : 'Transfer ref:'}</span> {payment.transfer_reference}</p>
+              ) : null}
+              {payment.account_holder_name ? (
+                <p><span className="font-semibold">{ar ? 'صاحب الحساب:' : 'Account:'}</span> {payment.account_holder_name}</p>
+              ) : null}
+            </div>
+          ) : null}
           {payment?.receipt_url ? (
             <div className="space-y-2">
-              <p className="text-sm font-medium">{ar ? 'إيصال الدفع' : 'Payment receipt'}</p>
+              <p className="text-sm font-medium">{ar ? 'إيصال العميل' : 'Customer receipt'}</p>
               <a href={payment.receipt_url} target="_blank" rel="noreferrer" className="block overflow-hidden rounded-xl border border-white/20">
                 <img src={payment.receipt_url} alt="" className="max-h-64 w-full object-contain bg-white/20" />
               </a>
-              {hasPermission('orders.update') && detail.payment_status !== 'paid' ? (
-                <Button onClick={() => void markPaymentPaid()} disabled={saving}>
-                  {ar ? 'تأكيد استلام الدفع' : 'Confirm payment received'}
-                </Button>
-              ) : null}
+            </div>
+          ) : null}
+          {payment?.admin_transfer_receipt_url ? (
+            <div className="space-y-2">
+              <p className="text-sm font-medium">{ar ? 'إشعار التحويل (إدارة)' : 'Admin transfer notice'}</p>
+              <a href={payment.admin_transfer_receipt_url} target="_blank" rel="noreferrer" className="block overflow-hidden rounded-xl border border-white/20">
+                <img src={payment.admin_transfer_receipt_url} alt="" className="max-h-64 w-full object-contain bg-white/20" />
+              </a>
+            </div>
+          ) : null}
+          {hasPermission('orders.update') && detail.payment_status !== 'paid' && payment?.receipt_url ? (
+            <div className="space-y-2 border-t border-white/20 pt-3">
+              <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-dashed px-3 py-2 text-xs font-medium">
+                {receiptUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                {adminReceiptPath ? (ar ? 'تم رفع إشعار التحويل ✓' : 'Transfer notice ready ✓') : (ar ? 'رفع صورة إشعار التحويل للعميل (اختياري)' : 'Upload transfer notice for customer (optional)')}
+                <input type="file" accept="image/*" className="hidden" disabled={receiptUploading} onChange={(e) => void onAdminReceipt(e.target.files?.[0] ?? null)} />
+              </label>
+              <Button onClick={() => void markPaymentPaid()} disabled={saving || receiptUploading}>
+                {ar ? 'تأكيد الدفع وإرسال إشعار' : 'Confirm payment & notify'}
+              </Button>
             </div>
           ) : null}
         </section>

@@ -5,14 +5,41 @@ namespace App\Modules\Dashboard\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\Catalog\Models\Product;
 use App\Modules\Customers\Models\Customer;
+use App\Modules\Customers\Models\CustomerWalletRequest;
 use App\Modules\Dashboard\Models\ActivityLog;
 use App\Modules\Merchants\Models\MerchantMember;
 use App\Modules\Orders\Models\Order;
 use App\Shared\Helpers\MoneyHelper;
 use App\Shared\Services\MerchantContext;
+use App\Shared\Services\PermissionService;
+use Illuminate\Http\Request;
 
 class DashboardController extends Controller
 {
+    public function sidebarCounts(Request $request, PermissionService $permissions)
+    {
+        $user = $request->user();
+        $processingOrders = 0;
+        $pendingWalletRequests = 0;
+
+        if ($permissions->hasPermission($user, 'orders.view')) {
+            $processingOrders = Order::query()
+                ->whereIn('status', ['pending', 'confirmed', 'processing', 'ready'])
+                ->count();
+        }
+
+        if ($permissions->hasPermission($user, 'customers.view')) {
+            $pendingWalletRequests = CustomerWalletRequest::query()
+                ->where('status', 'pending')
+                ->count();
+        }
+
+        return sendResponse([
+            'processing_orders' => $processingOrders,
+            'pending_wallet_requests' => $pendingWalletRequests,
+        ], 'Sidebar counts fetched');
+    }
+
     public function stats()
     {
         $merchantId = MerchantContext::merchantId();

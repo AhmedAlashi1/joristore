@@ -74,18 +74,18 @@ export default defineConfig(({ mode }) => {
           },
           {
             urlPattern: ({ url }) => url.pathname.startsWith('/storage/'),
-            handler: 'CacheFirst',
+            handler: 'StaleWhileRevalidate',
             options: {
               cacheName: 'store-media',
-              expiration: { maxEntries: 80, maxAgeSeconds: 60 * 60 * 24 * 30 },
+              expiration: { maxEntries: 120, maxAgeSeconds: 60 * 60 * 24 * 7 },
             },
           },
           {
             urlPattern: /^https:\/\/dashboard\.joristore\.com\/storage\/.*/i,
-            handler: 'CacheFirst',
+            handler: 'StaleWhileRevalidate',
             options: {
               cacheName: 'store-media-remote',
-              expiration: { maxEntries: 80, maxAgeSeconds: 60 * 60 * 24 * 30 },
+              expiration: { maxEntries: 120, maxAgeSeconds: 60 * 60 * 24 * 7 },
             },
           },
         ],

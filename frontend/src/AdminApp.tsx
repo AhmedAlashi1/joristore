@@ -7,6 +7,8 @@ import { BannersPage } from './pages/BannersPage';
 import { BrandsPage } from './pages/BrandsPage';
 import { CategoriesPage } from './pages/CategoriesPage';
 import { CouponsPage } from './pages/CouponsPage';
+import { CustomerCartPage } from './pages/CustomerCartPage';
+import { CustomerWalletPage } from './pages/CustomerWalletPage';
 import { CustomersPage } from './pages/CustomersPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { GymsPage } from './pages/GymsPage';
@@ -21,11 +23,15 @@ import { ProductEditPage } from './pages/products/ProductEditPage';
 import { ProductViewPage } from './pages/products/ProductViewPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { RolesPage } from './pages/RolesPage';
+import { PartnerPayoutsPage } from './pages/PartnerPayoutsPage';
+import { PartnersPage } from './pages/PartnersPage';
 import { PaymentMethodsPage } from './pages/PaymentMethodsPage';
+import { WalletRequestsPage } from './pages/WalletRequestsPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { DeliveryRegionsPage } from './pages/DeliveryRegionsPage';
 import { ShippingPage } from './pages/ShippingPage';
 import { hasPermission, isAuthenticated } from './lib/auth';
+import { AccessDeniedPage } from './pages/AccessDeniedPage';
 
 function PrivateRoute({ children }: { children: ReactElement }) {
   if (!isAuthenticated()) return <Navigate to="/admin/login" replace />;
@@ -33,7 +39,7 @@ function PrivateRoute({ children }: { children: ReactElement }) {
 }
 
 function PermissionRoute({ permission, children }: { permission: string; children: ReactElement }) {
-  if (!hasPermission(permission)) return <Navigate to="/admin/dashboard" replace />;
+  if (!hasPermission(permission)) return <AccessDeniedPage permission={permission} />;
   return children;
 }
 
@@ -47,6 +53,9 @@ export default function AdminApp() {
         <Route path="orders" element={<PermissionRoute permission="orders.view"><OrdersPage /></PermissionRoute>} />
         <Route path="orders/:id" element={<PermissionRoute permission="orders.view"><OrderDetailPage /></PermissionRoute>} />
         <Route path="customers" element={<PermissionRoute permission="customers.view"><CustomersPage /></PermissionRoute>} />
+        <Route path="customers/:id/cart" element={<PermissionRoute permission="customers.view"><CustomerCartPage /></PermissionRoute>} />
+        <Route path="customers/:id/wallet" element={<PermissionRoute permission="customers.view"><CustomerWalletPage /></PermissionRoute>} />
+        <Route path="wallet-requests" element={<PermissionRoute permission="customers.view"><WalletRequestsPage /></PermissionRoute>} />
         <Route path="products/new" element={<PermissionRoute permission="products.create"><ProductCreatePage /></PermissionRoute>} />
         <Route path="products/:id/edit" element={<PermissionRoute permission="products.update"><ProductEditPage /></PermissionRoute>} />
         <Route path="products/:id" element={<PermissionRoute permission="products.view"><ProductViewPage /></PermissionRoute>} />
@@ -55,6 +64,8 @@ export default function AdminApp() {
         <Route path="brands" element={<PermissionRoute permission="brands.view"><BrandsPage /></PermissionRoute>} />
         <Route path="inventory" element={<PermissionRoute permission="inventory.view"><InventoryPage /></PermissionRoute>} />
         <Route path="coupons" element={<PermissionRoute permission="coupons.view"><CouponsPage /></PermissionRoute>} />
+        <Route path="partners" element={<PermissionRoute permission="partners.view"><PartnersPage /></PermissionRoute>} />
+        <Route path="partner-payouts" element={<PermissionRoute permission="partners.view"><PartnerPayoutsPage /></PermissionRoute>} />
         <Route path="banners" element={<PermissionRoute permission="banners.view"><BannersPage /></PermissionRoute>} />
         <Route path="gyms" element={<PermissionRoute permission="settings.view"><GymsPage /></PermissionRoute>} />
         <Route path="shipping" element={<PermissionRoute permission="shipping.manage"><ShippingPage /></PermissionRoute>} />

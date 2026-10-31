@@ -1,4 +1,5 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { api } from '../lib/api';
 import { CrudPage, FormField, FormGrid, SelectInput, type CrudColumn } from '../components/crud/CrudPage';
 import { Input } from '../components/ui/input';
 import { Badge } from '../components/ui/badge';
@@ -18,16 +19,31 @@ type CouponRow = {
   status: string;
   starts_at?: string;
   expires_at?: string;
+  partner_id?: number | null;
+  partner_name?: string | null;
+  commission_type?: string | null;
+  commission_value?: number | null;
 };
 
 const emptyForm = {
   code: '', name: '', type: 'percentage', applies_to: 'subtotal', value: '', minimum_order_amount: '',
   maximum_discount_amount: '', usage_limit: '', usage_limit_per_customer: '', status: 'active', starts_at: '', expires_at: '',
+  partner_id: '', commission_type: 'percentage', commission_value: '',
 };
 
 export function CouponsPage() {
   const { locale } = useI18n();
   const ar = locale === 'ar';
+  const [partnerOptions, setPartnerOptions] = useState<{
+    id: number;
+    name: string;
+    default_commission_type?: string | null;
+    default_commission_value?: number | null;
+  }[]>([]);
+
+  useEffect(() => {
+    api.get('/admin/partners/options').then((res) => setPartnerOptions(res.data?.data ?? [])).catch(() => setPartnerOptions([]));
+  }, []);
 
   const columns = useMemo<CrudColumn<CouponRow>[]>(() => [
     {
@@ -41,6 +57,7 @@ export function CouponsPage() {
       header: ar ? 'الخصم' : 'Discount',
       render: (r) => formatCouponSummary(r.applies_to ?? 'subtotal', r.type, r.value, ar),
     },
+    { key: 'partner', header: ar ? 'الشريك' : 'Partner', render: (r) => r.partner_name || '—' },
     { key: 'used', header: ar ? 'الاستخدام' : 'Used', render: (r) => `${r.used_count}${r.usage_limit ? ` / ${r.usage_limit}` : ''}` },
     { key: 'status', header: ar ? 'الحالة' : 'Status', render: (r) => (
       <Badge variant={r.status === 'active' ? 'success' : 'warning'}>{r.status}</Badge>
@@ -69,6 +86,9 @@ export function CouponsPage() {
         status: row.status,
         starts_at: row.starts_at ? row.starts_at.slice(0, 16) : '',
         expires_at: row.expires_at ? row.expires_at.slice(0, 16) : '',
+        partner_id: row.partner_id ? String(row.partner_id) : '',
+        commission_type: row.commission_type || 'percentage',
+        commission_value: row.commission_value != null ? String(row.commission_value) : '',
       })}
       preparePayload={(form, mode) => ({
         ...(mode === 'create' ? { code: form.code } : {}),
@@ -83,6 +103,9 @@ export function CouponsPage() {
         status: form.status,
         starts_at: form.starts_at || null,
         expires_at: form.expires_at || null,
+        partner_id: form.partner_id ? Number(form.partner_id) : null,
+        commission_type: form.partner_id ? form.commission_type : null,
+        commission_value: form.partner_id && form.commission_value ? Number(form.commission_value) : null,
       })}
       canEditRow={() => true}
       renderForm={(form, setForm, mode) => (
@@ -156,6 +179,48 @@ export function CouponsPage() {
               <option value="inactive">{ar ? 'غير نشط' : 'Inactive'}</option>
             </SelectInput>
           </FormField>
+          <FormField label={ar ? 'الشريك (اختياري)' : 'Partner (optional)'}>
+            <SelectInput
+              value={String(form.partner_id || '')}
+              onChange={(e) => {
+                const id = e.target.value;
+                const partner = partnerOptions.find((p) => String(p.id) === id);
+                setForm({
+                  ...form,
+                  partner_id: id,
+                  commission_type: partner?.default_commission_type || form.commission_type || 'percentage',
+                  commission_value: partner?.default_commission_value != null
+                    ? String(partner.default_commission_value)
+                    : form.commission_value,
+                });
+              }}
+            >
+              <option value="">{ar ? 'بدون شريك' : 'No partner'}</option>
+              {partnerOptions.map((p) => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </SelectInput>
+          </FormField>
+          {form.partner_id ? (
+            <>
+              <FormField label={ar ? 'نوع عمولة الشريك' : 'Partner commission type'}>
+                <SelectInput value={String(form.commission_type || 'percentage')} onChange={(e) => setForm({ ...form, commission_type: e.target.value })}>
+                  <option value="percentage">{ar ? 'نسبة %' : 'Percentage %'}</option>
+                  <option value="fixed_amount">{ar ? 'مبلغ ثابت' : 'Fixed amount'}</option>
+                </SelectInput>
+              </FormField>
+              <FormField label={ar ? 'قيمة العمولة' : 'Commission value'}>
+                <Input
+                  type="number"
+                  step={form.commission_type === 'percentage' ? '1' : '0.01'}
+                  min={0}
+                  max={form.commission_type === 'percentage' ? 100 : undefined}
+                  value={String(form.commission_value || '')}
+                  onChange={(e) => setForm({ ...form, commission_value: e.target.value })}
+                />
+              </FormField>
+            </>
+          ) : null}
           <FormField label={ar ? 'يبدأ في' : 'Starts at'}>
             <Input type="datetime-local" value={String(form.starts_at || '')} onChange={(e) => setForm({ ...form, starts_at: e.target.value })} />
           </FormField>

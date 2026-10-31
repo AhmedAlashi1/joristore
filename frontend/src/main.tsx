@@ -47,7 +47,9 @@ function bootAfterCacheCheck() {
   registerSW({ immediate: true });
 
   const onDashboard = isDashboardHost(window.location.hostname);
-  const isStoreEntry = !onDashboard && !window.location.pathname.startsWith('/admin');
+  const path = window.location.pathname;
+  const isPartnerEntry = path.startsWith('/partner');
+  const isStoreEntry = !onDashboard && !path.startsWith('/admin') && !isPartnerEntry;
 
   if (isStoreEntry) {
     bootstrapStoreBrandFromCache();
@@ -61,7 +63,9 @@ function bootAfterCacheCheck() {
 
 void (async () => {
   const isAdmin =
-    window.location.pathname.startsWith('/admin') || isDashboardHost(window.location.hostname);
+    window.location.pathname.startsWith('/admin') ||
+    window.location.pathname.startsWith('/partner') ||
+    isDashboardHost(window.location.hostname);
   if (!isAdmin) {
     const reloading = await purgeStaleAppCachesIfNeeded();
     if (reloading) return;

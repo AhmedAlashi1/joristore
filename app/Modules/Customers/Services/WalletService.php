@@ -11,6 +11,12 @@ class WalletService
 {
     public const REF_ORDER_RETURN = 'order_return';
 
+    public const REF_ORDER_PAYMENT = 'order_payment';
+
+    public const REF_WALLET_TOP_UP = 'wallet_top_up';
+
+    public const REF_WALLET_WITHDRAWAL = 'wallet_withdrawal';
+
     public function credit(Customer $customer, int $amountMinor, ?string $referenceType = null, ?int $referenceId = null, ?string $note = null): CustomerWalletTransaction
     {
         if ($amountMinor <= 0) {

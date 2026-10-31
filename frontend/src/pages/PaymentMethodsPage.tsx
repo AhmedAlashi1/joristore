@@ -1,7 +1,7 @@
 import { ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
 import { Fragment } from 'react';
 import { useEffect, useState } from 'react';
-import { FormField } from '../components/crud/CrudPage';
+import { FormField, SelectInput } from '../components/crud/CrudPage';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { ImageUploadField } from '../components/ui/ImageUploadField';
@@ -56,7 +56,7 @@ export function PaymentMethodsPage() {
         <div>
           <h2 className="text-2xl font-bold">{ar ? 'طرق الدفع' : 'Payment methods'}</h2>
           <p className="text-sm text-[#8a8da8]">
-            {ar ? 'فعّل أو عطّل الطرق وعدّل QR والتعليمات' : 'Enable/disable methods and edit QR & instructions'}
+            {ar ? 'الأونلاين لشحن وسحب المحفظة، الأوفلاين للدفع عند الطلب (مثل كاش)' : 'Online = wallet top-up & withdraw; offline = checkout (e.g. COD)'}
           </p>
         </div>
         <Button onClick={() => void save()} disabled={saving}>
@@ -75,6 +75,7 @@ export function PaymentMethodsPage() {
               <thead>
                 <tr className="border-b border-[#ebe9f1] bg-[#f8f7fa] text-start text-xs text-[#8a8da8]">
                   <th className="px-4 py-3 font-semibold">{ar ? 'مفعّل' : 'Active'}</th>
+                  <th className="px-4 py-3 font-semibold">{ar ? 'نوع التحويل' : 'Transfer'}</th>
                   <th className="px-4 py-3 font-semibold">{ar ? 'الطريقة' : 'Method'}</th>
                   <th className="px-4 py-3 font-semibold">{ar ? 'الاسم (ع)' : 'Label AR'}</th>
                   <th className="px-4 py-3 font-semibold">{ar ? 'الاسم (EN)' : 'Label EN'}</th>
@@ -95,6 +96,19 @@ export function PaymentMethodsPage() {
                             onChange={(e) => patch(method.id, { enabled: e.target.checked })}
                             aria-label={method.id}
                           />
+                        </td>
+                        <td className="px-4 py-3">
+                          {method.id === 'wallet' || method.id === 'cash_on_delivery' ? (
+                            <span className="text-xs text-[#8a8da8]">{method.id === 'wallet' ? '—' : (ar ? 'أوفلاين' : 'Offline')}</span>
+                          ) : (
+                            <SelectInput
+                              value={method.transfer_type ?? 'offline'}
+                              onChange={(e) => patch(method.id, { transfer_type: e.target.value as 'online' | 'offline' })}
+                            >
+                              <option value="online">{ar ? 'أونلاين' : 'Online'}</option>
+                              <option value="offline">{ar ? 'أوفلاين' : 'Offline'}</option>
+                            </SelectInput>
+                          )}
                         </td>
                         <td className="px-4 py-3 font-mono text-xs">{method.id}</td>
                         <td className="px-4 py-3">
@@ -132,7 +146,7 @@ export function PaymentMethodsPage() {
                       </tr>
                       {open ? (
                         <tr className="bg-[#faf9fc]">
-                          <td colSpan={6} className="space-y-4 px-4 py-4">
+                          <td colSpan={7} className="space-y-4 px-4 py-4">
                             {method.id === 'wallet' ? (
                               <p className="text-sm text-[#8a8da8]">
                                 {ar ? 'خصم من محفظة العميل — بدون QR.' : 'Debited from customer wallet — no QR.'}

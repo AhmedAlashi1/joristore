@@ -68,9 +68,21 @@ class SystemRolesSeeder extends Seeder
                 ]
             );
 
-            if ($key !== 'owner' && ! empty($config['permissions'])) {
+            if ($key === 'manager') {
+                $role->syncPermissions($allPermissions->toArray());
+            } elseif ($key !== 'owner' && ! empty($config['permissions'])) {
                 $role->syncPermissions($config['permissions']);
             }
+        }
+
+        $superAdmin = Role::query()
+            ->where('guard_name', 'web')
+            ->where(function ($q) {
+                $q->where('key', 'super-admin')->orWhere('name', 'super-admin');
+            })
+            ->first();
+        if ($superAdmin) {
+            $superAdmin->syncPermissions($allPermissions->toArray());
         }
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();

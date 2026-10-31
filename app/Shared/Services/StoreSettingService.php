@@ -134,6 +134,7 @@ class StoreSettingService
             [
                 'id' => 'cash_on_delivery',
                 'enabled' => true,
+                'transfer_type' => 'offline',
                 'label_ar' => 'دفع عند الاستلام',
                 'label_en' => 'Cash on delivery',
                 'instructions_ar' => '',
@@ -142,8 +143,20 @@ class StoreSettingService
                 'qr_image' => null,
             ],
             [
+                'id' => 'bank_transfer',
+                'enabled' => false,
+                'transfer_type' => 'offline',
+                'label_ar' => 'تحويل بنكي',
+                'label_en' => 'Bank transfer',
+                'instructions_ar' => 'أدخل بيانات حسابك لاستلام المبلغ.',
+                'instructions_en' => 'Enter your account details to receive the payout.',
+                'requires_receipt' => false,
+                'qr_image' => null,
+            ],
+            [
                 'id' => 'jawwal_pay',
                 'enabled' => true,
+                'transfer_type' => 'online',
                 'label_ar' => 'جوال بي',
                 'label_en' => 'Jawwal Pay',
                 'instructions_ar' => 'امسح رمز QR وادفع المبلغ، ثم ارفع صورة الإشعار.',
@@ -154,6 +167,7 @@ class StoreSettingService
             [
                 'id' => 'pal_pay',
                 'enabled' => true,
+                'transfer_type' => 'online',
                 'label_ar' => 'بال بي',
                 'label_en' => 'PalPay',
                 'instructions_ar' => 'امسح رمز QR وادفع المبلغ، ثم ارفع صورة الإشعار.',
@@ -164,6 +178,7 @@ class StoreSettingService
             [
                 'id' => 'wallet',
                 'enabled' => true,
+                'transfer_type' => 'none',
                 'label_ar' => 'المحفظة',
                 'label_en' => 'Wallet',
                 'instructions_ar' => '',
@@ -197,8 +212,10 @@ class StoreSettingService
             $row = $byId->get($id);
             $merged = is_array($row) ? array_merge($def, $row) : $def;
             $merged['id'] = $id;
-            $merged['enabled'] = (bool) ($merged['enabled'] ?? false);
-            $merged['requires_receipt'] = (bool) ($merged['requires_receipt'] ?? false);
+            $merged['enabled'] = self::parseSettingBool($merged['enabled'] ?? false);
+            $merged['requires_receipt'] = self::parseSettingBool($merged['requires_receipt'] ?? false);
+            $tt = (string) ($merged['transfer_type'] ?? $def['transfer_type'] ?? 'offline');
+            $merged['transfer_type'] = in_array($tt, ['online', 'offline', 'none'], true) ? $tt : 'offline';
             $out[] = $merged;
         }
 
@@ -221,14 +238,19 @@ class StoreSettingService
             if (! is_array($row)) {
                 $row = $def;
             }
+            $tt = (string) ($row['transfer_type'] ?? $def['transfer_type'] ?? 'offline');
+            if (! in_array($tt, ['online', 'offline', 'none'], true)) {
+                $tt = 'offline';
+            }
             $normalized[] = [
                 'id' => $id,
-                'enabled' => (bool) ($row['enabled'] ?? $def['enabled']),
+                'enabled' => self::parseSettingBool($row['enabled'] ?? $def['enabled']),
+                'transfer_type' => $tt,
                 'label_ar' => mb_substr((string) ($row['label_ar'] ?? $def['label_ar']), 0, 120),
                 'label_en' => mb_substr((string) ($row['label_en'] ?? $def['label_en']), 0, 120),
                 'instructions_ar' => (string) ($row['instructions_ar'] ?? ''),
                 'instructions_en' => (string) ($row['instructions_en'] ?? ''),
-                'requires_receipt' => (bool) ($row['requires_receipt'] ?? $def['requires_receipt']),
+                'requires_receipt' => self::parseSettingBool($row['requires_receipt'] ?? $def['requires_receipt']),
                 'qr_image' => ! empty($row['qr_image']) ? (string) $row['qr_image'] : null,
             ];
         }
@@ -245,10 +267,39 @@ class StoreSettingService
     /** @return list<array<string, mixed>> */
     public static function getEnabledPaymentMethods(int $storeId): array
     {
-        return array_values(array_filter(
+        $enabled = array_values(array_filter(
             self::getPaymentMethods($storeId),
-            fn (array $m) => (bool) ($m['enabled'] ?? false),
+            fn (array $m) => self::parseSettingBool($m['enabled'] ?? false),
         ));
+
+        if ($enabled !== []) {
+            return $enabled;
+        }
+
+        foreach (self::paymentMethodsDefaults() as $def) {
+            if ($def['id'] === 'cash_on_delivery') {
+                return [$def];
+            }
+        }
+
+        return [];
+    }
+
+    public static function parseSettingBool(mixed $value): bool
+    {
+        if (is_bool($value)) {
+            return $value;
+        }
+        if (is_int($value) || is_float($value)) {
+            return (int) $value !== 0;
+        }
+        if (is_string($value)) {
+            $v = strtolower(trim($value));
+
+            return in_array($v, ['1', 'true', 'yes', 'on'], true);
+        }
+
+        return false;
     }
 
     /** @return array<string, mixed>|null */

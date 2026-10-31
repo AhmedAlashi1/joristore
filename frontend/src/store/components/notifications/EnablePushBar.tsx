@@ -1,7 +1,8 @@
 import { Bell, X } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { enablePushFromUserGesture, pushFailureMessage } from '../../lib/push-subscribe';
 import { useCustomer } from '../../providers/customer-provider';
+import { useInstall } from '../../providers/install-provider';
 import { useLocale } from '../../providers/locale-provider';
 import { useNotifications } from '../../providers/notification-provider';
 
@@ -14,29 +15,39 @@ function isMobile() {
 export function EnablePushBar() {
   const { t, locale } = useLocale();
   const { isLoggedIn } = useCustomer();
+  const { iconVisible, installed } = useInstall();
   const { permission, pushEnabled, refresh } = useNotifications();
-  const [visible, setVisible] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
   const [busy, setBusy] = useState(false);
+  const showOpenInApp = iconVisible && !installed;
 
   useEffect(() => {
-    if (!isLoggedIn || !isMobile()) {
-      setVisible(false);
-      return;
-    }
-    if (permission === 'granted' && pushEnabled) {
-      setVisible(false);
-      return;
-    }
     try {
-      if (sessionStorage.getItem(DISMISS_KEY) === '1') {
-        setVisible(false);
-        return;
-      }
+      setDismissed(sessionStorage.getItem(DISMISS_KEY) === '1');
     } catch {
-      /* ignore */
+      setDismissed(false);
     }
-    setVisible(permission !== 'granted' || !pushEnabled);
-  }, [isLoggedIn, permission, pushEnabled]);
+  }, []);
+
+  const notificationsActive = useMemo(() => {
+    const browserPerm =
+      typeof Notification !== 'undefined' ? Notification.permission : permission;
+    return browserPerm === 'granted' && pushEnabled;
+  }, [permission, pushEnabled]);
+
+  const visible = isLoggedIn
+    && isMobile()
+    && !dismissed
+    && !notificationsActive
+    && permission !== 'denied'
+    && permission !== 'unsupported';
+
+  useEffect(() => {
+    const shell = document.querySelector('.app-shell');
+    if (!shell) return;
+    shell.classList.toggle('has-push-prompt', visible);
+    return () => shell.classList.remove('has-push-prompt');
+  }, [visible]);
 
   if (!visible) return null;
 
@@ -55,8 +66,15 @@ export function EnablePushBar() {
     }
   };
 
+  const topGap = showOpenInApp ? 14 : 8;
+
   return (
-    <div className="fixed inset-x-0 top-[calc(var(--header-h)+var(--safe-top)+var(--open-app-h)+4px)] z-30 mx-auto max-w-[480px] px-3">
+    <div
+      className="enable-push-bar fixed inset-x-0 z-30 mx-auto max-w-[480px] px-3"
+      style={{
+        top: `calc(var(--header-h) + var(--safe-top) + var(--open-app-h) + ${topGap}px)`,
+      }}
+    >
       <div className="glass-strong flex items-start gap-2 rounded-2xl border border-[var(--primary-soft)] p-3 shadow-md">
         <Bell className="mt-0.5 shrink-0 text-[var(--primary)]" size={20} />
         <div className="min-w-0 flex-1">
@@ -81,7 +99,7 @@ export function EnablePushBar() {
             } catch {
               /* ignore */
             }
-            setVisible(false);
+            setDismissed(true);
           }}
         >
           <X size={18} />

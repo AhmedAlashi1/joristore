@@ -13,10 +13,11 @@ import { useI18n } from '../../providers/i18n-provider';
 type ProductGalleryFieldProps = {
   primary: string;
   gallery: string[];
+  applyStoreLogo?: boolean;
   onChange: (next: { primary: string; gallery: string[] }) => void;
 };
 
-export function ProductGalleryField({ primary, gallery, onChange }: ProductGalleryFieldProps) {
+export function ProductGalleryField({ primary, gallery, applyStoreLogo = false, onChange }: ProductGalleryFieldProps) {
   const { locale } = useI18n();
   const ar = locale === 'ar';
   const notify = useNotify();
@@ -57,12 +58,16 @@ export function ProductGalleryField({ primary, gallery, onChange }: ProductGalle
 
     setUploadingGallery(true);
     try {
-      const logoPath = await fetchStoreLogoPath(storeLogoPathRef.current);
-      storeLogoPathRef.current = logoPath;
+      const logoPath = applyStoreLogo ? await fetchStoreLogoPath(storeLogoPathRef.current) : null;
+      if (applyStoreLogo) {
+        storeLogoPathRef.current = logoPath;
+      }
       let prepared = file;
       let logoApplied = false;
       try {
-        const out = await prepareProductImageForPublish(file, { watermarkLogoPath: logoPath });
+        const out = await prepareProductImageForPublish(file, {
+          watermarkLogoPath: applyStoreLogo ? logoPath : null,
+        });
         prepared = out.file;
         logoApplied = out.logoApplied;
       } catch (prepErr) {
@@ -79,7 +84,7 @@ export function ProductGalleryField({ primary, gallery, onChange }: ProductGalle
           throw uploadErr;
         }
       }
-      if (logoPath && !logoApplied) {
+      if (applyStoreLogo && logoPath && !logoApplied) {
         notify.error(ar ? 'الصورة رُفعت بدون شعار' : 'Uploaded without logo stamp');
       }
       setGallery([...gallery, result.path]);
@@ -105,6 +110,7 @@ export function ProductGalleryField({ primary, gallery, onChange }: ProductGalle
       <ImageUploadField
         label={ar ? 'الصورة الأساسية (غلاف المنتج)' : 'Primary image (product cover)'}
         folder="products"
+        applyStoreLogo={applyStoreLogo}
         value={primary}
         onChange={(path) => setPrimary(path)}
       />
@@ -114,9 +120,13 @@ export function ProductGalleryField({ primary, gallery, onChange }: ProductGalle
           {ar ? 'صور إضافية (زوايا / تفاصيل)' : 'Extra images (angles / details)'}
         </p>
         <p className="text-xs text-[#8a8da8]">
-          {ar
-            ? 'ارفع زوايا مختلفة كما هي — الشعار والضغط تلقائي. تظهر في صفحة المنتج مع التمرير والتكبير.'
-            : 'Upload angles as-is — logo and compression are automatic. Shown with swipe and zoom on the product page.'}
+          {applyStoreLogo
+            ? (ar
+              ? 'صور إضافية مع شعار المتجر (إن وُجد في الإعدادات) والضغط. تظهر في صفحة المنتج مع التمرير والتكبير.'
+              : 'Extra images with store logo (if set in settings) and compression. Shown with swipe and zoom on the product page.')
+            : (ar
+              ? 'صور إضافية كما هي (ضغط فقط). تظهر في صفحة المنتج مع التمرير والتكبير.'
+              : 'Extra images as uploaded (compression only). Shown with swipe and zoom on the product page.')}
         </p>
 
         <div className="flex flex-wrap items-start gap-2">

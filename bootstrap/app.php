@@ -71,6 +71,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'merchant.permission' => \App\Shared\Middleware\CheckMerchantPermission::class,
             'store.context' => \App\Shared\Middleware\SetStoreContext::class,
             'store.customer' => \App\Shared\Middleware\SetStoreCustomer::class,
+            'partner.account' => \App\Shared\Middleware\EnsurePartnerAccount::class,
         ]);
     })
     ->withSchedule(function (Schedule $schedule) {

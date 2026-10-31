@@ -167,7 +167,14 @@ export function ShopPage() {
       {loading ? (
         <div className="product-grid">
           {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="skeleton-shimmer aspect-[4/5] rounded-2xl" />
+            <div key={i} className="glass-strong overflow-hidden rounded-2xl">
+              <div className="product-card-media skeleton-shimmer" />
+              <div className="space-y-2 p-2.5">
+                <div className="skeleton-shimmer h-4 w-full rounded-md" />
+                <div className="skeleton-shimmer h-3 w-2/3 rounded-md" />
+                <div className="skeleton-shimmer h-5 w-1/3 rounded-md" />
+              </div>
+            </div>
           ))}
         </div>
       ) : products.length === 0 ? (

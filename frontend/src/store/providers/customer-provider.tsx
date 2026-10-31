@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import {
   clearCustomerId,
   getCachedCustomerProfile,
@@ -56,7 +56,7 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
     return getCachedCustomerProfile();
   });
 
-  const refresh = async () => {
+  const refresh = useCallback(async () => {
     const id = getCustomerId();
     if (!id) {
       setCustomer(null);
@@ -75,7 +75,7 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
       clearCustomerId();
       setCustomer(null);
     }
-  };
+  }, []);
 
   useEffect(() => {
     void refresh();
@@ -103,7 +103,7 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
     },
     refresh,
     setCustomerLocal: setCustomer,
-  }), [customer]);
+  }), [customer, refresh]);
 
   return <CustomerContext.Provider value={value}>{children}</CustomerContext.Provider>;
 }

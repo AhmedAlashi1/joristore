@@ -16,6 +16,7 @@
   --header-h: 68px;
   --install-h: 0px;
   --open-app-h: 0px;
+  --push-prompt-h: 0px;
   --accent: #22b07d;
   --muted: #5c6078;
   --muted-strong: #454963;
@@ -625,6 +626,14 @@ html:has(.store-app) body::-webkit-scrollbar {
   --open-app-h: 36px;
 }
 
+.app-shell.has-push-prompt {
+  --push-prompt-h: 118px;
+}
+
+.app-shell.has-open-in-app.has-push-prompt {
+  --push-prompt-h: 128px;
+}
+
 .open-in-app-pill {
   background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%);
   border: 1px solid rgba(255, 255, 255, 0.12);
@@ -700,9 +709,6 @@ html:has(.store-app) body::-webkit-scrollbar {
   box-shadow: 0 8px 24px rgba(20, 22, 38, 0.06);
 }
 
-.home-product-rail .product-card-rail .aspect-\[4\/5\] {
-  aspect-ratio: 1 / 1;
-}
 
 .category-dept-card .category-dept-img img {
   object-fit: cover;
@@ -845,6 +851,26 @@ html:has(.store-app) body::-webkit-scrollbar {
   color: var(--fg);
 }
 
+.glass-input,
+.checkout-field,
+.store-field {
+  color: var(--fg);
+}
+
+.store-app:not(.dark) .glass-input,
+.store-app:not(.dark) .checkout-field,
+.store-app:not(.dark) .store-field {
+  color: #141626;
+}
+
+.store-app.dark .glass-input:-webkit-autofill,
+.store-app.dark .checkout-field:-webkit-autofill,
+.store-app.dark .store-field:-webkit-autofill {
+  -webkit-text-fill-color: var(--fg);
+  caret-color: var(--fg);
+  transition: background-color 9999s ease-out 0s;
+}
+
 .store-app.dark .text-store-muted {
   color: var(--muted);
 }
@@ -892,7 +918,7 @@ html:has(.store-app) body::-webkit-scrollbar {
 }
 
 @keyframes card-pop {
-  from { opacity: 0; transform: scale(0.88) translateY(12px); }
+  from { opacity: 0; transform: scale(0.94) translateY(14px); }
   to { opacity: 1; transform: scale(1) translateY(0); }
 }
 
@@ -981,6 +1007,42 @@ html:has(.store-app) body::-webkit-scrollbar {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.75rem;
+  align-items: stretch;
+}
+
+.product-card-media {
+  aspect-ratio: 4 / 5;
+}
+
+.product-card-rail .product-card-media {
+  aspect-ratio: 4 / 5;
+}
+
+.product-card {
+  transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.28s ease;
+}
+
+.product-card:active {
+  transform: translateY(-2px) scale(0.985);
+}
+
+.product-card-img {
+  transform-origin: center center;
+}
+
+@keyframes product-img-reveal {
+  from {
+    opacity: 0;
+    transform: scale(1.05);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.product-img-reveal {
+  animation: product-img-reveal 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .hero-banner {
@@ -1057,6 +1119,81 @@ html:has(.store-app) body::-webkit-scrollbar {
   box-shadow: 0 0 0 3px rgba(115, 103, 240, 0.15);
 }
 
+.glass-input::placeholder,
+.checkout-field::placeholder,
+.store-field::placeholder {
+  color: var(--muted-strong);
+  opacity: 1;
+}
+
+.store-app.dark .glass-input::placeholder,
+.store-app.dark .checkout-field::placeholder,
+.store-app.dark .store-field::placeholder {
+  color: var(--muted);
+  opacity: 0.95;
+}
+
+.checkout-field,
+.store-field {
+  width: 100%;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  background: rgba(255, 255, 255, 0.55);
+  padding: 0.5rem 0.625rem;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  outline: none;
+  backdrop-filter: blur(12px);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.checkout-field:focus,
+.store-field:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.15);
+}
+
+.store-app.dark .checkout-field,
+.store-app.dark .store-field {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: var(--fg);
+}
+
+.checkout-choice {
+  border: 1px solid var(--glass-border);
+  background: var(--glass);
+  color: var(--fg);
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.checkout-choice:hover {
+  background: color-mix(in srgb, var(--primary) 14%, var(--glass));
+}
+
+.checkout-choice-active {
+  border-color: transparent;
+  background: var(--primary);
+  color: #fff;
+  box-shadow: 0 6px 18px rgba(var(--primary-rgb), 0.35);
+}
+
+.checkout-panel {
+  border: 1px solid color-mix(in srgb, var(--primary) 28%, var(--glass-border));
+  background: var(--glass);
+  color: var(--fg);
+}
+
+.checkout-upload {
+  border: 1px dashed color-mix(in srgb, var(--primary) 45%, var(--glass-border));
+  background: color-mix(in srgb, var(--primary) 12%, transparent);
+  color: var(--fg);
+}
+
+.checkout-upload svg {
+  color: var(--primary);
+}
+
 html.store-dark-mode {
   --bg: #0e1017;
   --fg: #eceef8;
@@ -1082,6 +1219,148 @@ html.store-dark-mode body {
 .store-app.dark .group-active\:scale-105,
 .store-app.dark [class*='from-white'] {
   --tw-gradient-from: rgb(255 255 255 / 0.08);
+}
+
+/* Floating AI search + WhatsApp (fixed above bottom nav) */
+.floating-assist-stack {
+  pointer-events: none;
+}
+
+.floating-assist-stack > * {
+  pointer-events: auto;
+}
+
+.ai-fab-btn,
+.assist-fab-btn {
+  display: flex;
+  min-height: 2.75rem;
+  min-width: 2.75rem;
+  align-items: center;
+  justify-content: center;
+  padding: 0.25rem;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  border-radius: 9999px;
+  transition: transform 0.2s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.ai-fab-btn {
+  position: relative;
+}
+
+.assist-fab-motion {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  animation: assist-fab-float 2.6s ease-in-out infinite;
+  will-change: transform;
+}
+
+.assist-fab-motion-wa {
+  animation-delay: 0.35s;
+}
+
+.ai-fab-icon {
+  filter: drop-shadow(0 3px 6px rgb(0 0 0 / 0.32)) drop-shadow(0 6px 14px rgb(37 99 235 / 0.45));
+}
+
+.assist-fab-wa-icon {
+  filter: drop-shadow(0 2px 6px rgb(0 0 0 / 0.4)) drop-shadow(0 4px 10px rgb(13 122 61 / 0.55));
+}
+
+.ai-fab-btn::after {
+  content: '';
+  position: absolute;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 9999px;
+  background: radial-gradient(circle, rgb(34 211 238 / 0.35), rgb(232 121 249 / 0.15) 55%, transparent 72%);
+  z-index: -1;
+  filter: blur(4px);
+  animation: ai-fab-halo 2.8s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.assist-fab-btn:active,
+.ai-fab-btn:active {
+  transform: scale(0.92);
+}
+
+.assist-fab-btn:active .assist-fab-motion,
+.ai-fab-btn:active .assist-fab-motion {
+  animation-play-state: paused;
+}
+
+@keyframes assist-fab-float {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  35% {
+    transform: translateY(-7px) rotate(-2deg);
+  }
+  70% {
+    transform: translateY(-3px) rotate(2deg);
+  }
+}
+
+@keyframes ai-fab-halo {
+  0%,
+  100% {
+    opacity: 0.65;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.95;
+    transform: scale(1.08);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .assist-fab-motion,
+  .ai-fab-btn::after {
+    animation: none !important;
+  }
+}
+
+.pull-refresh-overlay {
+  animation: pull-refresh-fade 0.28s ease-out both;
+}
+
+@keyframes pull-refresh-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.pull-refresh-card {
+  animation: pull-refresh-pop 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes pull-refresh-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.94) translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.pull-refresh-ring-active {
+  animation: pull-refresh-spin 1.15s ease-in-out infinite;
+}
+
+@keyframes pull-refresh-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -14,12 +14,17 @@ class Customer extends Model
     protected $fillable = [
         'merchant_id', 'first_name', 'last_name', 'email', 'phone', 'gender',
         'birth_date', 'status', 'orders_count', 'total_spent_amount', 'wallet_balance_amount',
-        'last_order_at', 'notes',
+        'last_order_at', 'notes', 'cart_snapshot', 'cart_synced_at',
     ];
 
     protected function casts(): array
     {
-        return ['birth_date' => 'date', 'last_order_at' => 'datetime'];
+        return [
+            'birth_date' => 'date',
+            'last_order_at' => 'datetime',
+            'cart_snapshot' => 'array',
+            'cart_synced_at' => 'datetime',
+        ];
     }
 
     public function addresses(): HasMany

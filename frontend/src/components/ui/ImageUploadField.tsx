@@ -20,9 +20,11 @@ type ImageUploadFieldProps = {
   onChange: (path: string) => void;
   folder: UploadFolder;
   label?: string;
+  /** Product images only: stamp store logo when true. */
+  applyStoreLogo?: boolean;
 };
 
-export function ImageUploadField({ value = '', onChange, folder, label }: ImageUploadFieldProps) {
+export function ImageUploadField({ value = '', onChange, folder, label, applyStoreLogo = false }: ImageUploadFieldProps) {
   const { locale } = useI18n();
   const ar = locale === 'ar';
   const notify = useNotify();
@@ -52,12 +54,16 @@ export function ImageUploadField({ value = '', onChange, folder, label }: ImageU
     try {
       let prepared: File;
       if (folder === 'products') {
-        const logoPath = await fetchStoreLogoPath(storeLogoPathRef.current);
-        storeLogoPathRef.current = logoPath;
+        const logoPath = applyStoreLogo ? await fetchStoreLogoPath(storeLogoPathRef.current) : null;
+        if (applyStoreLogo) {
+          storeLogoPathRef.current = logoPath;
+        }
         let out = file;
         let logoApplied = false;
         try {
-          const prepResult = await prepareProductImageForPublish(file, { watermarkLogoPath: logoPath });
+          const prepResult = await prepareProductImageForPublish(file, {
+            watermarkLogoPath: applyStoreLogo ? logoPath : null,
+          });
           out = prepResult.file;
           logoApplied = prepResult.logoApplied;
         } catch (prepErr) {
@@ -77,7 +83,7 @@ export function ImageUploadField({ value = '', onChange, folder, label }: ImageU
           }
           throw uploadErr;
         }
-        if (logoPath && !logoApplied) {
+        if (applyStoreLogo && logoPath && !logoApplied) {
           notify.success(
             ar
               ? 'تم الرفع. الشعار لم يُطبّق — تأكد أن /storage يفتح صورة وليس صفحة المتجر.'
@@ -145,7 +151,9 @@ export function ImageUploadField({ value = '', onChange, folder, label }: ImageU
           </Button>
           {folder === 'products' ? (
             <p className="text-xs text-[#8a8da8]">
-              {ar ? 'يُضاف شعار المتجر تلقائياً من الإعدادات (إن وُجد).' : 'Store logo from settings is applied automatically when set.'}
+              {applyStoreLogo
+                ? (ar ? 'سيُضاف شعار المتجر من الإعدادات على هذه الصورة.' : 'Store logo from settings will be stamped on this upload.')
+                : (ar ? 'الصورة تُرفع مع الضغط فقط — بدون شعار.' : 'Upload uses compression only — no logo stamp.')}
             </p>
           ) : null}
           {value ? (

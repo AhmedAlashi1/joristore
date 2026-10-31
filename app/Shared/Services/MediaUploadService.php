@@ -9,7 +9,13 @@ use Illuminate\Support\Str;
 class MediaUploadService
 {
     /** @var list<string> */
-    protected array $allowedFolders = ['logos', 'banners', 'categories', 'products', 'payment-receipts', 'payment-qr'];
+    protected array $allowedFolders = ['logos', 'banners', 'categories', 'products', 'payment-receipts', 'payment-qr', 'partner-payouts'];
+
+    /** @return list<string> */
+    public function allowedFolders(): array
+    {
+        return $this->allowedFolders;
+    }
 
     public function upload(UploadedFile $file, int $merchantId, string $folder): string
     {

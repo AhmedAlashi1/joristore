@@ -11,6 +11,7 @@ import {
   type StoreCategory,
 } from '../lib/category-tree';
 import { pickLocalizedText } from '../lib/localized-text';
+import { usePullRefreshOutletKey } from '../providers/pull-refresh-provider';
 import { useLocale } from '../providers/locale-provider';
 
 export function CategoriesPage() {
@@ -23,14 +24,16 @@ export function CategoriesPage() {
 
   const [categories, setCategories] = useState<StoreCategory[]>([]);
   const [loading, setLoading] = useState(true);
+  const pullKey = usePullRefreshOutletKey();
 
   useEffect(() => {
+    setLoading(true);
     storeApi
       .categories()
       .then((r) => setCategories(unwrap<StoreCategory[]>(r)))
       .catch(() => setCategories([]))
       .finally(() => setLoading(false));
-  }, []);
+  }, [pullKey]);
 
   const breadcrumbs = useMemo(
     () => (parentId ? ancestorChain(categories, parentId) : []),
@@ -128,7 +131,7 @@ export function CategoriesPage() {
                 className="category-dept-card glass-strong glass-interactive flex flex-col overflow-hidden rounded-2xl text-start"
               >
                 <span className="category-dept-img relative block aspect-[4/3] w-full overflow-hidden bg-[var(--primary-soft)]">
-                  <StoreMediaImage src={cat.image} alt={catLabel(cat)} />
+                  <StoreMediaImage src={cat.image} cacheVersion={cat.updated_at} alt={catLabel(cat)} />
                   {isBranch ? (
                     <span className="absolute bottom-2 start-2 rounded-lg bg-black/45 px-2 py-0.5 text-[10px] font-bold text-white">
                       {ar ? 'أقسام فرعية' : 'Subcategories'}

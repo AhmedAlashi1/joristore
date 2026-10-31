@@ -6,6 +6,7 @@ use App\Modules\Catalog\Controllers\CategoryController;
 use App\Modules\Catalog\Controllers\GymController;
 use App\Modules\Catalog\Controllers\ProductController;
 use App\Modules\Customers\Controllers\CustomerController;
+use App\Modules\Customers\Controllers\WalletRequestController;
 use App\Modules\Customers\Controllers\CustomerNotificationController;
 use App\Modules\Dashboard\Controllers\ActivityLogController;
 use App\Modules\Dashboard\Controllers\DashboardController;
@@ -13,6 +14,11 @@ use App\Modules\Dashboard\Controllers\NotificationController;
 use App\Modules\Dashboard\Controllers\ProfileController;
 use App\Modules\Inventory\Controllers\InventoryController;
 use App\Modules\Orders\Controllers\OrderController;
+use App\Modules\Partners\Controllers\AdminPartnerCommissionController;
+use App\Modules\Partners\Controllers\AdminPartnerController;
+use App\Modules\Partners\Controllers\AdminPartnerPayoutController;
+use App\Modules\Partners\Controllers\PartnerAuthController;
+use App\Modules\Partners\Controllers\PartnerPortalController;
 use App\Modules\Promotions\Controllers\CouponController;
 use App\Modules\Promotions\Controllers\PromoBannerController;
 use App\Modules\Settings\Controllers\MediaUploadController;
@@ -41,6 +47,7 @@ Route::middleware(['auth:sanctum', 'merchant.context'])->prefix('admin')->group(
     });
 
     Route::get('dashboard/stats', [DashboardController::class, 'stats'])->middleware('merchant.permission:dashboard.view');
+    Route::get('sidebar/counts', [DashboardController::class, 'sidebarCounts']);
 
     Route::controller(StoreSettingsController::class)->group(function () {
         Route::get('settings/store', 'show')->middleware('merchant.permission:settings.view');
@@ -56,7 +63,25 @@ Route::middleware(['auth:sanctum', 'merchant.context'])->prefix('admin')->group(
     });
 
     Route::post('media/upload', [MediaUploadController::class, 'store'])
-        ->middleware('merchant.permission:settings.update|banners.create|banners.update|categories.create|categories.update|products.create|products.update');
+        ->middleware('merchant.permission:settings.update|banners.create|banners.update|categories.create|categories.update|products.create|products.update|partner_payouts.manage');
+
+    Route::controller(AdminPartnerController::class)->prefix('partners')->group(function () {
+        Route::get('options', 'options')->middleware('merchant.permission:partners.view|coupons.create|coupons.update');
+        Route::get('/', 'index')->middleware('merchant.permission:partners.view');
+        Route::post('/', 'store')->middleware('merchant.permission:partners.manage');
+        Route::get('{id}', 'show')->middleware('merchant.permission:partners.view');
+        Route::put('{id}', 'update')->middleware('merchant.permission:partners.manage');
+        Route::delete('{id}', 'destroy')->middleware('merchant.permission:partners.manage');
+    });
+
+    Route::controller(AdminPartnerCommissionController::class)->prefix('partner-commissions')->group(function () {
+        Route::get('/', 'index')->middleware('merchant.permission:partners.view');
+    });
+
+    Route::controller(AdminPartnerPayoutController::class)->prefix('partner-payouts')->group(function () {
+        Route::get('/', 'index')->middleware('merchant.permission:partners.view|partner_payouts.manage');
+        Route::post('/', 'store')->middleware('merchant.permission:partner_payouts.manage');
+    });
 
     Route::controller(CategoryController::class)->group(function () {
         Route::get('categories/options', 'options')->middleware('merchant.permission:categories.view|products.view');
@@ -102,6 +127,12 @@ Route::middleware(['auth:sanctum', 'merchant.context'])->prefix('admin')->group(
         Route::get('inventory/movements', 'movements')->middleware('merchant.permission:inventory.movements.view');
     });
 
+    Route::controller(WalletRequestController::class)->prefix('wallet-requests')->group(function () {
+        Route::get('/', 'index')->middleware('merchant.permission:customers.view');
+        Route::post('{id}/approve', 'approve')->middleware('merchant.permission:customers.update');
+        Route::post('{id}/reject', 'reject')->middleware('merchant.permission:customers.update');
+    });
+
     Route::controller(CustomerController::class)->group(function () {
         Route::get('customers/options', 'options')->middleware('merchant.permission:customers.view|orders.view');
         Route::get('customers', 'index')->middleware('merchant.permission:customers.view');
@@ -112,6 +143,8 @@ Route::middleware(['auth:sanctum', 'merchant.context'])->prefix('admin')->group(
         Route::post('customers/{id}/addresses', 'storeAddress')->middleware('merchant.permission:customers.update');
         Route::put('customers/{id}/addresses/{addressId}', 'updateAddress')->middleware('merchant.permission:customers.update');
         Route::delete('customers/{id}/addresses/{addressId}', 'destroyAddress')->middleware('merchant.permission:customers.update');
+        Route::get('customers/{id}/cart', 'cart')->middleware('merchant.permission:customers.view');
+        Route::get('customers/{id}/wallet', 'walletActivity')->middleware('merchant.permission:customers.view');
     });
 
     Route::controller(CustomerNotificationController::class)->prefix('customer-notifications')->group(function () {
@@ -217,6 +250,17 @@ Route::middleware('store.context')->prefix('store')->group(function () {
         Route::get('payment-methods', 'paymentMethods');
     });
 
+    Route::controller(PartnerAuthController::class)->prefix('partner')->group(function () {
+        Route::post('login', 'login');
+        Route::middleware(['auth:sanctum', 'partner.account'])->group(function () {
+            Route::post('logout', 'logout');
+            Route::get('me', 'me');
+            Route::get('dashboard', [PartnerPortalController::class, 'dashboard']);
+            Route::get('commissions', [PartnerPortalController::class, 'commissions']);
+            Route::get('payouts', [PartnerPortalController::class, 'payouts']);
+        });
+    });
+
     Route::controller(StorefrontCustomerController::class)->prefix('customer')->group(function () {
         Route::post('register', 'register');
         Route::post('login', 'login');
@@ -227,7 +271,13 @@ Route::middleware('store.context')->prefix('store')->group(function () {
             Route::get('orders/{id}', 'orderShow');
             Route::post('orders', 'storeOrder');
             Route::post('coupons/validate', 'validateCoupon');
+            Route::get('wallet/feed', 'walletFeed');
+            Route::get('wallet/overview', 'walletOverview');
             Route::get('wallet/transactions', 'walletTransactions');
+            Route::get('wallet/requests', 'walletRequests');
+            Route::post('wallet/top-up', 'storeWalletTopUp');
+            Route::post('wallet/withdraw', 'storeWalletWithdrawal');
+            Route::put('cart', 'syncCart');
             Route::post('media/payment-receipt', [StorefrontMediaController::class, 'uploadPaymentReceipt']);
             Route::get('notifications', 'notifications');
             Route::get('notifications/unread-count', 'unreadNotificationsCount');

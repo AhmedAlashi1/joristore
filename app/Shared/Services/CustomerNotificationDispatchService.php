@@ -45,7 +45,11 @@ class CustomerNotificationDispatchService
                 'title' => $title,
                 'message' => $message,
                 'type' => $type,
-                'data' => ['sent_by' => $sentByUserId],
+                'data' => [
+                    'sent_by' => $sentByUserId,
+                    'title_en' => $title,
+                    'message_en' => $message,
+                ],
                 'created_at' => $now,
             ]);
         }
@@ -61,5 +65,40 @@ class CustomerNotificationDispatchService
             'sent_count' => count($customerIds),
             'push_count' => $pushCount,
         ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    public function notifyCustomer(
+        int $merchantId,
+        int $customerId,
+        string $titleAr,
+        string $messageAr,
+        string $type,
+        array $data = [],
+        ?string $titleEn = null,
+        ?string $messageEn = null,
+    ): void {
+        $now = now();
+        $data['title_en'] = $titleEn ?? $titleAr;
+        $data['message_en'] = $messageEn ?? $messageAr;
+
+        CustomerNotification::query()->create([
+            'merchant_id' => $merchantId,
+            'customer_id' => $customerId,
+            'title' => $titleAr,
+            'message' => $messageAr,
+            'type' => $type,
+            'data' => $data,
+            'created_at' => $now,
+        ]);
+
+        $subscriptions = PushSubscription::query()
+            ->where('merchant_id', $merchantId)
+            ->where('customer_id', $customerId)
+            ->get();
+
+        $this->webPush->sendMany($subscriptions, $titleAr, $messageAr, '/notifications');
     }
 }

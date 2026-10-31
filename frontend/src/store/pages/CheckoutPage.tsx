@@ -18,6 +18,7 @@ import { paymentMethodInstructions, paymentMethodLabel, type PaymentMethodConfig
 import { CheckoutSection } from '../components/checkout/CheckoutSection';
 import { StoreMediaImage } from '../components/media/StoreMediaImage';
 import { customerApi, storeApi, unwrap } from '../lib/api';
+import { useCartItemImages } from '../lib/use-cart-item-images';
 import { cn, formatPrice } from '../lib/utils';
 import { useCart } from '../providers/cart-provider';
 import type { CustomerAddress } from '../providers/customer-provider';
@@ -34,11 +35,24 @@ type AppliedCoupon = {
   shipping: number;
 };
 
+function buildCustomerNote(note: string, altSize: string, ar: boolean): string | undefined {
+  const parts: string[] = [];
+  const trimmedNote = note.trim();
+  const trimmedAlt = altSize.trim();
+  if (trimmedNote) parts.push(trimmedNote);
+  if (trimmedAlt) {
+    parts.push(ar ? `مقاس بديل للتوصيل: ${trimmedAlt}` : `Alternate delivery size: ${trimmedAlt}`);
+  }
+  const merged = parts.join('\n').trim();
+  return merged || undefined;
+}
+
 export function CheckoutPage() {
   const { t, locale } = useLocale();
   const ar = locale === 'ar';
   const navigate = useNavigate();
   const { items, total, clear } = useCart();
+  const { resolveImage } = useCartItemImages(items);
   const { isLoggedIn, refresh, customer } = useCustomer();
   const [fulfillment, setFulfillment] = useState<FulfillmentType>('delivery');
   const [addresses, setAddresses] = useState<CustomerAddress[]>([]);
@@ -48,10 +62,12 @@ export function CheckoutPage() {
   const [shippingId, setShippingId] = useState<number | null>(null);
   const [deliveryFee, setDeliveryFee] = useState<number | null>(null);
   const [storePaymentMethods, setStorePaymentMethods] = useState<PaymentMethodConfig[]>([]);
+  const [paymentMethodsError, setPaymentMethodsError] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<string>('cash_on_delivery');
   const [receiptPath, setReceiptPath] = useState<string | null>(null);
   const [receiptUploading, setReceiptUploading] = useState(false);
   const [note, setNote] = useState('');
+  const [altDeliverySize, setAltDeliverySize] = useState('');
   const [couponInput, setCouponInput] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState<AppliedCoupon | null>(null);
   const [couponApplying, setCouponApplying] = useState(false);
@@ -72,17 +88,33 @@ export function CheckoutPage() {
       .then((r) => {
         const methods = unwrap<ShippingMethod[]>(r);
         setShippingMethods(methods);
-        if (methods[0]) setShippingId(methods[0].id);
+        setShippingId((prev) => (prev != null && methods.some((m) => m.id === prev) ? prev : methods[0]?.id ?? null));
       })
       .catch(() => undefined);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- load checkout data once per login session
+  }, [isLoggedIn]);
+
+  useEffect(() => {
+    if (!isLoggedIn) return;
+    setPaymentMethodsError('');
     storeApi.paymentMethods()
       .then((r) => {
         const methods = unwrap<PaymentMethodConfig[]>(r);
         setStorePaymentMethods(methods);
-        if (methods[0]?.id) setPaymentMethod(methods[0].id);
+        setPaymentMethod((prev) => {
+          if (prev && methods.some((m) => m.id === prev)) return prev;
+          return methods[0]?.id ?? 'cash_on_delivery';
+        });
+        if (methods.length === 0) {
+          setPaymentMethodsError(ar ? 'لا توجد طرق دفع مفعّلة. فعّلها من لوحة التحكم → طرق الدفع.' : 'No payment methods enabled. Enable them in admin → Payment methods.');
+        }
       })
-      .catch(() => undefined);
-  }, [isLoggedIn, refresh]);
+      .catch((e) => {
+        setStorePaymentMethods([]);
+        setPaymentMethodsError(e instanceof Error ? e.message : (ar ? 'تعذّر تحميل طرق الدفع' : 'Could not load payment methods'));
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- do not reset selection when locale toggles
+  }, [isLoggedIn]);
 
   const selectedAddress = addresses.find((a) => a.id === addressId) ?? null;
   const isDelivery = fulfillment === 'delivery';
@@ -224,7 +256,7 @@ export function CheckoutPage() {
         shipping_method_id: isDelivery ? (shippingId ?? undefined) : undefined,
         payment_method: paymentMethod,
         payment_receipt_path: receiptPath ?? undefined,
-        customer_note: note || undefined,
+        customer_note: buildCustomerNote(note, altDeliverySize, ar),
         coupon_code: appliedCoupon?.code ?? undefined,
         items: items.map((i) => ({ product_variant_id: i.productVariantId, quantity: i.quantity })),
       });
@@ -253,7 +285,7 @@ export function CheckoutPage() {
   const ctaLabel = !readyToPay
     ? (ar ? 'اختر عنوان التوصيل أولاً' : 'Choose delivery address first')
     : needsReceipt && !receiptPath
-      ? (ar ? 'ارفع إيصال الدفع' : 'Upload payment receipt')
+      ? (ar ? 'ارفع صورة الإيصال' : 'Upload receipt image')
       : t.placeOrder;
 
   const ctaDisabled = loading || receiptUploading || !readyToPay || (needsReceipt && !receiptPath);
@@ -268,12 +300,14 @@ export function CheckoutPage() {
           setError('');
         }}
         className={cn(
-          'flex flex-1 items-center justify-center gap-1.5 rounded-lg px-2.5 py-2 text-xs font-bold transition-all',
-          active ? 'bg-[var(--primary)] text-white shadow-md' : 'border border-black/[0.08] bg-white/70 text-[var(--fg)]',
+          'flex min-h-0 flex-1 items-center justify-center gap-1 rounded-md px-2 py-1.5 text-[11px] font-semibold leading-tight transition-all',
+          active
+            ? 'bg-[var(--primary)] text-white shadow-sm [&_svg]:text-white'
+            : 'checkout-choice text-[var(--fg)]',
         )}
       >
         {icon}
-        {label}
+        <span className="whitespace-nowrap">{label}</span>
       </button>
     );
   };
@@ -303,9 +337,13 @@ export function CheckoutPage() {
           title={ar ? 'طريقة الاستلام' : 'Fulfillment'}
           hint={ar ? 'توصيل أو استلام من المعرض' : 'Delivery or pickup'}
         >
-          <div className="flex gap-2">
-            {fulfillmentBtn('delivery', ar ? 'توصيل خارجي' : 'Delivery', <Truck size={14} />)}
-            {fulfillmentBtn('pickup', ar ? 'استلام من المعرض' : 'Showroom pickup', <Store size={14} />)}
+          <div
+            className="flex gap-0.5 rounded-lg border border-[var(--glass-border)] bg-[var(--glass)] p-0.5"
+            role="group"
+            aria-label={ar ? 'طريقة الاستلام' : 'Fulfillment method'}
+          >
+            {fulfillmentBtn('delivery', ar ? 'توصيل' : 'Delivery', <Truck size={13} strokeWidth={2.25} />)}
+            {fulfillmentBtn('pickup', ar ? 'استلام' : 'Pickup', <Store size={13} strokeWidth={2.25} />)}
           </div>
         </CheckoutSection>
 
@@ -336,7 +374,7 @@ export function CheckoutPage() {
                         'flex w-full items-start gap-2 rounded-lg border p-2.5 text-start transition-all',
                         selected
                           ? 'border-[var(--primary)] bg-[var(--primary-soft)]/60'
-                          : 'border-black/[0.06] bg-white/60',
+                          : 'checkout-choice',
                       )}
                     >
                       <div className={cn(
@@ -369,41 +407,17 @@ export function CheckoutPage() {
           </CheckoutSection>
         )}
 
-        {isDelivery && addressId ? (
-          <CheckoutSection icon={<Truck size={20} />} title={ar ? 'رسوم التوصيل' : 'Delivery fee'}>
-            {usesZoneDelivery ? (
-              <p className="text-xs text-store-muted">
-                {selectedAddress?.region_name ? `${ar ? 'المنطقة:' : 'Region:'} ${selectedAddress.region_name}` : null}
-              </p>
-            ) : null}
-            <p className="mt-1 text-lg font-black text-[var(--primary)]">{formatPrice(shippingPrice ?? 0)}</p>
-            {!usesZoneDelivery && shippingMethods.length > 1 ? (
-              <div className="mt-2 space-y-1.5">
-                {shippingMethods.map((s) => (
-                  <button
-                    key={s.id}
-                    type="button"
-                    onClick={() => setShippingId(s.id)}
-                    className={cn(
-                      'flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-xs font-semibold',
-                      shippingId === s.id ? 'bg-[var(--primary)] text-white' : 'bg-black/[0.04]',
-                    )}
-                  >
-                    <span>{s.name}</span>
-                    <span>{formatPrice(s.price)}</span>
-                  </button>
-                ))}
-              </div>
-            ) : null}
-          </CheckoutSection>
-        ) : null}
-
         <CheckoutSection
           icon={<CreditCard size={20} />}
           title={t.paymentMethod}
           hint={`${t.walletBalance}: ${formatPrice(customer?.wallet_balance ?? walletBalance)}`}
         >
           <div className="flex flex-col gap-1.5">
+            {paymentOptions.length === 0 ? (
+              <p className="rounded-lg bg-[#ea5455]/10 px-2.5 py-2 text-xs font-medium text-[#ea5455]">
+                {paymentMethodsError || (ar ? 'لا توجد طرق دفع متاحة حالياً.' : 'No payment methods available.')}
+              </p>
+            ) : null}
             {paymentOptions.map((opt) => (
               <button
                 key={opt.id}
@@ -416,9 +430,7 @@ export function CheckoutPage() {
                 }}
                 className={cn(
                   'rounded-lg px-2.5 py-2 text-start text-xs font-semibold transition-all disabled:opacity-45',
-                  paymentMethod === opt.id
-                    ? 'bg-[var(--primary)] text-white shadow-md'
-                    : 'border border-black/[0.08] bg-white/70',
+                  paymentMethod === opt.id ? 'checkout-choice-active' : 'checkout-choice',
                 )}
               >
                 {opt.label}
@@ -427,21 +439,26 @@ export function CheckoutPage() {
           </div>
 
           {(needsReceipt || selectedPay?.qr_image) && paymentMethod ? (
-            <div className="mt-2.5 space-y-2.5 rounded-lg border border-[var(--primary)]/20 bg-white/80 p-2.5">
-              {payInstructions ? <p className="text-[11px] leading-relaxed">{payInstructions}</p> : null}
+            <div className="checkout-panel mt-2.5 space-y-2.5 rounded-lg p-2.5">
+              {payInstructions ? (
+                <p className="text-[11px] leading-relaxed text-store-muted">{payInstructions}</p>
+              ) : null}
               {selectedPay?.qr_image ? (
-                <div className="mx-auto max-w-[140px] rounded-xl border bg-white p-2 shadow-sm">
-                  <StoreMediaImage src={selectedPay.qr_image} alt="QR" fit="contain" layout="intrinsic" className="w-full" />
+                <div className="relative mx-auto aspect-square w-full max-w-[168px] overflow-hidden rounded-xl border border-[var(--glass-border)] bg-white p-2 shadow-sm">
+                  <StoreMediaImage src={selectedPay.qr_image} alt="QR" fit="contain" layout="fill" />
                 </div>
+              ) : selectedPay?.transfer_type === 'online' ? (
+                <p className="rounded-lg bg-[#ea5455]/10 px-2 py-1.5 text-center text-[10px] font-semibold text-[#ea5455]">
+                  {ar ? 'لم يُرفع رمز QR لهذه الطريقة — من لوحة التحكم → طرق الدفع' : 'No QR uploaded — add one in admin → Payment methods'}
+                </p>
               ) : null}
               {needsReceipt ? (
                 <div className="space-y-2">
-                  <label className="flex cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-dashed border-[var(--primary)]/40 bg-[var(--primary-soft)]/30 px-2.5 py-2 text-xs font-semibold">
+                  <label className="checkout-upload flex cursor-pointer items-center justify-center gap-1.5 rounded-lg px-2.5 py-2.5 text-xs font-semibold">
                     {receiptUploading ? <Loader2 className="animate-spin" size={14} /> : <Upload size={14} />}
-                    {t.paymentReceipt}
+                    {receiptPath ? (ar ? 'تم رفع الإيصال ✓' : 'Receipt uploaded ✓') : t.paymentReceipt}
                     <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" disabled={receiptUploading} onChange={(e) => void onReceiptPick(e.target.files?.[0] ?? null)} />
                   </label>
-                  {receiptPath ? <p className="text-center text-xs font-bold text-[var(--primary)]">{ar ? 'تم رفع الإيصال ✓' : 'Receipt uploaded ✓'}</p> : null}
                 </div>
               ) : null}
             </div>
@@ -449,21 +466,41 @@ export function CheckoutPage() {
         </CheckoutSection>
 
         <CheckoutSection icon={<MessageSquare size={20} />} title={ar ? 'ملاحظات' : 'Notes'}>
-          <textarea
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            placeholder={ar ? 'ملاحظات على الطلب (اختياري)' : 'Optional order notes'}
-            className="min-h-[56px] w-full rounded-lg border border-black/[0.08] bg-white/80 px-2.5 py-2 text-xs outline-none focus:border-[var(--primary)]/50"
-            rows={2}
-          />
+          <div className="space-y-2.5">
+            <div>
+              <label className="mb-1 block text-[10px] font-semibold text-store-muted">
+                {ar ? 'مقاس بديل للتوصيل (اختياري)' : 'Alternate size for delivery (optional)'}
+              </label>
+              <input
+                value={altDeliverySize}
+                onChange={(e) => setAltDeliverySize(e.target.value)}
+                placeholder={ar ? 'مثال: L أو 42' : 'e.g. L or 42'}
+                className="store-field"
+                maxLength={80}
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-[10px] font-semibold text-store-muted">
+                {ar ? 'ملاحظات على الطلب' : 'Order notes'}
+              </label>
+              <textarea
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                placeholder={ar ? 'اكتب هنا أي تعليمات للتوصيل…' : 'Delivery instructions…'}
+                className="checkout-field min-h-[56px] resize-none"
+                rows={2}
+                maxLength={400}
+              />
+            </div>
+          </div>
         </CheckoutSection>
 
         <CheckoutSection icon={<ShoppingBag size={20} />} title={ar ? 'ملخص الطلب' : 'Order summary'}>
           <ul className="space-y-2.5">
             {items.map((item) => (
               <li key={item.productVariantId} className="flex gap-2.5">
-                <div className="h-11 w-11 shrink-0 overflow-hidden rounded-lg bg-neutral-100">
-                  <StoreMediaImage src={item.image} alt={item.name} fit="cover" layout="fill" className="h-full w-full" />
+                <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-[#eceef4] dark:bg-[#252538]">
+                  <StoreMediaImage src={resolveImage(item)} alt={item.name} fit="cover" layout="fill" />
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="text-xs font-bold leading-snug">{item.name}</p>
@@ -495,7 +532,7 @@ export function CheckoutPage() {
                   value={couponInput}
                   onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
                   placeholder={ar ? 'رمز الكوبون' : 'Coupon code'}
-                  className="min-w-0 flex-1 rounded-lg border border-black/[0.08] bg-white/80 px-2.5 py-2 text-xs outline-none focus:border-[var(--primary)]/50"
+                  className="checkout-field min-w-0 flex-1"
                   dir="ltr"
                 />
                 <button

@@ -151,8 +151,8 @@ export function NotificationsPage() {
         <h3 className="mb-1 text-lg font-bold">{ar ? 'إرسال إشعار للعملاء' : 'Send to customers'}</h3>
         <p className="mb-3 text-sm text-[#8a8da8]">
           {ar
-            ? 'يُحفظ في التطبيق + إشعار push للعملاء المسجّلين والمفعّل لهم الإشعارات'
-            : 'Saved in-app + Web Push for customers who enabled notifications'}
+            ? 'يُحفظ في التطبيق فوراً (صفحة الإشعارات). Push يصل فقط إذا فعّل العميل الإشعارات من التطبيق. اختر العميل بنفس رقم الهاتف المسجّل في المتجر.'
+            : 'Saved in-app immediately (notifications page). Push only if the customer enabled alerts in the app. Pick the customer matching their store login phone.'}
         </p>
         <div className="space-y-3">
           <FormField label={ar ? 'عميل (اختياري)' : 'Customer (optional)'}>

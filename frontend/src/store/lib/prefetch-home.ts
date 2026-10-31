@@ -9,7 +9,14 @@ const HOME_CATEGORIES_LIMIT = 12;
 const RAIL_LIMIT = 10;
 
 type HomeCache = {
-  categories: { id: number; name: string; slug: string; parent_id?: number | null; image?: string | null }[];
+  categories: {
+    id: number;
+    name: string;
+    slug: string;
+    parent_id?: number | null;
+    image?: string | null;
+    updated_at?: string | null;
+  }[];
   newArrivals: ProductCardData[];
   bestSellers: ProductCardData[];
   weeklyDeals: ProductCardData[];
@@ -19,20 +26,37 @@ export function getCachedHome(): HomeCache | null {
   return readStoreCache<HomeCache>(HOME_CACHE_KEY);
 }
 
-export function getCachedPromos() {
-  return readStoreCache<{ id: number; title: string; title_en?: string | null; image: string; link: string }[]>(
-    PROMO_CACHE_KEY,
-  );
+export type StorePromoBanner = {
+  id: number;
+  title: string;
+  title_en?: string | null;
+  image: string;
+  link: string;
+  updated_at?: string | null;
+};
+
+export function getCachedPromos(): StorePromoBanner[] | null {
+  return readStoreCache<StorePromoBanner[]>(PROMO_CACHE_KEY);
+}
+
+export async function reloadPromoBanners(force = false): Promise<StorePromoBanner[]> {
+  const res = await storeApi.promoBanners(force ? Date.now() : undefined);
+  const list = unwrap<StorePromoBanner[]>(res) ?? [];
+  writeStoreCache(PROMO_CACHE_KEY, list);
+  return list;
 }
 
 let inflight: Promise<void> | null = null;
 
 /** Refresh home + promos in background; keeps last good data in session/local cache. */
-export function prefetchStoreHome(): Promise<void> {
+export function prefetchStoreHome(options?: { force?: boolean }): Promise<void> {
+  if (options?.force) {
+    inflight = null;
+  }
   if (inflight) return inflight;
   inflight = Promise.all([
     Promise.all([
-      storeApi.categories().then((r) => unwrap<{ id: number; name: string; slug: string; parent_id?: number | null; image?: string | null }[]>(r)),
+      storeApi.categories().then((r) => unwrap<HomeCache['categories']>(r)),
       storeApi.products({ sort: 'new', per_page: RAIL_LIMIT }).then((r) => unwrap<{ data: ProductCardData[] }>(r)),
       storeApi.products({ sort: 'bestseller', per_page: RAIL_LIMIT }).then((r) => unwrap<{ data: ProductCardData[] }>(r)),
       storeApi.products({ on_sale: true, per_page: RAIL_LIMIT }).then((r) => unwrap<{ data: ProductCardData[] }>(r)),
@@ -46,9 +70,7 @@ export function prefetchStoreHome(): Promise<void> {
         });
       })
       .catch(() => undefined),
-    storeApi.promoBanners()
-      .then((r) => writeStoreCache(PROMO_CACHE_KEY, unwrap(r)))
-      .catch(() => undefined),
+    reloadPromoBanners(options?.force === true).catch(() => undefined),
   ])
     .then(() => undefined)
     .finally(() => {

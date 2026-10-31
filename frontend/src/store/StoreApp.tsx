@@ -1,6 +1,7 @@
 import { Route, Routes } from 'react-router-dom';
 import { AppShell } from './components/layout/AppShell';
 import { AccountPage } from './pages/AccountPage';
+import { WalletPage } from './pages/WalletPage';
 import { AddressEditorPage } from './pages/AddressEditorPage';
 import { AddressesPage } from './pages/AddressesPage';
 import { ContactPage } from './pages/ContactPage';
@@ -34,6 +35,7 @@ export default function StoreApp() {
         <Route path="checkout" element={<CheckoutPage />} />
         <Route path="wishlist" element={<WishlistPage />} />
         <Route path="account" element={<AccountPage />} />
+        <Route path="account/wallet" element={<WalletPage />} />
         <Route path="account/addresses" element={<AddressesPage />} />
         <Route path="account/addresses/new" element={<AddressEditorPage />} />
         <Route path="account/addresses/:id/edit" element={<AddressEditorPage />} />

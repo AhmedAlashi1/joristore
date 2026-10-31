@@ -17,6 +17,15 @@ export function readStoreCache<T>(key: string): T | null {
   return null;
 }
 
+export function removeStoreCache(key: string) {
+  try {
+    sessionStorage.removeItem(cacheKey(key));
+    localStorage.removeItem(cacheKey(key));
+  } catch {
+    /* ignore */
+  }
+}
+
 export function writeStoreCache(key: string, value: unknown) {
   const raw = JSON.stringify(value);
   try {

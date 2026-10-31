@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { customerApi } from '../lib/api';
+import { customerApi, extractPaginatedRows } from '../lib/api';
+import { useLocale } from './locale-provider';
 import {
   disablePushFromUserGesture,
   enablePushFromUserGesture,
@@ -13,6 +14,18 @@ type CustomerNotificationRow = {
   id: number;
   title: string;
   message: string;
+  type?: string;
+  data?: {
+    transfer_reference?: string;
+    account_holder_name?: string;
+    payment_method_label_ar?: string;
+    payment_method_label_en?: string;
+    customer_receipt_url?: string | null;
+    admin_transfer_receipt_url?: string | null;
+    order_number?: string;
+    amount?: number;
+    admin_note?: string | null;
+  };
   read_at?: string | null;
   created_at?: string;
 };
@@ -20,6 +33,7 @@ type CustomerNotificationRow = {
 type NotificationCtx = {
   items: CustomerNotificationRow[];
   unreadCount: number;
+  loading: boolean;
   permission: NotificationPermission | 'unsupported';
   pushEnabled: boolean;
   requestPermission: () => Promise<{ ok: boolean; reason?: PushEnableReason }>;
@@ -75,8 +89,10 @@ function showSystemNotification(title: string, body: string) {
 
 export function NotificationProvider({ children }: { children: ReactNode }) {
   const { isLoggedIn } = useCustomer();
+  const { locale } = useLocale();
   const [items, setItems] = useState<CustomerNotificationRow[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [loading, setLoading] = useState(false);
   const [pushEnabled, setPushEnabled] = useState(false);
   const [permission, setPermission] = useState<NotificationPermission | 'unsupported'>(() =>
     ('Notification' in window ? Notification.permission : 'unsupported'),
@@ -87,14 +103,16 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     if (!isLoggedIn) {
       setItems([]);
       setUnreadCount(0);
+      setLoading(false);
       return;
     }
+    setLoading(true);
     try {
       const [list, countRes] = await Promise.all([
-        customerApi.notifications(1),
+        customerApi.notifications(1, locale === 'en' ? 'en' : 'ar'),
         customerApi.unreadCount(),
       ]);
-      const rows = list.data || [];
+      const rows = extractPaginatedRows(list);
       setItems(rows);
       setUnreadCount(countRes.count);
 
@@ -110,14 +128,23 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       }
     } catch {
       /* ignore */
+    } finally {
+      setLoading(false);
     }
-  }, [isLoggedIn]);
+  }, [isLoggedIn, locale]);
 
   useEffect(() => {
     void refresh();
     if (!isLoggedIn) return undefined;
     const timer = window.setInterval(() => void refresh(), 15000);
-    return () => clearInterval(timer);
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') void refresh();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
   }, [isLoggedIn, refresh]);
 
   useEffect(() => {
@@ -162,6 +189,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   const value = useMemo<NotificationCtx>(() => ({
     items,
     unreadCount,
+    loading,
     permission,
     pushEnabled,
     requestPermission,
@@ -169,7 +197,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     refresh,
     markRead,
     markAllRead,
-  }), [items, unreadCount, permission, pushEnabled, requestPermission, disablePush, refresh, markRead, markAllRead]);
+  }), [items, unreadCount, loading, permission, pushEnabled, requestPermission, disablePush, refresh, markRead, markAllRead]);
 
   return <NotificationContext.Provider value={value}>{children}</NotificationContext.Provider>;
 }

@@ -9,9 +9,17 @@ import type { ProductCardData } from '../components/product/ProductCard';
 import { StoreMediaImage } from '../components/media/StoreMediaImage';
 import { getCachedHome, HOME_CACHE_KEY, prefetchStoreHome } from '../lib/prefetch-home';
 import { readStoreCache } from '../lib/store-cache';
+import { usePullRefreshOutletKey } from '../providers/pull-refresh-provider';
 import { useLocale } from '../providers/locale-provider';
 
-type Category = { id: number; name: string; slug: string; parent_id?: number | null; image?: string | null };
+type Category = {
+  id: number;
+  name: string;
+  slug: string;
+  parent_id?: number | null;
+  image?: string | null;
+  updated_at?: string | null;
+};
 
 function initialHomeState() {
   const cached = getCachedHome();
@@ -32,11 +40,12 @@ export function HomePage() {
   const [bestSellers, setBestSellers] = useState<ProductCardData[]>(initial.bestSellers);
   const [weeklyDeals, setWeeklyDeals] = useState<ProductCardData[]>(initial.weeklyDeals);
   const [loaded, setLoaded] = useState(initial.hasCache);
+  const pullKey = usePullRefreshOutletKey();
 
   useEffect(() => {
     let cancelled = false;
 
-    void prefetchStoreHome().then(() => {
+    void prefetchStoreHome(pullKey > 0 ? { force: true } : undefined).then(() => {
       if (cancelled) return;
       const fresh = readStoreCache<{
         categories: Category[];
@@ -56,7 +65,7 @@ export function HomePage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [pullKey]);
 
   const hasProducts = newArrivals.length + bestSellers.length + weeklyDeals.length > 0;
 
@@ -79,7 +88,7 @@ export function HomePage() {
             {categories.map((c) => (
               <Link key={c.id} to={`/categories?parent=${c.id}`} className="category-tile shrink-0 snap-start">
                 <span className="category-tile-img overflow-hidden shadow-sm">
-                  <StoreMediaImage src={c.image} alt={c.name} />
+                  <StoreMediaImage src={c.image} cacheVersion={c.updated_at} alt={c.name} />
                 </span>
                 <span className="category-tile-label">{c.name}</span>
               </Link>

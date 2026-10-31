@@ -62,6 +62,8 @@ export type ProductFormState = {
   name_en: string;
   short_description_en: string;
   description_en: string;
+  /** When true, new product image uploads get the store logo watermark. */
+  stampStoreLogo: boolean;
 };
 
 export const emptyProductForm = (): ProductFormState => ({
@@ -87,6 +89,7 @@ export const emptyProductForm = (): ProductFormState => ({
   name_en: '',
   short_description_en: '',
   description_en: '',
+  stampStoreLogo: false,
 });
 
 export const statusVariant: Record<string, 'default' | 'success' | 'warning' | 'destructive'> = {
@@ -125,6 +128,7 @@ export function mapProductToForm(row: ProductRecord): ProductFormState {
       price: v.price != null ? String(v.price) : '',
       quantity: v.quantity ?? 0,
     })),
+    stampStoreLogo: false,
   };
 }
 

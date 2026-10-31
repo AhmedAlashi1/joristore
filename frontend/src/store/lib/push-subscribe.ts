@@ -39,18 +39,9 @@ function isStandalonePwa() {
 async function ensureServiceWorkerRegistration(): Promise<ServiceWorkerRegistration | null> {
   if (!('serviceWorker' in navigator)) return null;
 
-  let reg = await navigator.serviceWorker.getRegistration('/');
-  if (!reg) {
-    try {
-      reg = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
-    } catch {
-      /* workbox may already register via vite */
-    }
-  }
-
   const start = Date.now();
-  while (Date.now() - start < 15000) {
-    reg = await navigator.serviceWorker.getRegistration('/');
+  while (Date.now() - start < 20000) {
+    const reg = await navigator.serviceWorker.getRegistration('/');
     if (reg?.active) return reg;
     await new Promise((r) => setTimeout(r, 300));
   }

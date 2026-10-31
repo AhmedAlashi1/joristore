@@ -31,9 +31,23 @@ export function ProductFormFields({
     <div className="space-y-6">
       <section className="glass-strong space-y-4 rounded-2xl p-5">
         <h2 className="text-lg font-bold">{ar ? 'الصور' : 'Images'}</h2>
+        <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-white/15 bg-white/10 p-3 dark:border-white/8">
+          <input
+            type="checkbox"
+            className="mt-1 accent-[#7367f0]"
+            checked={form.stampStoreLogo}
+            onChange={(e) => patch({ stampStoreLogo: e.target.checked })}
+          />
+          <span className="text-sm leading-relaxed text-[#6f6b7d] dark:text-[#b6b8cc]">
+            {ar
+              ? 'إضافة شعار المتجر على الصور عند الرفع (من الإعدادات). أوقف الخيار لرفع الصورة كما هي بدون شعار.'
+              : 'Stamp store logo on uploads (from settings). Turn off to upload images as-is without a logo.'}
+          </span>
+        </label>
         <ProductGalleryField
           primary={form.image}
           gallery={form.gallery}
+          applyStoreLogo={form.stampStoreLogo}
           onChange={({ primary, gallery }) => patch({ image: primary, gallery })}
         />
       </section>

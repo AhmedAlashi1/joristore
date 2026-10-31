@@ -9,7 +9,7 @@ import { EnablePushBar } from '../notifications/EnablePushBar';
 import { useCart } from '../../providers/cart-provider';
 import { useWishlist } from '../../providers/wishlist-provider';
 import { useLocale } from '../../providers/locale-provider';
-import { WhatsAppFab } from '../social/WhatsAppFab';
+import { FloatingAssistStack } from './FloatingAssistStack';
 import { cn } from '../../lib/utils';
 
 const tabs = [
@@ -27,7 +27,6 @@ export function AppShell() {
   const location = useLocation();
   const { iconVisible, installed } = useInstall();
   const showOpenInApp = iconVisible && !installed;
-
   return (
     <div className={cn('app-shell', showOpenInApp && 'has-open-in-app')}>
       <div className="app-bg" aria-hidden>
@@ -39,7 +38,7 @@ export function AppShell() {
       <EnablePushBar />
       <AppHeader />
 
-      <main className="relative z-10 px-4 pt-[calc(var(--header-h)+var(--safe-top)+var(--open-app-h)+20px)]">
+      <main className="relative z-10 px-4 pt-[calc(var(--header-h)+var(--safe-top)+var(--open-app-h)+var(--push-prompt-h,0px)+20px)]">
         <div key={location.pathname} className="page-enter">
           <Outlet />
         </div>
@@ -47,7 +46,7 @@ export function AppShell() {
 
       <InstallGuideModal />
       <InstallBanner />
-      <WhatsAppFab />
+      <FloatingAssistStack />
 
       <div className="bottom-nav-dock fixed inset-x-0 bottom-0 z-50 mx-auto max-w-[480px] px-3" style={{ paddingBottom: 'calc(6px + var(--safe-bottom))' }}>
         <nav className="bottom-nav glass-strong flex items-stretch justify-around rounded-[28px] px-1 py-1.5">

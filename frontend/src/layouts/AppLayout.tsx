@@ -1,4 +1,4 @@
-import { Activity, Bell, CreditCard, Dumbbell, FolderTree, Image, LayoutDashboard, LogOut, MapPinned, Menu, Moon, Package, Settings, Shield, ShoppingCart, Sparkles, Sun, Tag, Ticket, Truck, User, UserCog, Users, Warehouse, X } from 'lucide-react';
+import { Activity, Bell, CreditCard, FolderTree, Handshake, Image, LayoutDashboard, LogOut, MapPinned, Menu, Moon, Package, Receipt, Settings, Shield, ShoppingCart, Sparkles, Sun, Tag, Ticket, User, UserCog, Users, Wallet, Warehouse, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/button';
@@ -18,12 +18,13 @@ const navSections = [
   {
     titleKey: 'navCommerce' as const,
     items: [
-      { to: '/admin/orders', labelKey: 'orders' as const, icon: ShoppingCart, permission: 'orders.view' },
+      { to: '/admin/orders', labelKey: 'orders' as const, icon: ShoppingCart, permission: 'orders.view', badgeKey: 'processing_orders' as const },
       { to: '/admin/customers', labelKey: 'customers' as const, icon: Users, permission: 'customers.view' },
+      { to: '/admin/wallet-requests', labelKey: 'walletRequests' as const, icon: Wallet, permission: 'customers.view', badgeKey: 'pending_wallet_requests' as const },
       { to: '/admin/coupons', labelKey: 'coupons' as const, icon: Ticket, permission: 'coupons.view' },
+      { to: '/admin/partners', labelKey: 'partners' as const, icon: Handshake, permission: 'partners.view' },
+      { to: '/admin/partner-payouts', labelKey: 'partnerPayouts' as const, icon: Receipt, permission: 'partners.view' },
       { to: '/admin/banners', labelKey: 'banners' as const, icon: Image, permission: 'banners.view' },
-      { to: '/admin/gyms', labelKey: 'gyms' as const, icon: Dumbbell, permission: 'settings.view' },
-      { to: '/admin/shipping', labelKey: 'shipping' as const, icon: Truck, permission: 'shipping.manage' },
       { to: '/admin/delivery-regions', labelKey: 'deliveryRegions' as const, icon: MapPinned, permission: 'shipping.manage' },
     ],
   },
@@ -54,6 +55,10 @@ export function AppLayout() {
   const location = useLocation();
   const { t, locale, setLocale, theme, setTheme } = useI18n();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCounts, setSidebarCounts] = useState<{ processing_orders: number; pending_wallet_requests: number }>({
+    processing_orders: 0,
+    pending_wallet_requests: 0,
+  });
   const [logoError, setLogoError] = useState(false);
   const [adminPermissions, setAdminPermissions] = useState<string[]>(
     () => getAdminAuthInfo()?.permissions ?? [],
@@ -100,6 +105,52 @@ export function AppLayout() {
 
     refreshPermissions();
   }, []);
+
+  useEffect(() => {
+    const onFocus = () => {
+      void api.get('/admin/profile').then((res) => {
+        const profile = res.data?.data;
+        const current = getAdminAuthInfo();
+        if (profile && current) {
+          setAdminAuthInfo({
+            ...current,
+            permissions: profile.permissions ?? current.permissions,
+            is_owner: profile.is_owner ?? current.is_owner,
+            role_name: profile.role_name ?? current.role_name,
+          });
+          setAdminPermissions(profile.permissions ?? current.permissions);
+        }
+      }).catch(() => undefined);
+    };
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const refreshCounts = async () => {
+      try {
+        const res = await api.get('/admin/sidebar/counts');
+        const data = res.data?.data;
+        if (!cancelled && data && typeof data === 'object') {
+          setSidebarCounts({
+            processing_orders: Number(data.processing_orders) || 0,
+            pending_wallet_requests: Number(data.pending_wallet_requests) || 0,
+          });
+        }
+      } catch {
+        // ignore
+      }
+    };
+
+    void refreshCounts();
+    const timer = window.setInterval(refreshCounts, 60_000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [location.pathname]);
 
   return (
     <div className="relative min-h-screen text-[#1a1a2e] dark:text-[#e8e9f3]">
@@ -177,6 +228,8 @@ export function AppLayout() {
               <nav className="space-y-1">
                 {section.items.map((item) => {
                   const Icon = item.icon;
+                  const badgeKey = 'badgeKey' in item ? item.badgeKey : undefined;
+                  const badgeCount = badgeKey ? sidebarCounts[badgeKey] : 0;
                   return (
                     <NavLink
                       key={item.to}
@@ -196,7 +249,15 @@ export function AppLayout() {
                         size={17}
                         className="shrink-0 transition-transform duration-300 group-hover:scale-110"
                       />
-                      {t[item.labelKey]}
+                      <span className="min-w-0 flex-1 truncate">{t[item.labelKey]}</span>
+                      {badgeCount > 0 ? (
+                        <span
+                          className="ms-auto flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-[#7367f0] px-1.5 text-[10px] font-bold text-white shadow-sm"
+                          title={String(badgeCount)}
+                        >
+                          {badgeCount > 99 ? '99+' : badgeCount}
+                        </span>
+                      ) : null}
                     </NavLink>
                   );
                 })}

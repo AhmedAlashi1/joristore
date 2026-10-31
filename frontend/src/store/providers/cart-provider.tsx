@@ -1,4 +1,6 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { customerApi } from '../lib/api';
+import { getCustomerId } from '../lib/customer-storage';
 
 export type CartItem = {
   productId: number;
@@ -57,8 +59,18 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   });
 
+  const syncTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+    if (!getCustomerId()) return;
+    if (syncTimer.current) clearTimeout(syncTimer.current);
+    syncTimer.current = setTimeout(() => {
+      void customerApi.syncCart(items).catch(() => undefined);
+    }, 800);
+    return () => {
+      if (syncTimer.current) clearTimeout(syncTimer.current);
+    };
   }, [items]);
 
   const value = useMemo<CartCtx>(() => ({

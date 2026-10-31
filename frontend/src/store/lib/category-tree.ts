@@ -6,6 +6,7 @@ export type StoreCategory = {
   parent_id?: number | null;
   image?: string | null;
   sort_order?: number;
+  updated_at?: string | null;
 };
 
 function bySort(a: StoreCategory, b: StoreCategory) {

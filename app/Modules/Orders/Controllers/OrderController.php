@@ -19,6 +19,7 @@ use App\Shared\Helpers\MoneyHelper;
 use App\Shared\Support\PaymentMethods;
 use App\Shared\Services\ActivityLogService;
 use App\Shared\Services\MerchantContext;
+use App\Shared\Services\PaymentApprovalNotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -29,6 +30,7 @@ class OrderController extends Controller
         protected InventoryService $inventoryService,
         protected ActivityLogService $activityLog,
         protected WalletService $walletService,
+        protected PaymentApprovalNotificationService $paymentNotifications,
     ) {}
 
     public function index(Request $request)
@@ -293,6 +295,7 @@ class OrderController extends Controller
             'admin_note' => 'nullable|string',
             'payment_status' => 'nullable|in:pending,paid,partially_paid,failed,refunded',
             'shipping_status' => 'nullable|in:not_required,pending,preparing,shipped,delivered,returned',
+            'admin_transfer_receipt_path' => 'nullable|string|max:500',
         ]);
 
         if ($validator->fails()) {
@@ -300,10 +303,31 @@ class OrderController extends Controller
         }
 
         $data = $validator->validated();
+        $wasPaid = $order->payment_status === 'paid';
         $order->update($data);
 
         if ($request->has('payment_status') && $request->input('payment_status') === 'paid') {
-            $order->payments()->update(['status' => 'paid', 'paid_at' => now()]);
+            $adminReceipt = $request->input('admin_transfer_receipt_path');
+            $payment = $order->payments()->orderByDesc('id')->first();
+            if ($payment) {
+                $meta = $payment->metadata ?? [];
+                if (is_string($adminReceipt) && $adminReceipt !== '') {
+                    $meta['admin_transfer_receipt_path'] = $adminReceipt;
+                }
+                $meta['payment_confirmed_at'] = now()->toIso8601String();
+                $payment->update([
+                    'status' => 'paid',
+                    'paid_at' => now(),
+                    'metadata' => $meta,
+                ]);
+            } else {
+                $order->payments()->update(['status' => 'paid', 'paid_at' => now()]);
+                $payment = $order->payments()->orderByDesc('id')->first();
+            }
+
+            if (! $wasPaid && $payment && $order->customer_id) {
+                $this->paymentNotifications->notifyOrderPaymentApproved($order->fresh(), $payment->fresh());
+            }
         }
 
         if ($request->has('payment_status') && $request->input('payment_status') === 'refunded') {
@@ -381,6 +405,8 @@ class OrderController extends Controller
         $meta = $p->metadata ?? [];
         $receiptPath = $meta['receipt_path'] ?? null;
 
+        $adminReceipt = $meta['admin_transfer_receipt_path'] ?? null;
+
         return [
             'id' => $p->id,
             'payment_method' => $p->payment_method,
@@ -390,7 +416,10 @@ class OrderController extends Controller
             'currency' => $p->currency,
             'paid_at' => $p->paid_at,
             'metadata' => $meta,
+            'transfer_reference' => $meta['transfer_reference'] ?? null,
+            'account_holder_name' => $meta['account_holder_name'] ?? null,
             'receipt_url' => $receiptPath ? url($receiptPath) : null,
+            'admin_transfer_receipt_url' => is_string($adminReceipt) && $adminReceipt !== '' ? url($adminReceipt) : null,
         ];
     }
 }

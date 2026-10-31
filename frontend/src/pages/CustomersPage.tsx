@@ -1,5 +1,6 @@
-import { Eye, Loader2, MapPin, Plus } from 'lucide-react';
+import { Eye, Loader2, MapPin, Plus, ShoppingCart, Wallet } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { CrudPage, FormField, FormGrid, SelectInput, type CrudColumn } from '../components/crud/CrudPage';
 import { Input } from '../components/ui/input';
 import { Badge } from '../components/ui/badge';
@@ -30,6 +31,7 @@ type CustomerRow = {
   status: string;
   orders_count: number;
   total_spent: number;
+  wallet_balance?: number;
   addresses_count?: number;
   last_order_at?: string;
   created_at?: string;
@@ -86,14 +88,23 @@ export function CustomersPage() {
     { key: 'orders', header: ar ? 'الطلبات' : 'Orders', render: (r) => r.orders_count },
     { key: 'addresses', header: ar ? 'العناوين' : 'Addresses', render: (r) => r.addresses_count ?? 0 },
     { key: 'spent', header: ar ? 'إجمالي الشراء' : 'Total spent', render: (r) => `${r.total_spent.toFixed(2)} SAR` },
+    { key: 'wallet', header: ar ? 'المحفظة' : 'Wallet', render: (r) => `${(r.wallet_balance ?? 0).toFixed(2)} SAR` },
     { key: 'status', header: ar ? 'الحالة' : 'Status', render: (r) => <Badge variant={statusVariant[r.status] ?? 'default'}>{r.status}</Badge> },
     {
-      key: 'view',
-      header: ar ? 'عرض' : 'View',
+      key: 'actions',
+      header: ar ? 'إجراءات' : 'Actions',
       render: (r) => (
-        <Button variant="secondary" size="sm" onClick={() => void openDetail(r.id)}>
-          <Eye className="h-4 w-4" />
-        </Button>
+        <div className="flex flex-wrap gap-1">
+          <Button variant="secondary" size="sm" onClick={() => void openDetail(r.id)} title={ar ? 'تفاصيل' : 'Details'}>
+            <Eye className="h-4 w-4" />
+          </Button>
+          <Link to={`/admin/customers/${r.id}/cart`} title={ar ? 'سلة العميل' : 'Customer cart'}>
+            <Button variant="secondary" size="sm" type="button"><ShoppingCart className="h-4 w-4" /></Button>
+          </Link>
+          <Link to={`/admin/customers/${r.id}/wallet`} title={ar ? 'محفظة العميل' : 'Customer wallet'}>
+            <Button variant="secondary" size="sm" type="button"><Wallet className="h-4 w-4" /></Button>
+          </Link>
+        </div>
       ),
     },
   ], [ar]);

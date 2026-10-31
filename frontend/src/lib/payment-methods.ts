@@ -1,6 +1,9 @@
+export type PaymentTransferType = 'online' | 'offline' | 'none';
+
 export type PaymentMethodConfig = {
   id: string;
   enabled: boolean;
+  transfer_type?: PaymentTransferType;
   label_ar: string;
   label_en: string;
   instructions_ar: string;

@@ -1,43 +1,52 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { getCachedPromos, PROMO_CACHE_KEY, prefetchStoreHome } from '../../lib/prefetch-home';
-import { readStoreCache } from '../../lib/store-cache';
+import { getCachedPromos, reloadPromoBanners, type StorePromoBanner } from '../../lib/prefetch-home';
+import { getMediaCacheBust } from '../../lib/media-cache-bust';
+import { usePullRefreshOutletKey } from '../../providers/pull-refresh-provider';
 import { useLocale } from '../../providers/locale-provider';
 import { StoreMediaImage } from '../media/StoreMediaImage';
 import { cn } from '../../lib/utils';
 import { useSwipeIndex } from './useSwipeIndex';
 
-type Promo = { id: number; title: string; title_en?: string | null; image: string; link: string };
-
 export function PromoCarousel() {
   const { locale } = useLocale();
-  const [promos, setPromos] = useState<Promo[]>(() => getCachedPromos() ?? []);
+  const refreshKey = usePullRefreshOutletKey();
+  const [promos, setPromos] = useState<StorePromoBanner[]>(() => getCachedPromos() ?? []);
   const [active, setActive] = useState(0);
+  const mediaBust = getMediaCacheBust();
 
   useEffect(() => {
     let cancelled = false;
-    void prefetchStoreHome().then(() => {
-      if (cancelled) return;
-      const fresh = readStoreCache<Promo[]>(PROMO_CACHE_KEY);
-      if (fresh?.length) setPromos(fresh);
-    });
+    const force = refreshKey > 0;
+
+    void (force ? reloadPromoBanners(true) : reloadPromoBanners(false))
+      .then((list) => {
+        if (!cancelled) setPromos(list);
+      })
+      .catch(() => undefined);
+
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [refreshKey]);
 
   const slides = useMemo(
     () => promos.map((p) => ({
       ...p,
       alt: locale === 'ar' ? p.title : (p.title_en || p.title),
+      imageVersion: [p.updated_at, mediaBust, refreshKey].filter(Boolean).join('-'),
     })),
-    [promos, locale],
+    [promos, locale, mediaBust, refreshKey],
   );
 
   useEffect(() => {
     if (slides.length <= 1) return undefined;
     const timer = window.setInterval(() => setActive((i) => (i + 1) % slides.length), 5000);
     return () => clearInterval(timer);
+  }, [slides.length]);
+
+  useEffect(() => {
+    setActive((i) => (slides.length === 0 ? 0 : Math.min(i, slides.length - 1)));
   }, [slides.length]);
 
   const { onTouchStart, onTouchEnd } = useSwipeIndex(slides.length, active, setActive);
@@ -56,8 +65,8 @@ export function PromoCarousel() {
           style={{ transform: `translateX(-${active * 100}%)` }}
         >
           {slides.map((p) => (
-            <Link key={p.id} to={p.link} className="promo-banner block h-32 w-full shrink-0 overflow-hidden">
-              <StoreMediaImage src={p.image} alt={p.alt} />
+            <Link key={`${p.id}-${p.imageVersion}`} to={p.link} className="promo-banner block h-32 w-full shrink-0 overflow-hidden">
+              <StoreMediaImage src={p.image} cacheVersion={p.imageVersion} alt={p.alt} />
             </Link>
           ))}
         </div>

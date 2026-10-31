@@ -53,6 +53,10 @@ class MerchantPermissionSeeder extends Seeder
             ['key' => 'coupons.update', 'name' => 'Update Coupons', 'module' => 'coupons'],
             ['key' => 'coupons.delete', 'name' => 'Delete Coupons', 'module' => 'coupons'],
 
+            ['key' => 'partners.view', 'name' => 'View Partners', 'module' => 'partners'],
+            ['key' => 'partners.manage', 'name' => 'Manage Partners', 'module' => 'partners'],
+            ['key' => 'partner_payouts.manage', 'name' => 'Partner Payouts', 'module' => 'partners'],
+
             ['key' => 'banners.view', 'name' => 'View Promo Banners', 'module' => 'promotions'],
             ['key' => 'banners.create', 'name' => 'Create Promo Banners', 'module' => 'promotions'],
             ['key' => 'banners.update', 'name' => 'Update Promo Banners', 'module' => 'promotions'],

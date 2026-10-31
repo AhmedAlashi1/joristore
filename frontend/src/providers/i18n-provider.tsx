@@ -8,11 +8,14 @@ type Dictionary = {
   dashboard: string;
   orders: string;
   customers: string;
+  walletRequests: string;
   products: string;
   categories: string;
   brands: string;
   inventory: string;
   coupons: string;
+  partners: string;
+  partnerPayouts: string;
   banners: string;
   gyms: string;
   shipping: string;
@@ -44,11 +47,14 @@ const dictionaries: Record<Locale, Dictionary> = {
     dashboard: 'Dashboard',
     orders: 'Orders',
     customers: 'Customers',
+    walletRequests: 'Wallet requests',
     products: 'Products',
     categories: 'Categories',
     brands: 'Brands',
     inventory: 'Inventory',
     coupons: 'Coupons',
+    partners: 'Partners',
+    partnerPayouts: 'Partner payouts',
     banners: 'Promo Banners',
     gyms: 'Gyms',
     shipping: 'Shipping',
@@ -78,11 +84,14 @@ const dictionaries: Record<Locale, Dictionary> = {
     dashboard: 'لوحة التحكم',
     orders: 'الطلبات',
     customers: 'العملاء',
+    walletRequests: 'طلبات المحفظة',
     products: 'المنتجات',
     categories: 'التصنيفات',
     brands: 'الماركات',
     inventory: 'المخزون',
     coupons: 'كوبونات الخصم',
+    partners: 'الشركاء',
+    partnerPayouts: 'صرف الشركاء',
     banners: 'البنرات الإعلانية',
     gyms: 'الجيمات',
     shipping: 'الشحن',

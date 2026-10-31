@@ -4,7 +4,9 @@ import { Link } from 'react-router-dom';
 import { useCustomer } from '../providers/customer-provider';
 import { AppearanceSettings } from '../components/settings/AppearanceSettings';
 import { PushNotificationToggle } from '../components/settings/PushNotificationToggle';
+import { apiErrorMessage } from '../lib/api';
 import { clearStorefrontCaches } from '../lib/app-cache-purge';
+import { isValidStorePhone, normalizeStorePhone } from '../lib/phone';
 import { formatPrice } from '../lib/utils';
 import { useLocale } from '../providers/locale-provider';
 
@@ -34,14 +36,30 @@ export function AccountPage() {
   const handleAuth = async () => {
     setLoading(true);
     setError('');
+    const normalizedPhone = normalizeStorePhone(phone);
+    if (!isValidStorePhone(normalizedPhone)) {
+      setError(ar ? 'أدخل رقم جوال صحيح (مثل 05xxxxxxxx)' : 'Enter a valid mobile number (e.g. 05xxxxxxxx)');
+      setLoading(false);
+      return;
+    }
+    if (mode === 'register' && !firstName.trim()) {
+      setError(ar ? 'الاسم الأول مطلوب' : 'First name is required');
+      setLoading(false);
+      return;
+    }
     try {
       if (mode === 'login') {
-        await login(phone);
+        await login(normalizedPhone);
       } else {
-        await register({ first_name: firstName, last_name: lastName || undefined, email: email || undefined, phone });
+        await register({
+          first_name: firstName.trim(),
+          last_name: lastName.trim() || undefined,
+          email: email.trim() || undefined,
+          phone: normalizedPhone,
+        });
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Error');
+      setError(apiErrorMessage(e, ar));
     } finally {
       setLoading(false);
     }
@@ -80,7 +98,12 @@ export function AccountPage() {
             <input className="glass-input block w-full rounded-xl py-3.5 ps-11 pe-4 text-sm" placeholder={ar ? 'رقم الجوال *' : 'Phone *'} value={phone} onChange={(e) => setPhone(e.target.value)} dir="ltr" />
           </div>
           {error ? <p className="text-xs text-red-500">{error}</p> : null}
-          <button type="button" className="btn-primary w-full" onClick={handleAuth} disabled={loading || !phone}>
+          <button
+            type="button"
+            className="btn-primary w-full"
+            onClick={handleAuth}
+            disabled={loading || !phone.trim() || (mode === 'register' && !firstName.trim())}
+          >
             {loading ? <Loader2 className="animate-spin" size={20} /> : <LogIn size={20} />}
             {mode === 'login' ? (ar ? 'دخول' : 'Login') : (ar ? 'إنشاء حساب' : 'Create account')}
           </button>
@@ -126,15 +149,19 @@ export function AccountPage() {
           <p className="truncate text-lg font-bold">{customer?.full_name}</p>
           <p className="text-xs text-[#8a8da8]" dir="ltr">{customer?.phone}</p>
           <p className="text-xs text-[var(--primary)]">{customer?.orders_count} {ar ? 'طلب' : 'orders'}</p>
-          <p className="mt-1 flex items-center gap-1 text-xs font-bold text-[#28c76f]">
-            <Wallet size={14} />
-            {t.walletBalance}: {formatPrice(customer?.wallet_balance ?? 0)}
-          </p>
         </div>
         <button type="button" onClick={logout} className="glass rounded-xl p-2.5 text-[#ea5455]">
           <LogOut size={18} />
         </button>
       </div>
+
+      <Link to="/account/wallet" className="glass-strong glass-interactive flex items-center justify-between gap-3 rounded-2xl px-4 py-4">
+        <span className="flex min-w-0 items-center gap-3">
+          <Wallet size={20} className="shrink-0 text-[#28c76f]" />
+          <span className="text-sm font-semibold">{ar ? 'المحفظة' : 'Wallet'}</span>
+        </span>
+        <span className="shrink-0 text-sm font-bold text-[#28c76f]">{formatPrice(customer?.wallet_balance ?? 0)}</span>
+      </Link>
 
       <Link to="/account/addresses" className="glass-strong glass-interactive flex items-center justify-between gap-3 rounded-2xl px-4 py-4">
         <span className="flex min-w-0 items-center gap-3">
