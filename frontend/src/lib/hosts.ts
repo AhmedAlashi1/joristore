@@ -1,8 +1,8 @@
 /** Production host layout (cPanel). */
 export const JORI_HOSTS = {
-  store: 'joristore.com',
-  storeWww: 'www.joristore.com',
-  dashboardOrigin: 'https://dashboard.joristore.com',
+  store: 'sportsworldps.com',
+  storeWww: 'www.sportsworldps.com',
+  dashboardOrigin: 'https://dashboard.sportsworldps.com',
 } as const;
 
 export function isStorefrontHost(hostname: string): boolean {

@@ -9,7 +9,8 @@ const repoRoot = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, path.dirname(fileURLToPath(import.meta.url)), '');
-  const backendOrigin = (env.VITE_BACKEND_ORIGIN || 'https://dashboard.joristore.com').replace(/\/$/, '');
+  const backendOrigin = (env.VITE_BACKEND_ORIGIN || 'https://dashboard.sportsworldps.com').replace(/\/$/, '');
+  const dashboardHostEscaped = new URL(backendOrigin).hostname.replace(/\./g, '\\.');
 
   return {
   build: {
@@ -24,7 +25,7 @@ export default defineConfig(({ mode }) => {
         if (mode !== 'production') return html;
         return html.replace(
           'href="/api/store/manifest.webmanifest"',
-          `href="${backendOrigin}/api/store/manifest.webmanifest"`,
+          `href="${backendOrigin}/index.php/api/store/manifest.webmanifest"`,
         );
       },
     },
@@ -68,7 +69,7 @@ export default defineConfig(({ mode }) => {
             options: { cacheName: 'google-fonts-cache', expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 * 365 } },
           },
           {
-            urlPattern: /^https:\/\/dashboard\.joristore\.com\/index.php\/api\/store\/.*/i,
+            urlPattern: new RegExp(`^https://${dashboardHostEscaped}/index.php/api/store/.*`, 'i'),
             handler: 'NetworkFirst',
             options: { cacheName: 'store-api-cache', networkTimeoutSeconds: 8 },
           },
@@ -81,7 +82,7 @@ export default defineConfig(({ mode }) => {
             },
           },
           {
-            urlPattern: /^https:\/\/dashboard\.joristore\.com\/storage\/.*/i,
+            urlPattern: new RegExp(`^https://${dashboardHostEscaped}/storage/.*`, 'i'),
             handler: 'StaleWhileRevalidate',
             options: {
               cacheName: 'store-media-remote',

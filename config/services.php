@@ -25,7 +25,7 @@ return [
     ],
 
     'webpush' => [
-        'subject' => env('VAPID_SUBJECT', env('APP_URL', 'mailto:admin@joristore.com')),
+        'subject' => env('VAPID_SUBJECT', env('APP_URL', 'mailto:admin@sportsworldps.com')),
         'public_key' => ($k = env('VAPID_PUBLIC_KEY')) ? trim($k, " \t\n\r\0\x0B\"'") : null,
         'private_key' => ($k = env('VAPID_PRIVATE_KEY')) ? trim($k, " \t\n\r\0\x0B\"'") : null,
     ],

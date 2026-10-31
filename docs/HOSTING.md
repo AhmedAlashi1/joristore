@@ -1,25 +1,26 @@
-# Jori Store — production layout
+# Sport World PS — production layout
 
 ## Domains
 
 | Role | URL | Document root (typical cPanel) |
 |------|-----|--------------------------------|
-| **Storefront (React PWA)** | https://joristore.com | `~/public_html` ← contents of `public/spa` after `npm run build` |
-| **Laravel (API + admin + uploads)** | https://dashboard.joristore.com | `~/joristore/public` (document root **must** be `public/`) |
+| **Storefront (React PWA)** | https://sportsworldps.com | `~/public_html` ← contents of `public/spa` after `npm run build` |
+| **Laravel (API + admin + uploads)** | https://dashboard.sportsworldps.com | `~/joristore/public` (document root **must** be `public/`) |
 
 If `POST /api/admin/login` returns **404** but `POST /index.php/api/admin/login` works, enable **mod_rewrite** / point the subdomain to `public/`, or set  
-`VITE_API_BASE_URL=https://dashboard.joristore.com/index.php/api` before `npm run build`.
+`VITE_API_BASE_URL=https://dashboard.sportsworldps.com/index.php/api` before `npm run build`.
 
-- **Admin:** https://dashboard.joristore.com/admin  
-- **API:** https://dashboard.joristore.com/api  
-- **Uploaded files:** https://dashboard.joristore.com/storage/...
+- **Admin:** https://dashboard.sportsworldps.com/admin  
+- **Partner portal:** https://sportsworldps.com/partner/login  
+- **API:** https://dashboard.sportsworldps.com/api  
+- **Uploaded files:** https://dashboard.sportsworldps.com/storage/...
 
-Opening `/admin` on **joristore.com** redirects to **dashboard** in production builds.
+Opening `/admin` on **sportsworldps.com** redirects to **dashboard** in production builds.
 
 ## Laravel `.env` (on server)
 
 ```env
-APP_URL=https://dashboard.joristore.com
+APP_URL=https://dashboard.sportsworldps.com
 ```
 
 Run `php artisan storage:link` once. Files live under `storage/app/public/…`, URL prefix `/storage/…`.
@@ -29,7 +30,7 @@ Run `php artisan storage:link` once. Files live under `storage/app/public/…`, 
 From `frontend/`:
 
 ```bash
-cp .env.production.example .env.production   # optional; defaults work for joristore.com
+cp .env.production.example .env.production   # optional; repo .env.production is pre-filled
 npm ci
 npm run build
 rsync -av ../public/spa/ ~/public_html/
@@ -38,12 +39,12 @@ rsync -av ../public/spa/ ~/public_html/
 Recommended production env (`frontend/.env.production`):
 
 ```env
-VITE_API_BASE_URL=https://dashboard.joristore.com/index.php/api
-VITE_BACKEND_ORIGIN=https://dashboard.joristore.com
+VITE_API_BASE_URL=https://dashboard.sportsworldps.com/index.php/api
+VITE_BACKEND_ORIGIN=https://dashboard.sportsworldps.com
 VITE_STORE_SLUG=jori-store
 ```
 
-If unset, the app still uses **dashboard** for API and `/storage` when the site is opened on **joristore.com**.
+Change `VITE_STORE_SLUG` if your store slug in the database is different.
 
 ## Deploy checklist
 
@@ -54,7 +55,7 @@ If unset, the app still uses **dashboard** for API and `/storage` when the site 
 ```bash
 cd ~/joristore/frontend && npm ci && npm run build
 
-# Storefront (joristore.com)
+# Storefront (sportsworldps.com)
 rsync -av ~/joristore/public/spa/ ~/public_html/
 
 # Dashboard (Laravel — /admin + /assets; do NOT leave public/index.html or `/` shows the shop)
@@ -68,6 +69,16 @@ Or: `bash scripts/publish-spa.sh` from the repo root.
 Without assets in `public/`, `/admin` **404**s. With `public/index.html`, `/` shows the **storefront** instead of admin login.
 
 4. Confirm logo URL returns `Content-Type: image/jpeg`, not `text/html`
+
+## DNS (new hosting)
+
+| Record | Name | Points to |
+|--------|------|-----------|
+| A or CNAME | `@` | server IP / main host |
+| A or CNAME | `www` | same as `@` (optional) |
+| A or CNAME | `dashboard` | same server (subdomain for Laravel `public/`) |
+
+In cPanel: create subdomain **dashboard** → document root `joristore/public` (not the repo root).
 
 ## Local development
 
@@ -96,6 +107,6 @@ php artisan cache:clear
 php artisan optimize:clear
 ```
 
-Rebuild and publish SPA (see checklist above). In the browser: hard refresh or clear site data for joristore.com and dashboard.
+Rebuild and publish SPA (see checklist above). In the browser: hard refresh or clear site data for sportsworldps.com and dashboard.
 
-Check API: `curl -s -o /dev/null -w "%{http_code}" -H "X-Store-Slug: jori-store" https://dashboard.joristore.com/index.php/api/store` → **200**.
+Check API: `curl -s -o /dev/null -w "%{http_code}" -H "X-Store-Slug: jori-store" https://dashboard.sportsworldps.com/index.php/api/store` → **200**.

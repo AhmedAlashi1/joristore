@@ -42,7 +42,7 @@ Route::get('/', function () {
     return response()->json([
         'app' => config('app.name'),
         'type' => 'api',
-        'message' => 'Jori Store API — storefront at https://joristore.com',
+        'message' => 'Sport World PS API — storefront at https://sportsworldps.com',
         'api' => url('/api'),
         'storage' => url('/storage'),
     ]);

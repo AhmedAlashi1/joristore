@@ -7,7 +7,7 @@ import { purgeStaleAppCachesIfNeeded } from './store/lib/app-cache-purge';
 import { isDashboardHost, isStorefrontHost, JORI_HOSTS } from './lib/hosts';
 import { bootstrapStoreBrandFromCache, ensureStoreBrandBootstrapped } from './store/lib/store-brand';
 
-/** Admin lives on dashboard; storefront SPA may still ship on joristore.com. */
+/** Admin lives on dashboard; storefront SPA may still ship on sportsworldps.com. */
 function redirectAdminOffStorefront() {
   if (!import.meta.env.PROD) return;
   const { hostname, pathname, search, hash } = window.location;
