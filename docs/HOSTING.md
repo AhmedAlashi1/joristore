@@ -98,12 +98,12 @@ php artisan key:generate
 php artisan migrate --force
 php artisan storage:link
 
-cd frontend
-cp .env.production.example .env.production
-npm ci
-npm run build
 cd ..
+# Shared hosting often has no `npm` in SSH — repo already includes `public/spa` after git pull:
 bash scripts/publish-spa.sh
+
+# To rebuild on server (needs Node via cPanel "Setup Node.js App" or nvm):
+# cd frontend && cp .env.production.example .env.production && npm ci && npm run build && cd .. && bash scripts/publish-spa.sh
 ```
 
 **cPanel:** point subdomain `dashboard` document root to **`/home/USER/joristore/public`** (replace `USER` with your cPanel username).
