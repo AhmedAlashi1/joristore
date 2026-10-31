@@ -5,7 +5,7 @@
 | Role | URL | Document root (typical cPanel) |
 |------|-----|--------------------------------|
 | **Storefront (React PWA)** | https://sportsworldps.com | `~/public_html` ← contents of `public/spa` after `npm run build` |
-| **Laravel (API + admin + uploads)** | https://dashboard.sportsworldps.com | `~/joristore/public` (document root **must** be `public/`) |
+| **Laravel (API + admin + uploads)** | https://dashboard.sportsworldps.com | `~/joristore/public` after `git clone` (document root **must** be `public/`) |
 
 If `POST /api/admin/login` returns **404** but `POST /index.php/api/admin/login` works, enable **mod_rewrite** / point the subdomain to `public/`, or set  
 `VITE_API_BASE_URL=https://dashboard.sportsworldps.com/index.php/api` before `npm run build`.
@@ -69,6 +69,44 @@ Or: `bash scripts/publish-spa.sh` from the repo root.
 Without assets in `public/`, `/admin` **404**s. With `public/index.html`, `/` shows the **storefront** instead of admin login.
 
 4. Confirm logo URL returns `Content-Type: image/jpeg`, not `text/html`
+
+## First deploy (clone — no `~/joristore` yet)
+
+On the server (SSH):
+
+```bash
+cd ~
+git clone https://github.com/AhmedAlashi1/joristore.git joristore
+cd ~/joristore
+```
+
+SSH key (optional, no password each pull):
+
+```bash
+git clone git@github.com:AhmedAlashi1/joristore.git joristore
+```
+
+Then Laravel + frontend (once):
+
+```bash
+cd ~/joristore
+cp .env.example .env
+nano .env   # DB_*, APP_URL=https://dashboard.sportsworldps.com
+
+php ~/composer.phar install --no-dev --optimize-autoloader
+php artisan key:generate
+php artisan migrate --force
+php artisan storage:link
+
+cd frontend
+cp .env.production.example .env.production
+npm ci
+npm run build
+cd ..
+bash scripts/publish-spa.sh
+```
+
+**cPanel:** point subdomain `dashboard` document root to **`/home/USER/joristore/public`** (replace `USER` with your cPanel username).
 
 ## DNS (new hosting)
 
