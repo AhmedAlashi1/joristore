@@ -61,25 +61,32 @@ export function backendPublicOrigin(): string {
 
 /** Axios `baseURL` — always ends with `/api` (no trailing slash). */
 export function resolveApiBaseUrl(): string {
-  const fromEnv = import.meta.env.VITE_API_BASE_URL;
-  if (fromEnv && String(fromEnv).trim()) {
-    const envVal = String(fromEnv).trim().replace(/\/$/, '');
-    // Dev proxy path must not ship in production builds (store would call joristore.com/api).
-    if (!(envVal === '/api' && !import.meta.env.DEV)) {
-      return normalizeApiBaseUrl(envVal);
-    }
-  }
-
   if (import.meta.env.DEV) {
     return '/api';
   }
 
   const prefix = apiPathPrefix();
-  const origin = isStorefrontHost(typeof window !== 'undefined' ? window.location.hostname : '')
-    ? JORI_HOSTS.dashboardOrigin
-    : typeof window !== 'undefined'
-      ? window.location.origin
-      : JORI_HOSTS.dashboardOrigin;
 
-  return `${origin}${prefix}/api`;
+  if (typeof window !== 'undefined') {
+    const host = window.location.hostname;
+    // Admin on dashboard host: always same origin (fixes http/https + stale baked VITE_* URLs).
+    if (isDashboardHost(host)) {
+      return `${window.location.origin.replace(/\/$/, '')}${prefix}/api`;
+    }
+    if (isStorefrontHost(host)) {
+      const dash = envBackendOrigin() ?? JORI_HOSTS.dashboardOrigin;
+      return `${dash.replace(/\/$/, '')}${prefix}/api`;
+    }
+    return `${window.location.origin.replace(/\/$/, '')}${prefix}/api`;
+  }
+
+  const fromEnv = import.meta.env.VITE_API_BASE_URL;
+  if (fromEnv && String(fromEnv).trim()) {
+    const envVal = String(fromEnv).trim().replace(/\/$/, '');
+    if (envVal !== '/api') {
+      return normalizeApiBaseUrl(envVal);
+    }
+  }
+
+  return `${JORI_HOSTS.dashboardOrigin}${prefix}/api`;
 }

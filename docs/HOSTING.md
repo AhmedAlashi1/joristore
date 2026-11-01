@@ -21,6 +21,8 @@ Opening `/admin` on **sportsworldps.com** redirects to **dashboard** in producti
 
 ```env
 APP_URL=https://dashboard.sportsworldps.com
+SANCTUM_STATEFUL_DOMAINS=dashboard.sportsworldps.com,sportsworldps.com,www.sportsworldps.com
+SESSION_DOMAIN=.sportsworldps.com
 ```
 
 Run `php artisan storage:link` once. Files live under `storage/app/public/…`, URL prefix `/storage/…`.
