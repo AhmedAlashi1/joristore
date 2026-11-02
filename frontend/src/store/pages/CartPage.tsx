@@ -31,7 +31,7 @@ export function CartPage() {
         {items.map((item) => (
           <div key={item.productVariantId} className="glass-strong card-pop flex gap-3 rounded-2xl p-3">
             <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-[#eceef4] dark:bg-[#252538]">
-              <StoreMediaImage src={resolveImage(item)} alt={item.name} fit="cover" layout="fill" />
+              <StoreMediaImage src={resolveImage(item)} alt={item.name} fit="cover" layout="fill" fadeIn={false} />
             </div>
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-semibold">{item.name}</p>

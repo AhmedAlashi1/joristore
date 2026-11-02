@@ -6,17 +6,7 @@ import { useStoreBrand } from '../../providers/store-brand-provider';
 import { useLocale } from '../../providers/locale-provider';
 import { socialAriaLabels } from '../social/SocialBrandIcon';
 import { WhatsAppFabIcon } from '../social/WhatsAppFabIcon';
-
-function normalizeWhatsAppUrl(url: string) {
-  const trimmed = url.trim();
-  if (/^https?:\/\//i.test(trimmed)) return trimmed;
-  if (/^wa\.me/i.test(trimmed) || /^api\.whatsapp\.com/i.test(trimmed)) {
-    return `https://${trimmed.replace(/^\/+/, '')}`;
-  }
-  const digits = trimmed.replace(/\D/g, '');
-  if (digits) return `https://wa.me/${digits}`;
-  return `https://${trimmed.replace(/^\/+/, '')}`;
-}
+import { normalizeWhatsAppUrl } from '../../lib/whatsapp';
 
 const stackPosition: CSSProperties = {
   right: 'max(12px, calc(50% - 240px + 12px))',

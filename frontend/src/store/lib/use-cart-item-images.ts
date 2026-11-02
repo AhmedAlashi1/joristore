@@ -1,24 +1,27 @@
 import { useEffect, useMemo, useState } from 'react';
 import { storeApi, unwrap } from './api';
 import type { CartItem } from '../providers/cart-provider';
+import { normalizeProductImagePath, pickProductImage } from './product-image';
 
-type ProductThumb = { image?: string | null };
+type ProductThumb = { image?: string | null; images?: string[] | null };
 
-/** Fills missing cart line images from product API (older localStorage carts). */
+function isUsableImage(path?: string | null): boolean {
+  return normalizeProductImagePath(path) != null;
+}
+
+/** Loads product thumbnails for cart / checkout (fixes legacy carts + wrong paths). */
 export function useCartItemImages(items: CartItem[]) {
   const [byProductId, setByProductId] = useState<Record<number, string>>({});
 
-  const missingProductIds = useMemo(() => {
+  const productIdsKey = useMemo(() => {
     const ids = new Set<number>();
-    for (const item of items) {
-      if (!item.image) ids.add(item.productId);
-    }
+    for (const item of items) ids.add(item.productId);
     return [...ids].sort((a, b) => a - b).join(',');
   }, [items]);
 
   useEffect(() => {
-    if (!missingProductIds) return;
-    const ids = missingProductIds.split(',').map(Number).filter(Boolean);
+    if (!productIdsKey) return;
+    const ids = productIdsKey.split(',').map(Number).filter(Boolean);
     let cancelled = false;
 
     void Promise.all(
@@ -26,9 +29,10 @@ export function useCartItemImages(items: CartItem[]) {
         try {
           const res = await storeApi.product(productId);
           const data = unwrap<ProductThumb>(res);
-          return { productId, image: data.image ?? null };
+          const image = pickProductImage(data);
+          return { productId, image };
         } catch {
-          return { productId, image: null };
+          return { productId, image: null as string | null };
         }
       }),
     ).then((rows) => {
@@ -45,9 +49,14 @@ export function useCartItemImages(items: CartItem[]) {
     return () => {
       cancelled = true;
     };
-  }, [missingProductIds]);
+  }, [productIdsKey]);
 
-  const resolveImage = (item: CartItem) => item.image ?? byProductId[item.productId] ?? null;
+  const resolveImage = (item: CartItem) => {
+    const fromItem = normalizeProductImagePath(item.image);
+    if (isUsableImage(fromItem)) return fromItem;
+    const fromApi = byProductId[item.productId];
+    return normalizeProductImagePath(fromApi) ?? null;
+  };
 
   return { resolveImage };
 }

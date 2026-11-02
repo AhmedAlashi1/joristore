@@ -3,6 +3,7 @@ import { ShoppingCart } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../../providers/cart-provider';
 import { cn } from '../../lib/utils';
+import { normalizeProductImagePath } from '../../lib/product-image';
 
 export type AddToCartProduct = {
   productId: number;
@@ -48,7 +49,7 @@ export function AddToCartButton({ product, className, size = 18 }: AddToCartButt
         productVariantId: product.productVariantId,
         name: product.name,
         price: product.price,
-        image: product.image,
+        image: normalizeProductImagePath(product.image),
         maxQuantity: product.quantity,
       },
       1,

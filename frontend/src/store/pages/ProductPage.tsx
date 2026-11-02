@@ -7,6 +7,7 @@ import { ProductImageGallery } from '../components/product/ProductImageGallery';
 import { cn, formatPrice } from '../lib/utils';
 import { useCart } from '../providers/cart-provider';
 import { pickLocalizedText } from '../lib/localized-text';
+import { normalizeProductImagePath } from '../lib/product-image';
 import { useLocale } from '../providers/locale-provider';
 
 type SizeVariant = {
@@ -108,7 +109,8 @@ export function ProductPage() {
       productVariantId: variantIdForCart,
       name: activeVariant ? `${displayName} (${activeVariant.name})` : displayName,
       price: displayPrice,
-      image: product.image,
+      image: normalizeProductImagePath(product.image ?? product.images?.[0]),
+      variantLabel: activeVariant?.name ?? null,
       maxQuantity: stockMax,
     }, qty);
     setAdded(true);

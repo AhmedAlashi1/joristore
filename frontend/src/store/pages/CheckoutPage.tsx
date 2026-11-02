@@ -24,6 +24,10 @@ import { useCart } from '../providers/cart-provider';
 import type { CustomerAddress } from '../providers/customer-provider';
 import { useCustomer } from '../providers/customer-provider';
 import { useLocale } from '../providers/locale-provider';
+import { useStoreBrand } from '../providers/store-brand-provider';
+import { cartHasSizedLines } from '../lib/cart-line-size';
+import { buildCheckoutWhatsAppMessage } from '../lib/checkout-whatsapp-message';
+import { buildWhatsAppTextUrl } from '../lib/whatsapp';
 
 type ShippingMethod = { id: number; name: string; price: number; free_shipping_minimum?: number };
 type FulfillmentType = 'delivery' | 'pickup';
@@ -54,6 +58,10 @@ export function CheckoutPage() {
   const { items, total, clear } = useCart();
   const { resolveImage } = useCartItemImages(items);
   const { isLoggedIn, refresh, customer } = useCustomer();
+  const { social } = useStoreBrand();
+  const whatsappRaw = social?.whatsapp?.trim() ?? '';
+  const needsSizeWhatsApp = cartHasSizedLines(items);
+  const [whatsappSizeSent, setWhatsappSizeSent] = useState(false);
   const [fulfillment, setFulfillment] = useState<FulfillmentType>('delivery');
   const [addresses, setAddresses] = useState<CustomerAddress[]>([]);
   const [walletBalance, setWalletBalance] = useState(0);
@@ -136,6 +144,10 @@ export function CheckoutPage() {
     setAppliedCoupon(null);
     setCouponMessage('');
   }, [total, fulfillment, addressId, shippingId, deliveryFee, isDelivery]);
+
+  useEffect(() => {
+    setWhatsappSizeSent(false);
+  }, [items, fulfillment, addressId, shippingId, note, altDeliverySize]);
 
   if (items.length === 0) {
     return (
@@ -230,7 +242,40 @@ export function CheckoutPage() {
     }
   };
 
+  const shippingDisplayLabel = isDelivery && !addressId
+    ? (ar ? 'بعد العنوان' : 'After address')
+    : formatPrice(displayShipping);
+
+  const openWhatsAppSizeConfirm = () => {
+    if (!whatsappRaw) {
+      setError(ar ? 'أضف رقم واتساب من لوحة التحكم → الإعدادات' : 'Add WhatsApp in admin → Settings');
+      return;
+    }
+    const addressLine = selectedAddress
+      ? [selectedAddress.region_name || selectedAddress.city, selectedAddress.street, selectedAddress.building].filter(Boolean).join(' · ')
+      : undefined;
+    const message = buildCheckoutWhatsAppMessage({
+      ar,
+      customerName: contactName,
+      customerPhone: contactPhone,
+      fulfillment,
+      addressLine,
+      items,
+      subtotal: total,
+      shippingLabel: shippingDisplayLabel,
+      grandTotal,
+      note: buildCustomerNote(note, altDeliverySize, ar),
+    });
+    window.open(buildWhatsAppTextUrl(whatsappRaw, message), '_blank', 'noopener,noreferrer');
+    setWhatsappSizeSent(true);
+    setError('');
+  };
+
   const placeOrder = async () => {
+    if (needsSizeWhatsApp && whatsappRaw && !whatsappSizeSent) {
+      setError(ar ? 'اضغط «تأكيد المقاس عبر واتساب» وأرسل الرسالة قبل إتمام الطلب' : 'Tap «Confirm size on WhatsApp» and send the message before placing the order');
+      return;
+    }
     if (isDelivery && !addressId) {
       setError(ar ? 'اختر عنوان التوصيل' : 'Select delivery address');
       return;
@@ -500,7 +545,7 @@ export function CheckoutPage() {
             {items.map((item) => (
               <li key={item.productVariantId} className="flex gap-2.5">
                 <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-[#eceef4] dark:bg-[#252538]">
-                  <StoreMediaImage src={resolveImage(item)} alt={item.name} fit="cover" layout="fill" />
+                  <StoreMediaImage src={resolveImage(item)} alt={item.name} fit="cover" layout="fill" fadeIn={false} />
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="text-xs font-bold leading-snug">{item.name}</p>
@@ -578,6 +623,29 @@ export function CheckoutPage() {
               </div>
             ) : null}
           </div>
+
+          {needsSizeWhatsApp && whatsappRaw ? (
+            <div className="mt-3 space-y-2 rounded-xl border border-[#25D366]/35 bg-[#25D366]/10 p-3">
+              <p className="text-xs font-bold text-[#128C7E]">
+                {ar ? 'تأكيد توفر المقاس' : 'Confirm size availability'}
+              </p>
+              <p className="text-[11px] leading-relaxed text-store-muted">
+                {ar
+                  ? 'أرسل ملخص الطلب على واتساب لنتأكد من المقاس قبل تأكيد الطلب في الموقع.'
+                  : 'Send your order summary on WhatsApp so we can confirm sizes before you place the order.'}
+              </p>
+              <button
+                type="button"
+                onClick={openWhatsAppSizeConfirm}
+                className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#25D366] py-2.5 text-sm font-bold text-white shadow-sm"
+              >
+                <MessageSquare size={16} />
+                {whatsappSizeSent
+                  ? (ar ? 'إعادة إرسال واتساب ✓' : 'Resend on WhatsApp ✓')
+                  : (ar ? 'تأكيد المقاس عبر واتساب' : 'Confirm size on WhatsApp')}
+              </button>
+            </div>
+          ) : null}
 
           <div className="glass-strong mt-3 rounded-xl p-3 shadow-[0_4px_20px_rgba(0,0,0,0.06)]">
             <div className="mb-2 flex items-center justify-between text-xs">

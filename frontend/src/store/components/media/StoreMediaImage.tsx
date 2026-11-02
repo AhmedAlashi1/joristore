@@ -14,6 +14,8 @@ type StoreMediaImageProps = {
   fit?: 'cover' | 'contain';
   /** fill parent box vs natural width (full image visible, no letterboxing) */
   layout?: 'fill' | 'intrinsic';
+  /** Cart thumbnails: skip fade-in (empty box if load fails silently) */
+  fadeIn?: boolean;
 };
 
 export function StoreMediaImage({
@@ -23,6 +25,7 @@ export function StoreMediaImage({
   className,
   fit = 'cover',
   layout = 'fill',
+  fadeIn = true,
 }: StoreMediaImageProps) {
   const { logo } = useStoreBrand();
   const [failed, setFailed] = useState(false);
@@ -71,7 +74,7 @@ export function StoreMediaImage({
       className={cn(
         'h-full w-full transition-opacity duration-300 ease-out',
         fit === 'cover' ? 'object-cover object-center' : 'object-contain',
-        loaded ? 'opacity-100 product-img-reveal' : 'opacity-0',
+        fadeIn ? (loaded ? 'opacity-100 product-img-reveal' : 'opacity-0') : 'opacity-100',
         className,
       )}
       loading="lazy"

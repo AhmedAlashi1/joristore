@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { customerApi } from '../lib/api';
 import { getCustomerId } from '../lib/customer-storage';
+import { normalizeProductImagePath } from '../lib/product-image';
 
 export type CartItem = {
   productId: number;
@@ -9,6 +10,8 @@ export type CartItem = {
   price: number;
   quantity: number;
   image?: string | null;
+  /** Size / variant label for checkout & WhatsApp */
+  variantLabel?: string | null;
   maxQuantity?: number;
 };
 
@@ -44,7 +47,8 @@ function normalizeItem(raw: Record<string, unknown>): CartItem | null {
     name: String(raw.name ?? ''),
     price: Number(raw.price ?? 0),
     quantity,
-    image: raw.image != null ? String(raw.image) : null,
+    image: normalizeProductImagePath(raw.image != null ? String(raw.image) : null),
+    variantLabel: raw.variantLabel != null ? String(raw.variantLabel) : null,
     maxQuantity: maxQuantity && maxQuantity > 0 ? maxQuantity : undefined,
   };
 }
@@ -95,7 +99,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
               : p,
           );
         }
-        return [...prev, { ...item, quantity: clampQuantity(qty, max) }];
+        return [...prev, {
+          ...item,
+          image: normalizeProductImagePath(item.image),
+          quantity: clampQuantity(qty, max),
+        }];
       });
     },
     removeItem: (productVariantId) => setItems((prev) => prev.filter((p) => p.productVariantId !== productVariantId)),
