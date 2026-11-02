@@ -118,10 +118,12 @@ class CategoryController extends Controller
         }
 
         $data = $validator->validated();
-        $data = $this->catalogTranslation->applyEnglishFromArabic($data, [
+        $translationMap = [
             'name' => 'name_en',
             'description' => 'description_en',
-        ]);
+        ];
+        $data = $this->catalogTranslation->mergeArabicSourcesForEmptyEnglish($data, $category, $translationMap);
+        $data = $this->catalogTranslation->applyEnglishFromArabic($data, $translationMap);
         if (isset($data['name']) || isset($data['slug'])) {
             $slugSource = $data['slug'] ?? $data['name_en'] ?? $data['name'] ?? $category->name_en ?? $category->name;
             $data['slug'] = $this->uniqueSlug($slugSource, $merchantId, $category->id);

@@ -239,11 +239,13 @@ class ProductController extends Controller
         }
 
         $data = $validator->validated();
-        $data = $this->catalogTranslation->applyEnglishFromArabic($data, [
+        $translationMap = [
             'name' => 'name_en',
             'short_description' => 'short_description_en',
             'description' => 'description_en',
-        ]);
+        ];
+        $data = $this->catalogTranslation->mergeArabicSourcesForEmptyEnglish($data, $product, $translationMap);
+        $data = $this->catalogTranslation->applyEnglishFromArabic($data, $translationMap);
 
         DB::transaction(function () use ($product, $data, $merchantId) {
             $productData = array_filter([

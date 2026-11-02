@@ -14,6 +14,31 @@ class CatalogTranslationService
      * @param  array<string, string>  $map  Arabic field => English field
      * @return array<string, mixed>
      */
+    /**
+     * On update: if English is still empty in DB, ensure Arabic source keys are present for auto-fill.
+     *
+     * @param  array<string, mixed>  $data
+     * @param  array<string, string>  $map
+     * @return array<string, mixed>
+     */
+    public function mergeArabicSourcesForEmptyEnglish(array $data, object $model, array $map): array
+    {
+        foreach ($map as $arKey => $enKey) {
+            if (trim((string) ($data[$enKey] ?? '')) !== '' || trim((string) ($model->{$enKey} ?? '')) !== '') {
+                continue;
+            }
+            if (trim((string) ($data[$arKey] ?? '')) !== '') {
+                continue;
+            }
+            $fromModel = trim((string) ($model->{$arKey} ?? ''));
+            if ($fromModel !== '') {
+                $data[$arKey] = $fromModel;
+            }
+        }
+
+        return $data;
+    }
+
     public function applyEnglishFromArabic(array $data, array $map): array
     {
         $toTranslate = [];
@@ -41,7 +66,11 @@ class CatalogTranslationService
         }
 
         $translated = $this->translateToEnglish($toTranslate);
-        foreach ($translated as $enKey => $value) {
+        foreach ($toTranslate as $enKey => $arText) {
+            $value = trim((string) ($translated[$enKey] ?? ''));
+            if ($value === '') {
+                $value = $arText;
+            }
             $data[$enKey] = $value !== '' ? $value : null;
         }
 
@@ -63,7 +92,7 @@ class CatalogTranslationService
 
         $payload = json_encode($fields, JSON_UNESCAPED_UNICODE);
         if ($payload === false) {
-            return array_map(fn () => '', $fields);
+            return $fields;
         }
 
         try {
@@ -90,17 +119,17 @@ class CatalogTranslationService
             if (! $response->successful()) {
                 Log::warning('CatalogTranslationService: OpenAI error', ['status' => $response->status()]);
 
-                return array_map(fn () => '', $fields);
+                return $fields;
             }
 
             $content = data_get($response->json(), 'choices.0.message.content');
             if (! is_string($content)) {
-                return array_map(fn () => '', $fields);
+                return $fields;
             }
 
             $decoded = json_decode($content, true);
             if (! is_array($decoded)) {
-                return array_map(fn () => '', $fields);
+                return $fields;
             }
 
             $out = [];
@@ -116,7 +145,7 @@ class CatalogTranslationService
         } catch (\Throwable $e) {
             Log::warning('CatalogTranslationService: '.$e->getMessage());
 
-            return array_map(fn () => '', $fields);
+            return $fields;
         }
     }
 }
