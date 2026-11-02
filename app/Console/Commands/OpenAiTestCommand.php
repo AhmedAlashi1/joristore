@@ -9,16 +9,17 @@ class OpenAiTestCommand extends Command
 {
     protected $signature = 'openai:test {--text=قميص رياضي : Arabic sample to translate}';
 
-    protected $description = 'Test OpenAI catalog translation from the server (key, billing, SSL)';
+    protected $description = 'Test catalog translation (MyMemory / Gemini / OpenAI) from the server';
 
     public function handle(CatalogTranslationService $translation): int
     {
         $probe = $translation->probeTranslation((string) $this->option('text'));
 
-        $this->line('OPENAI_API_KEY configured: '.($probe['configured'] ? 'yes' : 'no'));
+        $this->line('CATALOG_TRANSLATOR: '.($probe['driver'] ?? 'auto'));
+        $this->line('Providers available: '.($probe['configured'] ? 'yes' : 'no'));
 
         if ($probe['sample_en']) {
-            $this->info('Translation OK: '.$probe['sample_en']);
+            $this->info('Translation OK'.($probe['provider_used'] ? ' via '.$probe['provider_used'] : '').': '.$probe['sample_en']);
 
             return self::SUCCESS;
         }

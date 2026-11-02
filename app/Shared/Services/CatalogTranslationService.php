@@ -2,8 +2,6 @@
 
 namespace App\Shared\Services;
 
-use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Log;
 
 class CatalogTranslationService
 {
@@ -23,6 +21,7 @@ class CatalogTranslationService
 
     public function __construct(
         protected OpenAiErrorParser $openAiErrors,
+        protected CatalogTranslationBackend $translationBackend,
     ) {}
 
     /**
@@ -142,7 +141,7 @@ class CatalogTranslationService
 
     public function isAutoTranslationAvailable(): bool
     {
-        return filled(config('services.openai.key'));
+        return $this->translationBackend->hasAnyProvider();
     }
 
     /**
@@ -185,8 +184,8 @@ class CatalogTranslationService
 
         return match ($code) {
             self::WARN_NO_OPENAI => $ar
-                ? 'لم تُترجم الحقول للإنجليزية: أضف OPENAI_API_KEY في .env على السيرفر ثم php artisan config:cache، أو اكتب الإنجليزي يدوياً.'
-                : 'English not auto-filled: set OPENAI_API_KEY in server .env (then config:cache) or enter English manually.',
+                ? 'لم تُترجم الحقول للإنجليزية: فعّل CATALOG_TRANSLATOR=mymemory (مجاني بدون مفتاح) أو GEMINI_API_KEY، ثم php artisan config:cache، أو اكتب الإنجليزي يدوياً.'
+                : 'English not auto-filled: set CATALOG_TRANSLATOR=mymemory (free) or GEMINI_API_KEY, run config:cache, or enter English manually.',
             self::WARN_NO_BALANCE => $this->openAiErrors->userMessage(OpenAiErrorParser::INSUFFICIENT_QUOTA, $ar)
                 .($ar ? ' أو اكتب الإنجليزي يدوياً.' : ' Or enter English manually.'),
             self::WARN_INVALID_KEY => $this->openAiErrors->userMessage(OpenAiErrorParser::INVALID_KEY, $ar),
@@ -203,59 +202,14 @@ class CatalogTranslationService
      */
     public function translateToEnglish(array $fields): array
     {
-        $empty = array_fill_keys(array_keys($fields), '');
         $this->lastHttpStatus = null;
         $this->lastOpenAiCode = null;
 
-        $key = config('services.openai.key');
-        if (! $key) {
-            Log::warning('CatalogTranslationService: OPENAI_API_KEY missing; English fields not auto-filled');
+        $out = $this->translationBackend->translateFields($fields);
+        $this->lastHttpStatus = $this->translationBackend->lastHttpStatus();
+        $this->lastOpenAiCode = $this->translationBackend->lastOpenAiCode();
 
-            return $empty;
-        }
-
-        $payload = json_encode($fields, JSON_UNESCAPED_UNICODE);
-        if ($payload === false) {
-            return $empty;
-        }
-
-        try {
-            $response = $this->requestOpenAiTranslation($key, $payload, retryOn429: true);
-
-            if (! $response->successful()) {
-                $this->lastHttpStatus = $response->status();
-                $this->lastOpenAiCode = $this->openAiErrors->classifyResponse($response);
-                Log::warning('CatalogTranslationService: OpenAI error', [
-                    'status' => $response->status(),
-                    'openai_code' => $this->lastOpenAiCode,
-                    'body' => $response->body(),
-                ]);
-
-                return $empty;
-            }
-
-            $content = data_get($response->json(), 'choices.0.message.content');
-            if (! is_string($content)) {
-                return $empty;
-            }
-
-            $decoded = json_decode($content, true);
-            if (! is_array($decoded)) {
-                return $empty;
-            }
-
-            $out = [];
-            foreach ($fields as $fieldKey => $arText) {
-                $en = $this->pickTranslatedValue($decoded, $fieldKey, $arText);
-                $out[$fieldKey] = $en;
-            }
-
-            return $out;
-        } catch (\Throwable $e) {
-            Log::warning('CatalogTranslationService: '.$e->getMessage());
-
-            return $empty;
-        }
+        return $out;
     }
 
     /**
@@ -298,71 +252,6 @@ class CatalogTranslationService
         return preg_match('/[A-Za-z]/', $text) === 1;
     }
 
-    private function requestOpenAiTranslation(string $apiKey, string $payloadJson, bool $retryOn429): \Illuminate\Http\Client\Response
-    {
-        $verify = filter_var(config('services.openai.verify_ssl', true), FILTER_VALIDATE_BOOL);
-        $request = fn () => Http::withToken($apiKey)
-            ->withOptions(['verify' => $verify])
-            ->timeout(45)
-            ->connectTimeout(15)
-            ->post('https://api.openai.com/v1/chat/completions', [
-                'model' => config('services.openai.model', 'gpt-4o-mini'),
-                'temperature' => 0.2,
-                'response_format' => ['type' => 'json_object'],
-                'messages' => [
-                    [
-                        'role' => 'system',
-                        'content' => 'You translate Arabic e-commerce catalog text into natural English for a sports/fashion store. '
-                            .'Output must be English only (Latin script). Keep brand names, SKUs, sizes, and numbers unchanged. '
-                            .'Return JSON only: same keys as input, values in English. No extra keys.',
-                    ],
-                    [
-                        'role' => 'user',
-                        'content' => $payloadJson,
-                    ],
-                ],
-            ]);
-
-        $response = $request();
-        if ($retryOn429 && $response->status() === 429) {
-            $kind = $this->openAiErrors->classifyResponse($response);
-            if ($kind !== OpenAiErrorParser::INSUFFICIENT_QUOTA) {
-                usleep(2_500_000);
-                $response = $request();
-            }
-        }
-
-        return $response;
-    }
-
-    /**
-     * @param  array<string, mixed>  $decoded
-     */
-    private function pickTranslatedValue(array $decoded, string $fieldKey, string $arText): string
-    {
-        $candidates = array_unique([
-            $fieldKey,
-            str_replace('_en', '', $fieldKey),
-            'translation',
-            'text',
-            'value',
-        ]);
-
-        foreach ($candidates as $key) {
-            if (! isset($decoded[$key]) || ! is_string($decoded[$key])) {
-                continue;
-            }
-            $en = trim($decoded[$key]);
-            if ($en === '' || $this->isSameAsArabicSource($en, $arText)) {
-                continue;
-            }
-
-            return $en;
-        }
-
-        return '';
-    }
-
     /** Quick health check for hosting (used by artisan openai:test). */
     public function probeTranslation(string $arabicSample = 'قميص رياضي'): array
     {
@@ -371,6 +260,8 @@ class CatalogTranslationService
 
         return [
             'configured' => $this->isAutoTranslationAvailable(),
+            'driver' => config('services.catalog_translation.driver', 'auto'),
+            'provider_used' => $this->translationBackend->lastDriver(),
             'http_status' => $this->lastHttpStatus,
             'openai_code' => $this->lastOpenAiCode,
             'sample_en' => $en !== '' ? $en : null,
@@ -378,7 +269,7 @@ class CatalogTranslationService
                 ? 'OK'
                 : ($this->lastOpenAiCode
                     ? $this->openAiErrors->userMessage($this->lastOpenAiCode, true)
-                    : 'Translation returned empty'),
+                    : 'Translation returned empty (try CATALOG_TRANSLATOR=mymemory or GEMINI_API_KEY)'),
         ];
     }
 }
