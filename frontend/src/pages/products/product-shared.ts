@@ -1,3 +1,5 @@
+import { sanitizeCatalogEnglishField } from '../../lib/catalog-english';
+
 export type ProductOption = { id: number; name: string };
 
 export type ProductSizeVariant = {
@@ -116,9 +118,9 @@ export function mapProductToForm(row: ProductRecord): ProductFormState {
     featured: row.featured,
     image: row.image ?? '',
     gallery: row.gallery ?? (row.images ?? []).filter((p) => p && p !== row.image),
-    name_en: row.name_en ?? '',
-    short_description_en: row.short_description_en ?? '',
-    description_en: row.description_en ?? '',
+    name_en: sanitizeCatalogEnglishField(row.name, row.name_en),
+    short_description_en: sanitizeCatalogEnglishField(row.short_description ?? '', row.short_description_en),
+    description_en: sanitizeCatalogEnglishField(row.description ?? '', row.description_en),
     product_group_id: row.product_group_id ?? '',
     color_name: row.color_name ?? '',
     color_hex: row.color_hex ?? '#7367f0',

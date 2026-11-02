@@ -25,15 +25,22 @@ class CatalogTranslationService
     public function mergeArabicSourcesForEmptyEnglish(array $data, object $model, array $map): array
     {
         foreach ($map as $arKey => $enKey) {
-            if (trim((string) ($data[$enKey] ?? '')) !== '' || trim((string) ($model->{$enKey} ?? '')) !== '') {
+            $modelAr = trim((string) ($model->{$arKey} ?? ''));
+            $modelEn = trim((string) ($model->{$enKey} ?? ''));
+            $requestEn = trim((string) ($data[$enKey] ?? ''));
+            $requestAr = trim((string) ($data[$arKey] ?? ''));
+
+            if ($this->isUsableManualEnglish($requestEn, $requestAr !== '' ? $requestAr : $modelAr)) {
                 continue;
             }
-            if (trim((string) ($data[$arKey] ?? '')) !== '') {
+            if ($this->isUsableManualEnglish($modelEn, $modelAr)) {
                 continue;
             }
-            $fromModel = trim((string) ($model->{$arKey} ?? ''));
-            if ($fromModel !== '') {
-                $data[$arKey] = $fromModel;
+            if ($requestAr !== '') {
+                continue;
+            }
+            if ($modelAr !== '') {
+                $data[$arKey] = $modelAr;
             }
         }
 
@@ -47,12 +54,53 @@ class CatalogTranslationService
      * @param  array<string, string>  $map  Arabic field => English field
      * @return array<string, mixed>
      */
+    /**
+     * Drop bogus "English" copied from Arabic (legacy saves / bad API responses).
+     *
+     * @param  array<string, mixed>  $data
+     * @param  array<string, string>  $map
+     * @return array<string, mixed>
+     */
+    public function sanitizeManualEnglishInData(array $data, array $map): array
+    {
+        foreach ($map as $arKey => $enKey) {
+            if (! array_key_exists($enKey, $data)) {
+                continue;
+            }
+            $en = trim((string) $data[$enKey]);
+            $ar = trim((string) ($data[$arKey] ?? ''));
+            if ($en === '' || $this->isUsableManualEnglish($en, $ar)) {
+                continue;
+            }
+            unset($data[$enKey]);
+        }
+
+        return $data;
+    }
+
+    public function isUsableManualEnglish(?string $en, ?string $ar): bool
+    {
+        $en = trim((string) $en);
+        $ar = trim((string) $ar);
+        if ($en === '') {
+            return false;
+        }
+        if ($this->isSameAsArabicSource($en, $ar)) {
+            return false;
+        }
+
+        return $this->containsLatinLetters($en);
+    }
+
     public function applyEnglishFromArabic(array $data, array $map): array
     {
+        $data = $this->sanitizeManualEnglishInData($data, $map);
+
         $toTranslate = [];
         foreach ($map as $arKey => $enKey) {
             $manualEn = trim((string) ($data[$enKey] ?? ''));
-            if ($manualEn !== '') {
+            $arText = trim((string) ($data[$arKey] ?? ''));
+            if ($this->isUsableManualEnglish($manualEn, $arText)) {
                 $data[$enKey] = $manualEn;
 
                 continue;
@@ -190,6 +238,27 @@ class CatalogTranslationService
 
             return $empty;
         }
+    }
+
+    /**
+     * @param  array<string, string>  $map
+     * @return list<string>  English column names to set NULL (remove stale Arabic copies)
+     */
+    public function englishFieldsToClear(object $model, array $data, array $map): array
+    {
+        $clear = [];
+        foreach ($map as $arKey => $enKey) {
+            if (filled($data[$enKey] ?? null)) {
+                continue;
+            }
+            $modelEn = $model->{$enKey} ?? null;
+            $modelAr = $model->{$arKey} ?? null;
+            if ($modelEn && ! $this->isUsableManualEnglish((string) $modelEn, (string) $modelAr)) {
+                $clear[] = $enKey;
+            }
+        }
+
+        return $clear;
     }
 
     private function isSameAsArabicSource(string $english, string $arabic): bool

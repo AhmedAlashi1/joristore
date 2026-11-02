@@ -247,8 +247,9 @@ class ProductController extends Controller
         ];
         $data = $this->catalogTranslation->mergeArabicSourcesForEmptyEnglish($data, $product, $translationMap);
         $data = $this->catalogTranslation->applyEnglishFromArabic($data, $translationMap);
+        $clearEnglish = $this->catalogTranslation->englishFieldsToClear($product, $data, $translationMap);
 
-        DB::transaction(function () use ($product, $data, $merchantId) {
+        DB::transaction(function () use ($product, $data, $merchantId, $clearEnglish) {
             $productData = array_filter([
                 'name' => $data['name'] ?? null,
                 'name_en' => $data['name_en'] ?? null,
@@ -277,6 +278,10 @@ class ProductController extends Controller
 
             if (isset($data['status']) && $data['status'] === 'active' && ! $product->published_at) {
                 $productData['published_at'] = now();
+            }
+
+            foreach ($clearEnglish as $enField) {
+                $productData[$enField] = null;
             }
 
             $product->update($productData);

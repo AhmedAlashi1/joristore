@@ -9,6 +9,7 @@ import { api } from '../lib/api';
 import { ensureApiSuccess } from '../lib/api-response';
 import { hasPermission } from '../lib/auth';
 import { useI18n } from '../providers/i18n-provider';
+import { sanitizeCatalogEnglishField } from '../lib/catalog-english';
 
 type CategoryOption = { id: number; name: string; parent_id?: number | null };
 
@@ -61,7 +62,9 @@ export function CategoriesPage() {
       canDelete={hasPermission('categories.delete')}
       mapRowToForm={(row) => ({
         name: row.name, slug: row.slug, parent_id: row.parent_id ? String(row.parent_id) : '',
-        description: row.description ?? '', name_en: row.name_en ?? '', description_en: row.description_en ?? '',
+        description: row.description ?? '',
+        name_en: sanitizeCatalogEnglishField(row.name, row.name_en),
+        description_en: sanitizeCatalogEnglishField(row.description ?? '', row.description_en),
         image: row.image ?? '', status: row.status, sort_order: row.sort_order,
       })}
       preparePayload={(form) => ({

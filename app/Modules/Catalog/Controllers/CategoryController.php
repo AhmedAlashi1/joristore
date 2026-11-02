@@ -125,6 +125,9 @@ class CategoryController extends Controller
         ];
         $data = $this->catalogTranslation->mergeArabicSourcesForEmptyEnglish($data, $category, $translationMap);
         $data = $this->catalogTranslation->applyEnglishFromArabic($data, $translationMap);
+        foreach ($this->catalogTranslation->englishFieldsToClear($category, $data, $translationMap) as $enField) {
+            $data[$enField] = null;
+        }
         if (isset($data['name']) || isset($data['slug'])) {
             $slugSource = $data['slug'] ?? $data['name_en'] ?? $data['name'] ?? $category->name_en ?? $category->name;
             $data['slug'] = $this->uniqueSlug($slugSource, $merchantId, $category->id);
