@@ -23,8 +23,9 @@ if [[ -d "$HOME/public_html" ]]; then
     cp -f "$ROOT/frontend/public/api-laravel.php" "$HOME/public_html/api-laravel.php"
   fi
 fi
-# Dashboard: assets + spa shell, but NOT public/index.html (so `/` hits Laravel → /admin/login)
-rsync -av --exclude index.html "$SPA/" "$ROOT/public/"
+# Dashboard: assets + spa shell — not store index.html or api-laravel.php (storefront only)
+rsync -av --exclude index.html --exclude api-laravel.php "$SPA/" "$ROOT/public/"
+rm -f "$ROOT/public/api-laravel.php"
 mkdir -p "$ROOT/public/spa"
 rsync -av "$SPA/index.html" "$ROOT/public/spa/"
 

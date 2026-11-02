@@ -14,5 +14,18 @@ if ($laravelPublic === false || ! is_file($laravelPublic . '/index.php')) {
     exit(1);
 }
 
+$rawUri = $_SERVER['REQUEST_URI'] ?? '/';
+$path = parse_url($rawUri, PHP_URL_PATH) ?: '/';
+$query = parse_url($rawUri, PHP_URL_QUERY);
+
+if (str_starts_with($path, '/index.php')) {
+    $path = substr($path, strlen('/index.php')) ?: '/';
+}
+
+$_SERVER['SCRIPT_NAME'] = '/index.php';
+$_SERVER['SCRIPT_FILENAME'] = $laravelPublic . '/index.php';
+$_SERVER['PHP_SELF'] = '/index.php' . $path;
+$_SERVER['REQUEST_URI'] = $path . ($query !== null && $query !== '' ? '?' . $query : '');
+
 chdir($laravelPublic);
 require $laravelPublic . '/index.php';
