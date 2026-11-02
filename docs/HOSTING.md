@@ -10,6 +10,8 @@
 If `POST /api/admin/login` returns **404** but `POST /index.php/api/admin/login` works, enable **mod_rewrite** / point the subdomain to `public/`, or set  
 `VITE_API_BASE_URL=https://dashboard.sportsworldps.com/index.php/api` before `npm run build`.
 
+If **`/admin/login` is LiteSpeed 404** but **`/index.php/admin/login` works**, run `git pull` (explicit `admin`/`partner` rules in `public/.htaccess`), then `rm -f ~/joristore/public/index.html` and `rm -rf ~/joristore/public/admin` if that folder exists by mistake.
+
 - **Admin:** https://dashboard.sportsworldps.com/admin  
 - **Partner portal:** https://sportsworldps.com/partner/login  
 - **API:** https://dashboard.sportsworldps.com/api  

@@ -10,11 +10,16 @@
     </IfModule>
 
     RewriteEngine On
+    RewriteBase /
 
     DirectoryIndex index.php index.html
 
     # Dashboard root → admin login (works even if DirectoryIndex is misconfigured)
     RewriteRule ^/?$ /admin/login [R=302,L]
+
+    # LiteSpeed/cPanel: /admin/* 404s unless routed explicitly (before -f/-d checks)
+    RewriteRule ^index\.php(/.*)?$ - [L]
+    RewriteRule ^(admin|partner)(/.*)?$ index.php [L,QSA]
 
     # Handle Authorization Header
     RewriteCond %{HTTP:Authorization} .
