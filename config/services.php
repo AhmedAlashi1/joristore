@@ -22,6 +22,7 @@ return [
     'openai' => [
         'key' => env('OPENAI_API_KEY'),
         'model' => env('OPENAI_MODEL', 'gpt-4o-mini'),
+        'verify_ssl' => env('OPENAI_VERIFY_SSL', true),
     ],
 
     'webpush' => [

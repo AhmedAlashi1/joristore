@@ -81,6 +81,21 @@ export function ProductViewPage() {
             <Badge variant={statusVariant[product.status] ?? 'default'}>{product.status}</Badge>
             {product.featured ? <Badge variant="success">{ar ? 'مميز' : 'Featured'}</Badge> : null}
           </div>
+          <div>
+            <p className="text-xs font-bold text-[#8a8da8]">{ar ? 'الاسم (عربي)' : 'Name (AR)'}</p>
+            <p className="mt-1 font-semibold">{product.name}</p>
+          </div>
+          {product.name_en?.trim() ? (
+            <div>
+              <p className="text-xs font-bold text-[#8a8da8]">{ar ? 'الاسم (إنجليزي)' : 'Name (EN)'}</p>
+              <p className="mt-1 font-semibold" dir="ltr">{product.name_en}</p>
+            </div>
+          ) : (
+            <p className="rounded-xl border border-[#ff9f43]/30 bg-[#ff9f43]/10 px-3 py-2 text-xs text-[#ff9f43]">
+              {ar ? 'لا يوجد اسم إنجليزي — احفظ من التعديل (OpenAI) أو اكتبه يدوياً.' : 'No English name yet — save from edit (OpenAI) or enter manually.'}
+            </p>
+          )}
+
           <dl className="grid gap-3 text-sm sm:grid-cols-2">
             <div>
               <dt className="text-xs text-[#8a8da8]">{ar ? 'السعر' : 'Price'}</dt>

@@ -137,6 +137,7 @@ export function mapProductToForm(row: ProductRecord): ProductFormState {
 export function prepareProductPayload(form: ProductFormState) {
   const sizeRows = form.size_variants.filter((r) => r.name?.trim());
   return {
+    regenerate_english: true,
     name: form.name,
     name_en: form.name_en?.trim() || undefined,
     slug: form.slug || undefined,

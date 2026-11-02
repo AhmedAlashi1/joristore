@@ -246,13 +246,7 @@ class CatalogTranslationService
 
             $out = [];
             foreach ($fields as $fieldKey => $arText) {
-                $en = $decoded[$fieldKey] ?? '';
-                $en = is_string($en) ? trim($en) : '';
-                if ($en === '' || $this->isSameAsArabicSource($en, $arText)) {
-                    $out[$fieldKey] = '';
-
-                    continue;
-                }
+                $en = $this->pickTranslatedValue($decoded, $fieldKey, $arText);
                 $out[$fieldKey] = $en;
             }
 
@@ -306,7 +300,9 @@ class CatalogTranslationService
 
     private function requestOpenAiTranslation(string $apiKey, string $payloadJson, bool $retryOn429): \Illuminate\Http\Client\Response
     {
+        $verify = filter_var(config('services.openai.verify_ssl', true), FILTER_VALIDATE_BOOL);
         $request = fn () => Http::withToken($apiKey)
+            ->withOptions(['verify' => $verify])
             ->timeout(45)
             ->connectTimeout(15)
             ->post('https://api.openai.com/v1/chat/completions', [
@@ -337,5 +333,52 @@ class CatalogTranslationService
         }
 
         return $response;
+    }
+
+    /**
+     * @param  array<string, mixed>  $decoded
+     */
+    private function pickTranslatedValue(array $decoded, string $fieldKey, string $arText): string
+    {
+        $candidates = array_unique([
+            $fieldKey,
+            str_replace('_en', '', $fieldKey),
+            'translation',
+            'text',
+            'value',
+        ]);
+
+        foreach ($candidates as $key) {
+            if (! isset($decoded[$key]) || ! is_string($decoded[$key])) {
+                continue;
+            }
+            $en = trim($decoded[$key]);
+            if ($en === '' || $this->isSameAsArabicSource($en, $arText)) {
+                continue;
+            }
+
+            return $en;
+        }
+
+        return '';
+    }
+
+    /** Quick health check for hosting (used by artisan openai:test). */
+    public function probeTranslation(string $arabicSample = 'قميص رياضي'): array
+    {
+        $result = $this->translateToEnglish(['name_en' => $arabicSample]);
+        $en = trim($result['name_en'] ?? '');
+
+        return [
+            'configured' => $this->isAutoTranslationAvailable(),
+            'http_status' => $this->lastHttpStatus,
+            'openai_code' => $this->lastOpenAiCode,
+            'sample_en' => $en !== '' ? $en : null,
+            'message' => $en !== ''
+                ? 'OK'
+                : ($this->lastOpenAiCode
+                    ? $this->openAiErrors->userMessage($this->lastOpenAiCode, true)
+                    : 'Translation returned empty'),
+        ];
     }
 }

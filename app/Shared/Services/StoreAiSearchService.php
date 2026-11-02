@@ -142,7 +142,9 @@ class StoreAiSearchService
     protected function analyzeWithOpenAi(string $query, string $locale, string $apiKey): ?array
     {
         try {
+            $verify = filter_var(config('services.openai.verify_ssl', true), FILTER_VALIDATE_BOOL);
             $response = Http::withToken($apiKey)
+                ->withOptions(['verify' => $verify])
                 ->timeout(12)
                 ->post('https://api.openai.com/v1/chat/completions', [
                     'model' => config('services.openai.model', 'gpt-4o-mini'),

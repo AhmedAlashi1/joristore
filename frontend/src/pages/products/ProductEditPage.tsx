@@ -46,15 +46,19 @@ export function ProductEditPage() {
     setSaving(true);
     try {
       const res = await api.put(`/admin/products/${id}`, prepareProductPayload(form));
+      const updated = ensureApiSuccess<ProductRecord>(res, '');
+      setForm(mapProductToForm(updated));
+      setTitle(updated.name);
       const msg = (res.data as { message?: string })?.message;
       if (msg?.includes('فش رصيد') || msg?.toLowerCase().includes('balance')) {
+        notify.error(msg);
+      } else if (msg && (msg.includes('OpenAI') || msg.includes('ترجم') || msg.length > 40)) {
         notify.error(msg);
       } else if (msg && msg.length > 20) {
         notify.success(msg);
       } else {
         notify.success(ar ? 'تم التحديث' : 'Updated');
       }
-      navigate(`/admin/products/${id}`);
     } catch (error) {
       notify.errorFrom(error, ar ? 'فشل الحفظ' : 'Save failed');
     } finally {

@@ -115,6 +115,9 @@ class ProductController extends Controller
             'short_description' => 'short_description_en',
             'description' => 'description_en',
         ];
+        if ($request->boolean('regenerate_english')) {
+            $data = $this->catalogTranslation->sanitizeManualEnglishInData($data, $translationMap);
+        }
         $data = $this->catalogTranslation->applyEnglishFromArabic($data, $translationMap);
         $slug = $this->uniqueSlug($data['slug'] ?? $data['name_en'] ?? $data['name'], $merchantId);
 
@@ -245,6 +248,17 @@ class ProductController extends Controller
             'short_description' => 'short_description_en',
             'description' => 'description_en',
         ];
+        if ($request->boolean('regenerate_english')) {
+            $data = $this->catalogTranslation->sanitizeManualEnglishInData($data, $translationMap);
+            foreach ($translationMap as $arKey => $enKey) {
+                if (! $this->catalogTranslation->isUsableManualEnglish($data[$enKey] ?? null, $data[$arKey] ?? $product->{$arKey})) {
+                    unset($data[$enKey]);
+                }
+                if (trim((string) ($data[$arKey] ?? '')) === '' && trim((string) ($product->{$arKey} ?? '')) !== '') {
+                    $data[$arKey] = $product->{$arKey};
+                }
+            }
+        }
         $data = $this->catalogTranslation->mergeArabicSourcesForEmptyEnglish($data, $product, $translationMap);
         $data = $this->catalogTranslation->applyEnglishFromArabic($data, $translationMap);
         $clearEnglish = $this->catalogTranslation->englishFieldsToClear($product, $data, $translationMap);
