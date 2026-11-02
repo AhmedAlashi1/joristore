@@ -10,6 +10,8 @@ type SmartSearchResult = {
   summary: string;
   keywords: string[];
   ai_used: boolean;
+  ai_error?: string | null;
+  ai_error_message?: string | null;
   products: ProductCardData[];
 };
 
@@ -104,6 +106,11 @@ export function SmartSearchOverlay({ open, onClose }: SmartSearchOverlayProps) {
 
         {result ? (
           <div className="mt-4 min-h-0 flex-1 overflow-y-auto pb-6">
+            {result.ai_error_message ? (
+              <p className="mb-2 rounded-xl border border-[#ea5455]/30 bg-[#ea5455]/10 px-3 py-2 text-center text-xs font-semibold text-[#ea5455]">
+                {result.ai_error_message}
+              </p>
+            ) : null}
             <div className="glass mb-3 rounded-2xl p-3 text-sm">
               <p className="font-bold text-[var(--fg)]">{result.ai_used ? t.smartSearchAi : t.smartSearchLocal}</p>
               {result.summary ? <p className="mt-1 text-store-muted">{result.summary}</p> : null}

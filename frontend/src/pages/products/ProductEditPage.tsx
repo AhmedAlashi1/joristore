@@ -45,8 +45,15 @@ export function ProductEditPage() {
     }
     setSaving(true);
     try {
-      await api.put(`/admin/products/${id}`, prepareProductPayload(form));
-      notify.success(ar ? 'تم التحديث' : 'Updated');
+      const res = await api.put(`/admin/products/${id}`, prepareProductPayload(form));
+      const msg = (res.data as { message?: string })?.message;
+      if (msg?.includes('فش رصيد') || msg?.toLowerCase().includes('balance')) {
+        notify.error(msg);
+      } else if (msg && msg.length > 20) {
+        notify.success(msg);
+      } else {
+        notify.success(ar ? 'تم التحديث' : 'Updated');
+      }
       navigate(`/admin/products/${id}`);
     } catch (error) {
       notify.errorFrom(error, ar ? 'فشل الحفظ' : 'Save failed');

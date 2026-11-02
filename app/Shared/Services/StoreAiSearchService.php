@@ -9,6 +9,26 @@ use Illuminate\Support\Str;
 
 class StoreAiSearchService
 {
+    public function __construct(
+        protected OpenAiErrorParser $openAiErrors,
+    ) {}
+
+    protected ?string $lastOpenAiError = null;
+
+    public function consumeLastOpenAiError(): ?string
+    {
+        $code = $this->lastOpenAiError;
+        $this->lastOpenAiError = null;
+
+        return $code;
+    }
+
+    public function lastOpenAiUserMessage(bool $ar = true): ?string
+    {
+        return $this->lastOpenAiError
+            ? $this->openAiErrors->userMessage($this->lastOpenAiError, $ar)
+            : null;
+    }
     /** @var list<string> */
     protected array $stopWords = [
         'في', 'من', 'على', 'الى', 'إلى', 'عن', 'مع', 'this', 'that', 'the', 'for', 'and', 'or', 'a', 'an',
@@ -25,6 +45,7 @@ class StoreAiSearchService
             return ['keywords' => [], 'summary' => '', 'ai_used' => false];
         }
 
+        $this->lastOpenAiError = null;
         $key = config('services.openai.key');
         if ($key) {
             $parsed = $this->analyzeWithOpenAi($query, $locale, $key);
@@ -33,13 +54,20 @@ class StoreAiSearchService
             }
         }
 
-        return [
-            'keywords' => $this->heuristicKeywords($query),
+        $keywords = $this->heuristicKeywords($query);
+        $fallback = [
+            'keywords' => $keywords,
             'summary' => $locale === 'ar'
-                ? 'بحث ذكي بالكلمات: '.implode('، ', $this->heuristicKeywords($query))
-                : 'Smart search keywords: '.implode(', ', $this->heuristicKeywords($query)),
+                ? 'بحث ذكي بالكلمات: '.implode('، ', $keywords)
+                : 'Smart search keywords: '.implode(', ', $keywords),
             'ai_used' => false,
         ];
+        if ($this->lastOpenAiError !== null) {
+            $fallback['ai_error'] = $this->lastOpenAiError;
+            $fallback['ai_error_message'] = $this->openAiErrors->userMessage($this->lastOpenAiError, $locale === 'ar');
+        }
+
+        return $fallback;
     }
 
     /**
@@ -133,6 +161,8 @@ class StoreAiSearchService
                 ]);
 
             if (! $response->successful()) {
+                $this->lastOpenAiError = $this->openAiErrors->classifyResponse($response);
+
                 return null;
             }
 

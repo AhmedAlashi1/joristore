@@ -13,7 +13,17 @@ class CatalogTranslationService
 
     public const WARN_RATE_LIMIT = 'rate_limit';
 
+    public const WARN_NO_BALANCE = 'no_openai_balance';
+
+    public const WARN_INVALID_KEY = 'invalid_openai_key';
+
     private ?int $lastHttpStatus = null;
+
+    private ?string $lastOpenAiCode = null;
+
+    public function __construct(
+        protected OpenAiErrorParser $openAiErrors,
+    ) {}
 
     /**
      * On update: if English is still empty in DB, ensure Arabic source keys are present for auto-fill.
@@ -152,9 +162,16 @@ class CatalogTranslationService
                 return self::WARN_NO_OPENAI;
             }
 
-            return $this->lastHttpStatus === 429
-                ? self::WARN_RATE_LIMIT
-                : self::WARN_TRANSLATION_FAILED;
+            if ($this->lastOpenAiCode !== null) {
+                return match ($this->openAiErrors->catalogWarningCode($this->lastOpenAiCode)) {
+                    'no_openai_balance' => self::WARN_NO_BALANCE,
+                    'rate_limit' => self::WARN_RATE_LIMIT,
+                    'invalid_openai_key' => self::WARN_INVALID_KEY,
+                    default => self::WARN_TRANSLATION_FAILED,
+                };
+            }
+
+            return self::WARN_TRANSLATION_FAILED;
         }
 
         return null;
@@ -162,16 +179,20 @@ class CatalogTranslationService
 
     public function warningMessage(?string $code, bool $ar = true): ?string
     {
+        if ($code === null) {
+            return null;
+        }
+
         return match ($code) {
             self::WARN_NO_OPENAI => $ar
                 ? 'لم تُترجم الحقول للإنجليزية: أضف OPENAI_API_KEY في .env على السيرفر ثم php artisan config:cache، أو اكتب الإنجليزي يدوياً.'
                 : 'English not auto-filled: set OPENAI_API_KEY in server .env (then config:cache) or enter English manually.',
-            self::WARN_TRANSLATION_FAILED => $ar
-                ? 'فشلت الترجمة التلقائية للإنجليزية — تحقق من المفتاح/الرصيد أو اكتب الإنجليزي يدوياً.'
-                : 'Auto English translation failed — check API key/billing or enter English manually.',
-            self::WARN_RATE_LIMIT => $ar
-                ? 'OpenAI رفض الطلب (429): نفد الرصيد أو تجاوزت الحد — أضف رصيداً في platform.openai.com أو انتظر قليلاً، أو اكتب الإنجليزي يدوياً.'
-                : 'OpenAI returned 429 (quota/rate limit) — add billing credits at platform.openai.com, wait, or enter English manually.',
+            self::WARN_NO_BALANCE => $this->openAiErrors->userMessage(OpenAiErrorParser::INSUFFICIENT_QUOTA, $ar)
+                .($ar ? ' أو اكتب الإنجليزي يدوياً.' : ' Or enter English manually.'),
+            self::WARN_INVALID_KEY => $this->openAiErrors->userMessage(OpenAiErrorParser::INVALID_KEY, $ar),
+            self::WARN_RATE_LIMIT => $this->openAiErrors->userMessage(OpenAiErrorParser::RATE_LIMIT, $ar),
+            self::WARN_TRANSLATION_FAILED => $this->openAiErrors->userMessage(OpenAiErrorParser::GENERIC, $ar)
+                .($ar ? ' أو اكتب الإنجليزي يدوياً.' : ' Or enter English manually.'),
             default => null,
         };
     }
@@ -184,6 +205,7 @@ class CatalogTranslationService
     {
         $empty = array_fill_keys(array_keys($fields), '');
         $this->lastHttpStatus = null;
+        $this->lastOpenAiCode = null;
 
         $key = config('services.openai.key');
         if (! $key) {
@@ -202,8 +224,10 @@ class CatalogTranslationService
 
             if (! $response->successful()) {
                 $this->lastHttpStatus = $response->status();
+                $this->lastOpenAiCode = $this->openAiErrors->classifyResponse($response);
                 Log::warning('CatalogTranslationService: OpenAI error', [
                     'status' => $response->status(),
+                    'openai_code' => $this->lastOpenAiCode,
                     'body' => $response->body(),
                 ]);
 
@@ -305,8 +329,11 @@ class CatalogTranslationService
 
         $response = $request();
         if ($retryOn429 && $response->status() === 429) {
-            usleep(2_500_000);
-            $response = $request();
+            $kind = $this->openAiErrors->classifyResponse($response);
+            if ($kind !== OpenAiErrorParser::INSUFFICIENT_QUOTA) {
+                usleep(2_500_000);
+                $response = $request();
+            }
         }
 
         return $response;

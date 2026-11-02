@@ -319,11 +319,15 @@ class StorefrontController extends Controller
         $locale = (string) $request->input('locale', 'ar');
         $result = $this->aiSearch->searchProducts($q, 24, $locale);
 
+        $analysis = $result['analysis'];
+
         return sendResponse([
             'query' => $q,
-            'summary' => $result['analysis']['summary'] ?? '',
-            'keywords' => $result['analysis']['keywords'] ?? [],
-            'ai_used' => $result['analysis']['ai_used'] ?? false,
+            'summary' => $analysis['summary'] ?? '',
+            'keywords' => $analysis['keywords'] ?? [],
+            'ai_used' => $analysis['ai_used'] ?? false,
+            'ai_error' => $analysis['ai_error'] ?? null,
+            'ai_error_message' => $analysis['ai_error_message'] ?? null,
             'products' => $result['products'],
         ], 'Smart search completed');
     }

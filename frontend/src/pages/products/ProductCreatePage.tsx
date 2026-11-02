@@ -29,7 +29,14 @@ export function ProductCreatePage() {
     try {
       const res = await api.post('/admin/products', prepareProductPayload(form));
       const created = ensureApiSuccess<ProductRecord>(res, '');
-      notify.success(ar ? 'تم إنشاء المنتج' : 'Product created');
+      const msg = (res.data as { message?: string })?.message;
+      if (msg?.includes('فش رصيد') || msg?.toLowerCase().includes('balance')) {
+        notify.error(msg);
+      } else if (msg && msg.length > 20) {
+        notify.success(msg);
+      } else {
+        notify.success(ar ? 'تم إنشاء المنتج' : 'Product created');
+      }
       navigate(`/admin/products/${created.id}`);
     } catch (error) {
       notify.errorFrom(error, ar ? 'فشل الحفظ' : 'Save failed');
