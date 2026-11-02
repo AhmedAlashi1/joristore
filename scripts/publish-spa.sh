@@ -29,22 +29,7 @@ rm -f "$ROOT/public/api-laravel.php"
 mkdir -p "$ROOT/public/spa"
 rsync -av "$SPA/index.html" "$ROOT/public/spa/"
 
-# Root redirect to admin login (not the storefront SPA index.html)
-cat > "$ROOT/public/index.html" <<'EOF'
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-  <meta charset="utf-8">
-  <meta http-equiv="refresh" content="0;url=/admin/login">
-  <link rel="canonical" href="/admin/login">
-  <title>لوحة التحكم</title>
-  <script>location.replace('/admin/login');</script>
-</head>
-<body>
-  <p><a href="/admin/login">تسجيل الدخول</a></p>
-</body>
-</html>
-EOF
+rm -f "$ROOT/public/index.html"
 
 if [[ ! -f "$ROOT/public/index.php" ]]; then
   echo "ERROR: missing $ROOT/public/index.php — Laravel cannot serve /admin or /api."

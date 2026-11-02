@@ -18,12 +18,8 @@ class SpaShellController extends Controller
 
     private function resolveSpaIndex(): ?string
     {
-        foreach ([public_path('index.html'), public_path('spa/index.html')] as $path) {
-            if (File::isFile($path)) {
-                return $path;
-            }
-        }
+        $path = public_path('spa/index.html');
 
-        return null;
+        return File::isFile($path) ? $path : null;
     }
 }
