@@ -1,10 +1,12 @@
-import axios from 'axios';
+import axios, { type AxiosError, type InternalAxiosRequestConfig } from 'axios';
 import { clearAuthToken, getAuthToken } from './auth';
 import { resolveApiBaseUrl } from './hosts';
 
+type RetryConfig = InternalAxiosRequestConfig & { __retryCount?: number };
+
 export const api = axios.create({
   baseURL: resolveApiBaseUrl(),
-  timeout: 20000,
+  timeout: 45000,
   headers: {
     Accept: 'application/json',
   },
@@ -33,9 +35,29 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+function isRetryableNetworkError(error: AxiosError): boolean {
+  if (error.response) {
+    return false;
+  }
+  const msg = String(error.message || '').toLowerCase();
+  return msg.includes('network error') || error.code === 'ECONNABORTED' || error.code === 'ERR_NETWORK';
+}
+
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error: AxiosError) => {
+    const config = error.config as RetryConfig | undefined;
+    if (config && isRetryableNetworkError(error)) {
+      const method = (config.method || 'get').toLowerCase();
+      const retries = config.__retryCount ?? 0;
+      if (method === 'get' && retries < 2) {
+        const attempt = retries + 1;
+        config.__retryCount = attempt;
+        await new Promise((r) => window.setTimeout(r, 400 * attempt));
+        return api.request(config);
+      }
+    }
+
     if (axios.isAxiosError(error) && error.response?.status === 401) {
       clearAuthToken();
       const path = window.location.pathname;

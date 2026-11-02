@@ -1,0 +1,65 @@
+<?php
+
+/** Arabic category name → English (demo catalog). Key "parent|child" for duplicate child names. */
+return [
+    'parents' => [
+        'ملابس رجالية' => ["Men's Apparel", "Men's apparel — Sports World collection"],
+        'ملابس نسائية' => ["Women's Apparel", "Women's apparel — Sports World collection"],
+        'أحذية' => ['Footwear', 'Footwear — Sports World collection'],
+        'أدوات رياضية' => ['Sports Equipment', 'Sports equipment — Sports World collection'],
+        'إكسسوارات رياضية' => ['Sports Accessories', 'Sports accessories — Sports World collection'],
+        'الجرابين والطواقي' => ['Socks & Caps', 'Socks and caps — Sports World collection'],
+        'ملابس الفرق والأندية' => ['Teams & Clubs', 'Team and club wear — Sports World collection'],
+    ],
+    'children' => [
+        "ملابس رجالية|أطقم رياضية" => ['Sports Sets', 'Sports sets — Men\'s Apparel'],
+        "ملابس رجالية|تيشيرتات" => ['T-Shirts', 'T-shirts — Men\'s Apparel'],
+        "ملابس رجالية|بناطيل رياضية" => ['Sports Pants', 'Sports pants — Men\'s Apparel'],
+        "ملابس رجالية|شورتات" => ['Shorts', 'Shorts — Men\'s Apparel'],
+        "ملابس رجالية|هوديز وسويت شيرت" => ['Hoodies & Sweatshirts', 'Hoodies and sweatshirts — Men\'s Apparel'],
+        "ملابس رجالية|جاكيتات" => ['Jackets', 'Jackets — Men\'s Apparel'],
+        "ملابس رجالية|ملابس ضاغطة" => ['Compression Wear', 'Compression wear — Men\'s Apparel'],
+        "ملابس رجالية|ملابس داخلية" => ['Underwear', 'Underwear — Men\'s Apparel'],
+
+        "ملابس نسائية|أطقم رياضية" => ['Sports Sets', 'Sports sets — Women\'s Apparel'],
+        "ملابس نسائية|تيشيرتات وتوبات" => ['T-Shirts & Tops', 'T-shirts and tops — Women\'s Apparel'],
+        "ملابس نسائية|ليغنز وبناطيل" => ['Leggings & Pants', 'Leggings and pants — Women\'s Apparel'],
+        "ملابس نسائية|شورتات" => ['Shorts', 'Shorts — Women\'s Apparel'],
+        "ملابس نسائية|جاكيتات وهوديز" => ['Jackets & Hoodies', 'Jackets and hoodies — Women\'s Apparel'],
+        "ملابس نسائية|ملابس رياضية محتشمة" => ['Modest Sportswear', 'Modest sportswear — Women\'s Apparel'],
+
+        'أحذية|أحذية كرة قدم' => ['Football Boots', 'Football boots — Footwear'],
+        'أحذية|أحذية ملاعب وصالات' => ['Court & Indoor Shoes', 'Court and indoor shoes — Footwear'],
+        'أحذية|أحذية جري' => ['Running Shoes', 'Running shoes — Footwear'],
+        'أحذية|أحذية مشي' => ['Walking Shoes', 'Walking shoes — Footwear'],
+        'أحذية|أحذية تدريب وجيم' => ['Training & Gym Shoes', 'Training and gym shoes — Footwear'],
+        'أحذية|سنيكرز' => ['Sneakers', 'Sneakers — Footwear'],
+        'أحذية|شباشب وصنادل' => ['Slides & Sandals', 'Slides and sandals — Footwear'],
+
+        'أدوات رياضية|كرات' => ['Balls', 'Balls — Sports Equipment'],
+        'أدوات رياضية|أدوات لياقة منزلية' => ['Home Fitness Gear', 'Home fitness gear — Sports Equipment'],
+        'أدوات رياضية|أوزان ودامبلز' => ['Weights & Dumbbells', 'Weights and dumbbells — Sports Equipment'],
+        'أدوات رياضية|حبال مقاومة' => ['Resistance Bands', 'Resistance bands — Sports Equipment'],
+        'أدوات رياضية|حبال قفز' => ['Jump Ropes', 'Jump ropes — Sports Equipment'],
+        'أدوات رياضية|حصائر تمارين' => ['Exercise Mats', 'Exercise mats — Sports Equipment'],
+        'أدوات رياضية|أدوات تدريب كرة القدم' => ['Football Training Gear', 'Football training gear — Sports Equipment'],
+
+        'إكسسوارات رياضية|حقائب رياضية' => ['Sports Bags', 'Sports bags — Sports Accessories'],
+        'إكسسوارات رياضية|قفازات جيم' => ['Gym Gloves', 'Gym gloves — Sports Accessories'],
+        'إكسسوارات رياضية|قفازات حارس مرمى' => ['Goalkeeper Gloves', 'Goalkeeper gloves — Sports Accessories'],
+        'إكسسوارات رياضية|واقيات ساق' => ['Shin Guards', 'Shin guards — Sports Accessories'],
+        'إكسسوارات رياضية|دعامات رياضية' => ['Sports Supports', 'Sports supports — Sports Accessories'],
+        'إكسسوارات رياضية|زجاجات مياه' => ['Water Bottles', 'Water bottles — Sports Accessories'],
+
+        'الجرابين والطواقي|جرابين رياضية' => ['Sports Socks', 'Sports socks — Socks & Caps'],
+        'الجرابين والطواقي|جرابين كرة قدم' => ['Football Socks', 'Football socks — Socks & Caps'],
+        'الجرابين والطواقي|جرابين تدريب' => ['Training Socks', 'Training socks — Socks & Caps'],
+        'الجرابين والطواقي|طواقي' => ['Beanies', 'Beanies — Socks & Caps'],
+        'الجرابين والطواقي|قبعات رياضية' => ['Sports Caps', 'Sports caps — Socks & Caps'],
+        'الجرابين والطواقي|شباشب جراب' => ['Sock Slides', 'Sock slides — Socks & Caps'],
+
+        'ملابس الفرق والأندية|أطقم أندية' => ['Club Kits', 'Club kits — Teams & Clubs'],
+        'ملابس الفرق والأندية|أطقم منتخبات' => ['National Team Kits', 'National team kits — Teams & Clubs'],
+        'ملابس الفرق والأندية|ملابس تدريب' => ['Training Wear', 'Training wear — Teams & Clubs'],
+    ],
+];

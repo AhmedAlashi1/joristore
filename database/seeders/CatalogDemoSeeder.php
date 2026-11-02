@@ -55,6 +55,9 @@ class CatalogDemoSeeder extends Seeder
             ->keyBy('id');
         $brandIds = $brands->keys()->all();
 
+        /** @var array{parents: array<string, array{0: string, 1: string}>, children: array<string, array{0: string, 1: string}>} $en */
+        $en = require __DIR__.'/data/category_english.php';
+
         $tree = [
             [
                 'name' => 'ملابس رجالية',
@@ -155,12 +158,15 @@ class CatalogDemoSeeder extends Seeder
         $priceBase = 49;
 
         foreach ($tree as $dept) {
+            $parentEn = $en['parents'][$dept['name']] ?? null;
             $parent = Category::withoutGlobalScopes()->create([
                 'merchant_id' => $merchantId,
                 'name' => $dept['name'],
+                'name_en' => $parentEn[0] ?? null,
                 'slug' => $dept['slug'],
                 'image' => $dept['image'],
                 'description' => $dept['name'].' — معرض عالم الرياضة',
+                'description_en' => $parentEn[1] ?? null,
                 'status' => 'active',
                 'sort_order' => $sort++,
             ]);
@@ -168,13 +174,17 @@ class CatalogDemoSeeder extends Seeder
             $childSort = 0;
             foreach ($dept['children'] as $childName) {
                 $childSlug = $dept['slug'].'-'.Str::slug($childName);
+                $childKey = $dept['name'].'|'.$childName;
+                $childEn = $en['children'][$childKey] ?? null;
                 $child = Category::withoutGlobalScopes()->create([
                     'merchant_id' => $merchantId,
                     'parent_id' => $parent->id,
                     'name' => $childName,
+                    'name_en' => $childEn[0] ?? null,
                     'slug' => $childSlug,
                     'image' => null,
                     'description' => $childName.' — '.$dept['name'],
+                    'description_en' => $childEn[1] ?? null,
                     'status' => 'active',
                     'sort_order' => $childSort++,
                 ]);

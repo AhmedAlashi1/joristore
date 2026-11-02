@@ -6,6 +6,7 @@ import UnifiedApp from './UnifiedApp';
 import { purgeStaleAppCachesIfNeeded } from './store/lib/app-cache-purge';
 import { isDashboardHost, isStorefrontHost, JORI_HOSTS } from './lib/hosts';
 import { bootstrapStoreBrandFromCache, ensureStoreBrandBootstrapped } from './store/lib/store-brand';
+import { clearDashboardPwaOnce } from './lib/clear-dashboard-pwa';
 
 /** Admin lives on dashboard; storefront SPA may still ship on sportsworldps.com. */
 function redirectAdminOffStorefront() {
@@ -64,6 +65,8 @@ function bootAfterCacheCheck() {
 }
 
 void (async () => {
+  await clearDashboardPwaOnce();
+
   const isAdmin =
     window.location.pathname.startsWith('/admin') ||
     window.location.pathname.startsWith('/partner') ||
