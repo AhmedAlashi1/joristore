@@ -25,7 +25,7 @@ export default defineConfig(({ mode }) => {
         if (mode !== 'production') return html;
         return html.replace(
           'href="/api/store/manifest.webmanifest"',
-          `href="${backendOrigin}/index.php/api/store/manifest.webmanifest"`,
+          'href="/index.php/api/store/manifest.webmanifest"',
         );
       },
     },
@@ -61,7 +61,7 @@ export default defineConfig(({ mode }) => {
         importScripts: ['push-sw.js'],
         globPatterns: ['**/*.{js,css,html,ico,svg,png,woff2}'],
         navigateFallback: '/index.html',
-        navigateFallbackDenylist: [/^\/api/, /^\/storage/],
+        navigateFallbackDenylist: [/^\/api/, /^\/index\.php\/api/, /^\/storage/],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
@@ -69,9 +69,14 @@ export default defineConfig(({ mode }) => {
             options: { cacheName: 'google-fonts-cache', expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 * 365 } },
           },
           {
-            urlPattern: new RegExp(`^https://${dashboardHostEscaped}/index.php/api/store/.*`, 'i'),
+            urlPattern: ({ url }) => url.pathname.startsWith('/index.php/api/store/'),
             handler: 'NetworkFirst',
             options: { cacheName: 'store-api-cache', networkTimeoutSeconds: 8 },
+          },
+          {
+            urlPattern: new RegExp(`^https://${dashboardHostEscaped}/index.php/api/store/.*`, 'i'),
+            handler: 'NetworkFirst',
+            options: { cacheName: 'store-api-cache-legacy', networkTimeoutSeconds: 8 },
           },
           {
             urlPattern: ({ url }) => url.pathname.startsWith('/storage/'),

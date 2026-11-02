@@ -7,6 +7,10 @@
   RewriteEngine On
   RewriteBase /
 
+  # Laravel API on store domain (~/joristore/public) — no dashboard SSL required
+  RewriteCond %{REQUEST_URI} ^/index\.php/api [NC]
+  RewriteRule ^index\.php/api(/.*)?$ api-laravel.php [L,QSA]
+
   # Laravel /storage/* (repo at ~/joristore next to ~/public_html on cPanel)
   RewriteCond %{REQUEST_URI} ^/storage/(.+)$
   RewriteCond %{DOCUMENT_ROOT}/../joristore/public/storage/%1 -f

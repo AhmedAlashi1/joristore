@@ -60,15 +60,15 @@ cd ~/joristore/frontend && npm ci && npm run build
 # Storefront (sportsworldps.com)
 rsync -av ~/joristore/public/spa/ ~/public_html/
 
-# Dashboard (Laravel — /admin + /assets; do NOT leave public/index.html or `/` shows the shop)
+# Dashboard (Laravel — /admin + /assets; rsync excludes the *store* SPA index.html)
 rsync -av --exclude index.html ~/joristore/public/spa/ ~/joristore/public/
 mkdir -p ~/joristore/public/spa
 rsync -av ~/joristore/public/spa/index.html ~/joristore/public/spa/
 ```
 
-Or: `bash scripts/publish-spa.sh` from the repo root.
+Or: `bash scripts/publish-spa.sh` from the repo root (writes a small root `index.html` that redirects to `/admin/login`).
 
-Without assets in `public/`, `/admin` **404**s. With `public/index.html`, `/` shows the **storefront** instead of admin login.
+Without assets in `public/`, `/admin` **404**s. **`public/index.php` must exist** (if you see “Index of /”, run `git checkout public/index.php public/.htaccess`). Document root for the dashboard subdomain must be `~/joristore/public`, not the repo root.
 
 4. Confirm logo URL returns `Content-Type: image/jpeg`, not `text/html`
 
@@ -150,3 +150,20 @@ php artisan optimize:clear
 Rebuild and publish SPA (see checklist above). In the browser: hard refresh or clear site data for sportsworldps.com and dashboard.
 
 Check API: `curl -s -o /dev/null -w "%{http_code}" -H "X-Store-Slug: jori-store" https://dashboard.sportsworldps.com/index.php/api/store` → **200**.
+
+## Store without dashboard SSL (temporary)
+
+The storefront calls the API on **the same domain** as the shop (`/index.php/api/...`) via `public_html/api-laravel.php` → `~/joristore/public`. The browser never needs a valid certificate on `dashboard.sportsworldps.com` for products/categories.
+
+1. `git pull` and `bash scripts/publish-spa.sh` (copies `api-laravel.php` + `.htaccess`).
+2. Open the shop at **`http://sportsworldps.com`** (not `https://`) until AutoSSL works on both domains.
+3. Keep **Force HTTPS off** on both domains until certificates are valid; then enable HTTPS and prefer `https://sportsworldps.com`.
+4. Admin UI stays on **`http://dashboard.sportsworldps.com/admin`** (or fix dashboard SSL and use HTTPS).
+
+Test on server:
+
+```bash
+curl -sI -H "X-Store-Slug: jori-store" "http://sportsworldps.com/index.php/api/store/categories" | head -5
+```
+
+→ **200** and `application/json`. If **404**, check `~/public_html/api-laravel.php` exists and `.htaccess` has the `index.php/api` rule.

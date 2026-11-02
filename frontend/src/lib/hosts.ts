@@ -19,6 +19,34 @@ function envBackendOrigin(): string | null {
   return v && String(v).trim() ? String(v).replace(/\/$/, '') : null;
 }
 
+/** Set `VITE_STORE_CROSS_ORIGIN_API=1` to call dashboard host (needs valid dashboard SSL). */
+function storefrontUsesSameOriginApi(): boolean {
+  const flag = import.meta.env.VITE_STORE_CROSS_ORIGIN_API;
+  if (flag === 'true' || flag === '1') return false;
+  return true;
+}
+
+function dashboardHostname(): string {
+  const raw = envBackendOrigin() ?? JORI_HOSTS.dashboardOrigin;
+  try {
+    return new URL(raw.includes('://') ? raw : `https://${raw}`).hostname;
+  } catch {
+    return new URL(JORI_HOSTS.dashboardOrigin).hostname;
+  }
+}
+
+/** API/storage origin for the storefront tab (same host as the shop when possible). */
+function storefrontPublicOrigin(): string {
+  if (typeof window === 'undefined') {
+    return JORI_HOSTS.dashboardOrigin;
+  }
+  if (storefrontUsesSameOriginApi()) {
+    return window.location.origin.replace(/\/$/, '');
+  }
+  const proto = window.location.protocol;
+  return `${proto}//${dashboardHostname()}`;
+}
+
 /** LiteSpeed/cPanel: `/api` 404 until rewrite fixed — use `/index.php/api`. */
 function useIndexPhpApi(): boolean {
   const flag = import.meta.env.VITE_LARAVEL_INDEX_PHP;
@@ -51,7 +79,7 @@ export function backendPublicOrigin(): string {
 
   if (typeof window !== 'undefined') {
     if (isStorefrontHost(window.location.hostname)) {
-      return JORI_HOSTS.dashboardOrigin;
+      return storefrontPublicOrigin();
     }
     return window.location.origin;
   }
@@ -74,8 +102,7 @@ export function resolveApiBaseUrl(): string {
       return `${window.location.origin.replace(/\/$/, '')}${prefix}/api`;
     }
     if (isStorefrontHost(host)) {
-      const dash = envBackendOrigin() ?? JORI_HOSTS.dashboardOrigin;
-      return `${dash.replace(/\/$/, '')}${prefix}/api`;
+      return `${storefrontPublicOrigin()}${prefix}/api`;
     }
     return `${window.location.origin.replace(/\/$/, '')}${prefix}/api`;
   }
