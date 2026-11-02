@@ -63,7 +63,7 @@ cd ~/joristore/frontend && npm ci && npm run build
 rsync -av ~/joristore/public/spa/ ~/public_html/
 
 # Dashboard (Laravel — /admin + /assets; rsync excludes the *store* SPA index.html)
-rsync -av --exclude index.html ~/joristore/public/spa/ ~/joristore/public/
+rsync -av --exclude index.html --exclude .htaccess --exclude index.php ~/joristore/public/spa/ ~/joristore/public/
 mkdir -p ~/joristore/public/spa
 rsync -av ~/joristore/public/spa/index.html ~/joristore/public/spa/
 ```

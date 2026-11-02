@@ -23,9 +23,17 @@ if [[ -d "$HOME/public_html" ]]; then
     cp -f "$ROOT/frontend/public/api-laravel.php" "$HOME/public_html/api-laravel.php"
   fi
 fi
-# Dashboard: assets + spa shell — not store index.html or api-laravel.php (storefront only)
-rsync -av --exclude index.html --exclude api-laravel.php "$SPA/" "$ROOT/public/"
+# Dashboard: assets only — never overwrite Laravel index.php / .htaccess (store SPA rules break /admin)
+rsync -av \
+  --exclude index.html \
+  --exclude api-laravel.php \
+  --exclude .htaccess \
+  --exclude index.php \
+  "$SPA/" "$ROOT/public/"
 rm -f "$ROOT/public/api-laravel.php"
+if command -v git >/dev/null 2>&1 && git -C "$ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  git -C "$ROOT" checkout -- public/.htaccess 2>/dev/null || true
+fi
 mkdir -p "$ROOT/public/spa"
 rsync -av "$SPA/index.html" "$ROOT/public/spa/"
 
