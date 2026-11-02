@@ -11,6 +11,10 @@ class CatalogTranslationService
 
     public const WARN_TRANSLATION_FAILED = 'translation_failed';
 
+    public const WARN_RATE_LIMIT = 'rate_limit';
+
+    private ?int $lastHttpStatus = null;
+
     /**
      * On update: if English is still empty in DB, ensure Arabic source keys are present for auto-fill.
      *
@@ -96,9 +100,13 @@ class CatalogTranslationService
                 continue;
             }
 
-            return $this->isAutoTranslationAvailable()
-                ? self::WARN_TRANSLATION_FAILED
-                : self::WARN_NO_OPENAI;
+            if (! $this->isAutoTranslationAvailable()) {
+                return self::WARN_NO_OPENAI;
+            }
+
+            return $this->lastHttpStatus === 429
+                ? self::WARN_RATE_LIMIT
+                : self::WARN_TRANSLATION_FAILED;
         }
 
         return null;
@@ -113,6 +121,9 @@ class CatalogTranslationService
             self::WARN_TRANSLATION_FAILED => $ar
                 ? 'فشلت الترجمة التلقائية للإنجليزية — تحقق من المفتاح/الرصيد أو اكتب الإنجليزي يدوياً.'
                 : 'Auto English translation failed — check API key/billing or enter English manually.',
+            self::WARN_RATE_LIMIT => $ar
+                ? 'OpenAI رفض الطلب (429): نفد الرصيد أو تجاوزت الحد — أضف رصيداً في platform.openai.com أو انتظر قليلاً، أو اكتب الإنجليزي يدوياً.'
+                : 'OpenAI returned 429 (quota/rate limit) — add billing credits at platform.openai.com, wait, or enter English manually.',
             default => null,
         };
     }
@@ -124,6 +135,7 @@ class CatalogTranslationService
     public function translateToEnglish(array $fields): array
     {
         $empty = array_fill_keys(array_keys($fields), '');
+        $this->lastHttpStatus = null;
 
         $key = config('services.openai.key');
         if (! $key) {
@@ -138,28 +150,10 @@ class CatalogTranslationService
         }
 
         try {
-            $response = Http::withToken($key)
-                ->timeout(45)
-                ->connectTimeout(15)
-                ->post('https://api.openai.com/v1/chat/completions', [
-                    'model' => config('services.openai.model', 'gpt-4o-mini'),
-                    'temperature' => 0.2,
-                    'response_format' => ['type' => 'json_object'],
-                    'messages' => [
-                        [
-                            'role' => 'system',
-                            'content' => 'You translate Arabic e-commerce catalog text into natural English for a sports/fashion store. '
-                                .'Output must be English only (Latin script). Keep brand names, SKUs, sizes, and numbers unchanged. '
-                                .'Return JSON only: same keys as input, values in English. No extra keys.',
-                        ],
-                        [
-                            'role' => 'user',
-                            'content' => $payload,
-                        ],
-                    ],
-                ]);
+            $response = $this->requestOpenAiTranslation($key, $payload, retryOn429: true);
 
             if (! $response->successful()) {
+                $this->lastHttpStatus = $response->status();
                 Log::warning('CatalogTranslationService: OpenAI error', [
                     'status' => $response->status(),
                     'body' => $response->body(),
@@ -215,5 +209,37 @@ class CatalogTranslationService
     private function containsLatinLetters(string $text): bool
     {
         return preg_match('/[A-Za-z]/', $text) === 1;
+    }
+
+    private function requestOpenAiTranslation(string $apiKey, string $payloadJson, bool $retryOn429): \Illuminate\Http\Client\Response
+    {
+        $request = fn () => Http::withToken($apiKey)
+            ->timeout(45)
+            ->connectTimeout(15)
+            ->post('https://api.openai.com/v1/chat/completions', [
+                'model' => config('services.openai.model', 'gpt-4o-mini'),
+                'temperature' => 0.2,
+                'response_format' => ['type' => 'json_object'],
+                'messages' => [
+                    [
+                        'role' => 'system',
+                        'content' => 'You translate Arabic e-commerce catalog text into natural English for a sports/fashion store. '
+                            .'Output must be English only (Latin script). Keep brand names, SKUs, sizes, and numbers unchanged. '
+                            .'Return JSON only: same keys as input, values in English. No extra keys.',
+                    ],
+                    [
+                        'role' => 'user',
+                        'content' => $payloadJson,
+                    ],
+                ],
+            ]);
+
+        $response = $request();
+        if ($retryOn429 && $response->status() === 429) {
+            usleep(2_500_000);
+            $response = $request();
+        }
+
+        return $response;
     }
 }
