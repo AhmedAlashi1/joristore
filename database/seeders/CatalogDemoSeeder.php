@@ -64,6 +64,11 @@ class CatalogDemoSeeder extends Seeder
                 'slug' => 'men-apparel',
                 'image' => '/categories/fashion.svg',
                 'children' => [
+                    'طقم شتوي',
+                    'طقم صيفي',
+                    'طقم خريفي',
+                    'بلوزة خريفي',
+                    'بلوزة شتوي',
                     'أطقم رياضية',
                     'تيشيرتات',
                     'بناطيل رياضية',

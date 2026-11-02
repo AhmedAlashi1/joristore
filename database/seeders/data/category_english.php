@@ -12,6 +12,11 @@ return [
         'ملابس الفرق والأندية' => ['Teams & Clubs', 'Team and club wear — Sports World collection'],
     ],
     'children' => [
+        'ملابس رجالية|طقم شتوي' => ['Winter Set', 'Winter set — Men\'s Apparel'],
+        'ملابس رجالية|طقم صيفي' => ['Summer Set', 'Summer set — Men\'s Apparel'],
+        'ملابس رجالية|طقم خريفي' => ['Autumn Set', 'Autumn set — Men\'s Apparel'],
+        'ملابس رجالية|بلوزة خريفي' => ['Autumn Sweatshirt', 'Autumn sweatshirt — Men\'s Apparel'],
+        'ملابس رجالية|بلوزة شتوي' => ['Winter Sweatshirt', 'Winter sweatshirt — Men\'s Apparel'],
         "ملابس رجالية|أطقم رياضية" => ['Sports Sets', 'Sports sets — Men\'s Apparel'],
         "ملابس رجالية|تيشيرتات" => ['T-Shirts', 'T-shirts — Men\'s Apparel'],
         "ملابس رجالية|بناطيل رياضية" => ['Sports Pants', 'Sports pants — Men\'s Apparel'],
