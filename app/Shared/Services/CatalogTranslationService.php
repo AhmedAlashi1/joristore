@@ -7,13 +7,10 @@ use Illuminate\Support\Facades\Log;
 
 class CatalogTranslationService
 {
-    /**
-     * Fill English catalog fields from Arabic source keys.
-     *
-     * @param  array<string, mixed>  $data
-     * @param  array<string, string>  $map  Arabic field => English field
-     * @return array<string, mixed>
-     */
+    public const WARN_NO_OPENAI = 'no_openai_key';
+
+    public const WARN_TRANSLATION_FAILED = 'translation_failed';
+
     /**
      * On update: if English is still empty in DB, ensure Arabic source keys are present for auto-fill.
      *
@@ -39,6 +36,13 @@ class CatalogTranslationService
         return $data;
     }
 
+    /**
+     * Fill English catalog fields from Arabic source keys (OpenAI only — never copies Arabic into EN).
+     *
+     * @param  array<string, mixed>  $data
+     * @param  array<string, string>  $map  Arabic field => English field
+     * @return array<string, mixed>
+     */
     public function applyEnglishFromArabic(array $data, array $map): array
     {
         $toTranslate = [];
@@ -66,38 +70,77 @@ class CatalogTranslationService
         }
 
         $translated = $this->translateToEnglish($toTranslate);
-        foreach ($toTranslate as $enKey => $arText) {
+        foreach (array_keys($toTranslate) as $enKey) {
             $value = trim((string) ($translated[$enKey] ?? ''));
-            if ($value === '') {
-                $value = $arText;
-            }
             $data[$enKey] = $value !== '' ? $value : null;
         }
 
         return $data;
     }
 
+    public function isAutoTranslationAvailable(): bool
+    {
+        return filled(config('services.openai.key'));
+    }
+
     /**
-     * @param  array<string, string>  $fields  key => Arabic text
-     * @return array<string, string>
+     * @param  array<string, string>  $map
+     */
+    public function translationWarning(array $data, array $map): ?string
+    {
+        foreach ($map as $arKey => $enKey) {
+            if (trim((string) ($data[$arKey] ?? '')) === '') {
+                continue;
+            }
+            if (trim((string) ($data[$enKey] ?? '')) !== '') {
+                continue;
+            }
+
+            return $this->isAutoTranslationAvailable()
+                ? self::WARN_TRANSLATION_FAILED
+                : self::WARN_NO_OPENAI;
+        }
+
+        return null;
+    }
+
+    public function warningMessage(?string $code, bool $ar = true): ?string
+    {
+        return match ($code) {
+            self::WARN_NO_OPENAI => $ar
+                ? 'لم تُترجم الحقول للإنجليزية: أضف OPENAI_API_KEY في .env على السيرفر ثم php artisan config:cache، أو اكتب الإنجليزي يدوياً.'
+                : 'English not auto-filled: set OPENAI_API_KEY in server .env (then config:cache) or enter English manually.',
+            self::WARN_TRANSLATION_FAILED => $ar
+                ? 'فشلت الترجمة التلقائية للإنجليزية — تحقق من المفتاح/الرصيد أو اكتب الإنجليزي يدوياً.'
+                : 'Auto English translation failed — check API key/billing or enter English manually.',
+            default => null,
+        };
+    }
+
+    /**
+     * @param  array<string, string>  $fields  English field key => Arabic source text
+     * @return array<string, string>  English field key => English text (empty if unavailable)
      */
     public function translateToEnglish(array $fields): array
     {
+        $empty = array_fill_keys(array_keys($fields), '');
+
         $key = config('services.openai.key');
         if (! $key) {
             Log::warning('CatalogTranslationService: OPENAI_API_KEY missing; English fields not auto-filled');
 
-            return $fields;
+            return $empty;
         }
 
         $payload = json_encode($fields, JSON_UNESCAPED_UNICODE);
         if ($payload === false) {
-            return $fields;
+            return $empty;
         }
 
         try {
             $response = Http::withToken($key)
-                ->timeout(25)
+                ->timeout(45)
+                ->connectTimeout(15)
                 ->post('https://api.openai.com/v1/chat/completions', [
                     'model' => config('services.openai.model', 'gpt-4o-mini'),
                     'temperature' => 0.2,
@@ -105,8 +148,8 @@ class CatalogTranslationService
                     'messages' => [
                         [
                             'role' => 'system',
-                            'content' => 'You translate Arabic e-commerce catalog text to natural English for a sports/fashion store. '
-                                .'Keep brand names, SKUs, sizes, and numbers unchanged. '
+                            'content' => 'You translate Arabic e-commerce catalog text into natural English for a sports/fashion store. '
+                                .'Output must be English only (Latin script). Keep brand names, SKUs, sizes, and numbers unchanged. '
                                 .'Return JSON only: same keys as input, values in English. No extra keys.',
                         ],
                         [
@@ -117,35 +160,60 @@ class CatalogTranslationService
                 ]);
 
             if (! $response->successful()) {
-                Log::warning('CatalogTranslationService: OpenAI error', ['status' => $response->status()]);
+                Log::warning('CatalogTranslationService: OpenAI error', [
+                    'status' => $response->status(),
+                    'body' => $response->body(),
+                ]);
 
-                return $fields;
+                return $empty;
             }
 
             $content = data_get($response->json(), 'choices.0.message.content');
             if (! is_string($content)) {
-                return $fields;
+                return $empty;
             }
 
             $decoded = json_decode($content, true);
             if (! is_array($decoded)) {
-                return $fields;
+                return $empty;
             }
 
             $out = [];
             foreach ($fields as $fieldKey => $arText) {
                 $en = $decoded[$fieldKey] ?? '';
-                $out[$fieldKey] = is_string($en) ? trim($en) : '';
-                if ($out[$fieldKey] === '') {
-                    $out[$fieldKey] = $arText;
+                $en = is_string($en) ? trim($en) : '';
+                if ($en === '' || $this->isSameAsArabicSource($en, $arText)) {
+                    $out[$fieldKey] = '';
+
+                    continue;
                 }
+                $out[$fieldKey] = $en;
             }
 
             return $out;
         } catch (\Throwable $e) {
             Log::warning('CatalogTranslationService: '.$e->getMessage());
 
-            return $fields;
+            return $empty;
         }
+    }
+
+    private function isSameAsArabicSource(string $english, string $arabic): bool
+    {
+        if ($english === $arabic) {
+            return true;
+        }
+
+        return $this->containsArabicScript($english) && ! $this->containsLatinLetters($english);
+    }
+
+    private function containsArabicScript(string $text): bool
+    {
+        return preg_match('/[\x{0600}-\x{06FF}]/u', $text) === 1;
+    }
+
+    private function containsLatinLetters(string $text): bool
+    {
+        return preg_match('/[A-Za-z]/', $text) === 1;
     }
 }

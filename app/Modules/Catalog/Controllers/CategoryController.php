@@ -63,10 +63,11 @@ class CategoryController extends Controller
         }
 
         $data = $validator->validated();
-        $data = $this->catalogTranslation->applyEnglishFromArabic($data, [
+        $translationMap = [
             'name' => 'name_en',
             'description' => 'description_en',
-        ]);
+        ];
+        $data = $this->catalogTranslation->applyEnglishFromArabic($data, $translationMap);
         $slug = $this->uniqueSlug($data['slug'] ?? $data['name_en'] ?? $data['name'], $merchantId);
 
         $category = Category::create([
@@ -80,7 +81,7 @@ class CategoryController extends Controller
 
         $this->activityLog->log('category.created', 'categories', "Category {$category->name} created", Category::class, $category->id, request: $request);
 
-        return sendResponse($this->format($category->load('parent')), 'Category created');
+        return sendResponse($this->format($category->load('parent')), $this->catalogSaveMessage('Category created', $data, $translationMap));
     }
 
     public function show(int $id)
@@ -134,7 +135,19 @@ class CategoryController extends Controller
 
         $this->activityLog->log('category.updated', 'categories', "Category {$category->name} updated", Category::class, $category->id, request: $request);
 
-        return sendResponse($this->format($category->fresh()->load('parent')), 'Category updated');
+        return sendResponse($this->format($category->fresh()->load('parent')), $this->catalogSaveMessage('Category updated', $data, $translationMap));
+
+    }
+
+    /** @param  array<string, string>  $translationMap */
+    protected function catalogSaveMessage(string $base, array $data, array $translationMap): string
+    {
+        $extra = $this->catalogTranslation->warningMessage(
+            $this->catalogTranslation->translationWarning($data, $translationMap),
+            true,
+        );
+
+        return $extra ? "{$base} — {$extra}" : $base;
     }
 
     public function destroy(Request $request, int $id)

@@ -110,11 +110,12 @@ class ProductController extends Controller
         }
 
         $data = $validator->validated();
-        $data = $this->catalogTranslation->applyEnglishFromArabic($data, [
+        $translationMap = [
             'name' => 'name_en',
             'short_description' => 'short_description_en',
             'description' => 'description_en',
-        ]);
+        ];
+        $data = $this->catalogTranslation->applyEnglishFromArabic($data, $translationMap);
         $slug = $this->uniqueSlug($data['slug'] ?? $data['name_en'] ?? $data['name'], $merchantId);
 
         $groupId = $data['product_group_id'] ?? null;
@@ -182,7 +183,7 @@ class ProductController extends Controller
 
         $this->activityLog->log('product.created', 'products', "Product {$product->name} created", Product::class, $product->id, request: $request);
 
-        return sendResponse($this->format($product), 'Product created');
+        return sendResponse($this->format($product), $this->catalogSaveMessage('Product created', $data, $translationMap));
     }
 
     public function show(int $id)
@@ -319,7 +320,10 @@ class ProductController extends Controller
 
         $this->activityLog->log('product.updated', 'products', "Product {$product->name} updated", Product::class, $product->id, request: $request);
 
-        return sendResponse($this->format($product->fresh()->load(['category', 'brand', 'defaultVariant.inventory', 'variants.inventory', 'images']), true), 'Product updated');
+        return sendResponse(
+            $this->format($product->fresh()->load(['category', 'brand', 'defaultVariant.inventory', 'variants.inventory', 'images']), true),
+            $this->catalogSaveMessage('Product updated', $data, $translationMap),
+        );
     }
 
     public function destroy(Request $request, int $id)
@@ -740,5 +744,16 @@ class ProductController extends Controller
         }
 
         $product->images()->whereNotIn('id', $keepIds)->delete();
+    }
+
+    /** @param  array<string, string>  $translationMap */
+    protected function catalogSaveMessage(string $base, array $data, array $translationMap): string
+    {
+        $extra = $this->catalogTranslation->warningMessage(
+            $this->catalogTranslation->translationWarning($data, $translationMap),
+            true,
+        );
+
+        return $extra ? "{$base} — {$extra}" : $base;
     }
 }

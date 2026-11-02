@@ -21,8 +21,8 @@ export function AutoEnglishPreview({
     return (
       <p className="text-xs text-[#8a8da8]">
         {ar
-          ? 'يُترجم الإنجليزي تلقائياً عند الحفظ (يتطلب OPENAI_API_KEY على السيرفر).'
-          : 'English is auto-filled on save (requires OPENAI_API_KEY on the server).'}
+          ? 'يُترجم للإنجليزية عند الحفظ عبر OpenAI فقط (OPENAI_API_KEY في .env على السيرفر). لن يُنسخ العربي مكان الإنجليزي.'
+          : 'Saved Arabic is translated to English via OpenAI (OPENAI_API_KEY in server .env). Arabic is never copied into English fields.'}
       </p>
     );
   }
