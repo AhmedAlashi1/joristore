@@ -18,6 +18,12 @@ class CatalogTranslationService
     {
         $toTranslate = [];
         foreach ($map as $arKey => $enKey) {
+            $manualEn = trim((string) ($data[$enKey] ?? ''));
+            if ($manualEn !== '') {
+                $data[$enKey] = $manualEn;
+
+                continue;
+            }
             if (! array_key_exists($arKey, $data)) {
                 continue;
             }
@@ -52,7 +58,7 @@ class CatalogTranslationService
         if (! $key) {
             Log::warning('CatalogTranslationService: OPENAI_API_KEY missing; English fields not auto-filled');
 
-            return array_map(fn () => '', $fields);
+            return $fields;
         }
 
         $payload = json_encode($fields, JSON_UNESCAPED_UNICODE);

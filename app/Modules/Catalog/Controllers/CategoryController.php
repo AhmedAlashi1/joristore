@@ -48,9 +48,11 @@ class CategoryController extends Controller
         $merchantId = MerchantContext::merchantId();
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
+            'name_en' => 'nullable|string|max:255',
             'slug' => 'nullable|string|max:255',
             'parent_id' => ['nullable', 'integer', Rule::exists('categories', 'id')->where('merchant_id', $merchantId)],
             'description' => 'nullable|string',
+            'description_en' => 'nullable|string',
             'image' => 'nullable|string|max:500',
             'status' => 'nullable|in:active,inactive',
             'sort_order' => 'nullable|integer|min:0',
@@ -101,9 +103,11 @@ class CategoryController extends Controller
         $merchantId = MerchantContext::merchantId();
         $validator = Validator::make($request->all(), [
             'name' => 'sometimes|required|string|max:255',
+            'name_en' => 'nullable|string|max:255',
             'slug' => 'nullable|string|max:255',
             'parent_id' => ['nullable', 'integer', Rule::exists('categories', 'id')->where('merchant_id', $merchantId)],
             'description' => 'nullable|string',
+            'description_en' => 'nullable|string',
             'image' => 'nullable|string|max:500',
             'status' => 'nullable|in:active,inactive',
             'sort_order' => 'nullable|integer|min:0',

@@ -18,6 +18,7 @@ export type ProductCardData = {
   has_size_options?: boolean;
   featured?: boolean;
   category_name?: string;
+  category_name_en?: string | null;
   brand_name?: string | null;
   color_name?: string | null;
   image?: string | null;
@@ -41,6 +42,7 @@ export function ProductCard({
 }) {
   const { locale, t } = useLocale();
   const displayName = pickLocalizedText(locale, product.name, product.name_en);
+  const displayCategory = pickLocalizedText(locale, product.category_name, product.category_name_en);
 
   return (
     <Link
@@ -110,8 +112,8 @@ export function ProductCard({
         ) : (
           <span className="mt-0.5 block min-h-[14px]" aria-hidden />
         )}
-        {product.category_name ? (
-          <p className="mt-0.5 truncate text-[11px] font-medium text-store-muted">{product.category_name}</p>
+        {displayCategory ? (
+          <p className="mt-0.5 truncate text-[11px] font-medium text-store-muted">{displayCategory}</p>
         ) : null}
         <div className="mt-auto flex items-baseline gap-1.5 pt-2">
           <span className="text-base font-bold text-[var(--primary)]">{formatPrice(product.price)}</span>

@@ -136,12 +136,15 @@ export function prepareProductPayload(form: ProductFormState) {
   const sizeRows = form.size_variants.filter((r) => r.name?.trim());
   return {
     name: form.name,
+    name_en: form.name_en?.trim() || undefined,
     slug: form.slug || undefined,
     category_id: form.category_id ? Number(form.category_id) : null,
     brand_id: form.brand_id ? Number(form.brand_id) : null,
     status: form.status,
     short_description: form.short_description || null,
+    short_description_en: form.short_description_en?.trim() || undefined,
     description: form.description || null,
+    description_en: form.description_en?.trim() || undefined,
     sku: form.sku || null,
     price: Number(form.price),
     compare_at_price: form.compare_at_price ? Number(form.compare_at_price) : null,

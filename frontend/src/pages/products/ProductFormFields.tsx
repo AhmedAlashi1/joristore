@@ -58,6 +58,14 @@ export function ProductFormFields({
           <FormField label={ar ? 'اسم المنتج (عربي) *' : 'Product name (Arabic) *'}>
             <Input value={form.name} onChange={(e) => patch({ name: e.target.value })} />
           </FormField>
+          <FormField label={ar ? 'اسم المنتج (إنجليزي)' : 'Product name (English)'}>
+            <Input
+              value={form.name_en}
+              onChange={(e) => patch({ name_en: e.target.value })}
+              placeholder={ar ? 'اختياري — أو تلقائي عند الحفظ' : 'Optional — or auto on save'}
+              dir="ltr"
+            />
+          </FormField>
           <FormField label={ar ? 'SKU' : 'SKU'}>
             <Input value={form.sku} onChange={(e) => patch({ sku: e.target.value })} />
           </FormField>
@@ -109,11 +117,22 @@ export function ProductFormFields({
         <FormField label={ar ? 'وصف مختصر (عربي)' : 'Short description (Arabic)'}>
           <Input value={form.short_description} onChange={(e) => patch({ short_description: e.target.value })} />
         </FormField>
+        <FormField label={ar ? 'وصف مختصر (إنجليزي)' : 'Short description (English)'}>
+          <Input value={form.short_description_en} onChange={(e) => patch({ short_description_en: e.target.value })} dir="ltr" />
+        </FormField>
         <FormField label={ar ? 'الوصف (عربي)' : 'Description (Arabic)'}>
           <textarea
             className="glass-input min-h-[120px] w-full rounded-xl px-3 py-2 text-sm"
             value={form.description}
             onChange={(e) => patch({ description: e.target.value })}
+          />
+        </FormField>
+        <FormField label={ar ? 'الوصف (إنجليزي)' : 'Description (English)'}>
+          <textarea
+            className="glass-input min-h-[120px] w-full rounded-xl px-3 py-2 text-sm"
+            value={form.description_en}
+            onChange={(e) => patch({ description_en: e.target.value })}
+            dir="ltr"
           />
         </FormField>
       </section>

@@ -66,9 +66,11 @@ export function CategoriesPage() {
       })}
       preparePayload={(form) => ({
         name: form.name,
+        name_en: String(form.name_en || '').trim() || undefined,
         slug: form.slug || undefined,
         parent_id: form.parent_id ? Number(form.parent_id) : null,
         description: form.description || null,
+        description_en: String(form.description_en || '').trim() || undefined,
         image: form.image || null,
         status: form.status,
         sort_order: Number(form.sort_order) || 0,
@@ -77,6 +79,14 @@ export function CategoriesPage() {
         <FormGrid>
           <FormField label={ar ? 'الاسم (عربي) *' : 'Name (Arabic) *'}>
             <Input value={String(form.name || '')} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+          </FormField>
+          <FormField label={ar ? 'الاسم (إنجليزي)' : 'Name (English)'}>
+            <Input
+              value={String(form.name_en || '')}
+              onChange={(e) => setForm({ ...form, name_en: e.target.value })}
+              placeholder={ar ? 'اختياري — أو تلقائي عند الحفظ' : 'Optional — or auto on save'}
+              dir="ltr"
+            />
           </FormField>
           <div className="col-span-full">
             <AutoEnglishPreview
@@ -104,6 +114,13 @@ export function CategoriesPage() {
           </FormField>
           <FormField label={ar ? 'الوصف (عربي)' : 'Description (Arabic)'}>
             <Input value={String(form.description || '')} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+          </FormField>
+          <FormField label={ar ? 'الوصف (إنجليزي)' : 'Description (English)'}>
+            <Input
+              value={String(form.description_en || '')}
+              onChange={(e) => setForm({ ...form, description_en: e.target.value })}
+              dir="ltr"
+            />
           </FormField>
           <div className="col-span-full">
             <ImageUploadField

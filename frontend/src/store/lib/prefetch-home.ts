@@ -12,6 +12,7 @@ type HomeCache = {
   categories: {
     id: number;
     name: string;
+    name_en?: string | null;
     slug: string;
     parent_id?: number | null;
     image?: string | null;

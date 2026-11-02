@@ -10,11 +10,13 @@ import { StoreMediaImage } from '../components/media/StoreMediaImage';
 import { getCachedHome, HOME_CACHE_KEY, prefetchStoreHome } from '../lib/prefetch-home';
 import { readStoreCache } from '../lib/store-cache';
 import { usePullRefreshOutletKey } from '../providers/pull-refresh-provider';
+import { pickLocalizedText } from '../lib/localized-text';
 import { useLocale } from '../providers/locale-provider';
 
 type Category = {
   id: number;
   name: string;
+  name_en?: string | null;
   slug: string;
   parent_id?: number | null;
   image?: string | null;
@@ -33,7 +35,7 @@ function initialHomeState() {
 }
 
 export function HomePage() {
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
   const [initial] = useState(initialHomeState);
   const [categories, setCategories] = useState<Category[]>(initial.categories);
   const [newArrivals, setNewArrivals] = useState<ProductCardData[]>(initial.newArrivals);
@@ -85,14 +87,17 @@ export function HomePage() {
             </Link>
           </div>
           <div className="home-category-rail hide-scrollbar flex gap-2.5 overflow-x-auto pb-0.5 snap-x snap-mandatory">
-            {categories.map((c) => (
+            {categories.map((c) => {
+              const label = pickLocalizedText(locale, c.name, c.name_en);
+              return (
               <Link key={c.id} to={`/categories?parent=${c.id}`} className="category-tile shrink-0 snap-start">
                 <span className="category-tile-img overflow-hidden shadow-sm">
-                  <StoreMediaImage src={c.image} cacheVersion={c.updated_at} alt={c.name} />
+                  <StoreMediaImage src={c.image} cacheVersion={c.updated_at} alt={label} />
                 </span>
-                <span className="category-tile-label">{c.name}</span>
+                <span className="category-tile-label">{label}</span>
               </Link>
-            ))}
+              );
+            })}
           </div>
         </section>
       ) : null}
