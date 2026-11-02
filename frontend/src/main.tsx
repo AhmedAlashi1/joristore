@@ -44,9 +44,11 @@ function mountApp() {
 }
 
 function bootAfterCacheCheck() {
-  registerSW({ immediate: true });
-
   const onDashboard = isDashboardHost(window.location.hostname);
+  // PWA service worker is for the storefront only; on dashboard it can cache a broken shell (white screen).
+  if (!onDashboard) {
+    registerSW({ immediate: true });
+  }
   const path = window.location.pathname;
   const isPartnerEntry = path.startsWith('/partner');
   const isStoreEntry = !onDashboard && !path.startsWith('/admin') && !isPartnerEntry;

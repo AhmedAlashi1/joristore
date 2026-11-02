@@ -37,11 +37,23 @@ fi
 mkdir -p "$ROOT/public/spa"
 rsync -av "$SPA/index.html" "$ROOT/public/spa/"
 
+# Browser loads /assets/* from docroot (see spa/index.html), not /spa/assets/*
+if [[ -d "$SPA/assets" ]]; then
+  mkdir -p "$ROOT/public/assets"
+  rsync -av --delete "$SPA/assets/" "$ROOT/public/assets/"
+fi
+
 rm -f "$ROOT/public/index.html"
 
 if [[ ! -f "$ROOT/public/index.php" ]]; then
   echo "ERROR: missing $ROOT/public/index.php — Laravel cannot serve /admin or /api."
   echo "Run: cd $ROOT && git checkout public/index.php public/.htaccess"
+  exit 1
+fi
+
+MAIN_JS="$(grep -oE 'index-[^"]+\.js' "$ROOT/public/spa/index.html" | head -1)"
+if [[ -n "$MAIN_JS" && ! -f "$ROOT/public/assets/$MAIN_JS" ]]; then
+  echo "ERROR: $ROOT/public/assets/$MAIN_JS missing — admin will show a white screen."
   exit 1
 fi
 
