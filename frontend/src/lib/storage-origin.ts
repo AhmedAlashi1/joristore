@@ -1,40 +1,44 @@
-import { backendPublicOrigin, isDashboardHost, isStorefrontHost, JORI_HOSTS } from './hosts';
+import { backendPublicOrigin, isStorefrontHost } from './hosts';
 
 /** @deprecated use backendPublicOrigin */
 export const storagePublicOrigin = backendPublicOrigin;
 
-/** Uploaded files live on the Laravel host (dashboard), not always on the storefront domain. */
+/**
+ * Storefront: same-origin `/storage` (public_html/storage → joristore/storage/app/public).
+ * Dashboard / admin: Laravel public origin.
+ */
 function storageFileOrigin(): string {
   if (typeof window !== 'undefined' && isStorefrontHost(window.location.hostname)) {
-    const fromEnv = import.meta.env.VITE_BACKEND_ORIGIN || import.meta.env.VITE_API_ORIGIN;
-    if (fromEnv && String(fromEnv).trim()) {
-      return String(fromEnv).trim().replace(/\/$/, '');
-    }
-
-    return JORI_HOSTS.dashboardOrigin;
+    return window.location.origin.replace(/\/$/, '');
   }
 
   return backendPublicOrigin();
 }
 
-function rewriteStorefrontStorageUrl(url: string): string {
+function normalizeStoragePath(trimmed: string): string {
+  if (trimmed.startsWith('/storage/')) {
+    return trimmed;
+  }
+  if (trimmed.startsWith('storage/')) {
+    return `/${trimmed}`;
+  }
+
+  return `/storage/${trimmed.replace(/^\/+/, '')}`;
+}
+
+/** Rewrite baked dashboard storage URLs to storefront origin when shop runs on sportsworldps.com. */
+function rewriteStorageUrlForStorefront(url: string): string {
   if (typeof window === 'undefined' || !isStorefrontHost(window.location.hostname)) {
     return url;
   }
   try {
-    const parsed = new URL(url, window.location.origin);
+    const parsed = new URL(url);
     if (!parsed.pathname.startsWith('/storage/')) {
       return url;
     }
-    if (isDashboardHost(parsed.hostname)) {
-      return parsed.toString();
-    }
-    const dash = new URL(JORI_HOSTS.dashboardOrigin);
-    parsed.protocol = dash.protocol;
-    parsed.hostname = dash.hostname;
-    parsed.port = dash.port;
+    const origin = window.location.origin.replace(/\/$/, '');
 
-    return parsed.toString();
+    return `${origin}${parsed.pathname}${parsed.search}`;
   } catch {
     return url;
   }
@@ -46,13 +50,11 @@ export function absoluteStorageUrl(pathOrUrl?: string | null, cacheVersion?: str
   if (!trimmed) return '';
   let url = '';
   if (/^https?:\/\//i.test(trimmed)) {
-    url = rewriteStorefrontStorageUrl(trimmed);
-  } else if (trimmed.startsWith('/storage/')) {
-    url = `${storageFileOrigin()}${trimmed}`;
+    url = rewriteStorageUrlForStorefront(trimmed);
+  } else if (trimmed.startsWith('/storage/') || trimmed.startsWith('storage/')) {
+    url = `${storageFileOrigin()}${normalizeStoragePath(trimmed)}`;
   } else if (trimmed.startsWith('/')) {
     url = trimmed;
-  } else if (trimmed.startsWith('storage/')) {
-    url = `${storageFileOrigin()}/${trimmed}`;
   } else {
     url = `/${trimmed.replace(/^\/+/, '')}`;
   }
