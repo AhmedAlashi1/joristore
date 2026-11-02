@@ -69,14 +69,9 @@ export default defineConfig(({ mode }) => {
             options: { cacheName: 'google-fonts-cache', expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 * 365 } },
           },
           {
-            urlPattern: ({ url }) => url.pathname.startsWith('/index.php/api/store/'),
-            handler: 'NetworkFirst',
-            options: { cacheName: 'store-api-cache', networkTimeoutSeconds: 8 },
-          },
-          {
-            urlPattern: new RegExp(`^https://${dashboardHostEscaped}/index.php/api/store/.*`, 'i'),
-            handler: 'NetworkFirst',
-            options: { cacheName: 'store-api-cache-legacy', networkTimeoutSeconds: 8 },
+            urlPattern: ({ url }) =>
+              url.pathname.includes('/api/store/') || url.pathname.includes('/index.php/api/store/'),
+            handler: 'NetworkOnly',
           },
           {
             urlPattern: ({ url }) => url.pathname.startsWith('/storage/'),
