@@ -25,7 +25,7 @@ export function StoreMediaImage({
   className,
   fit = 'cover',
   layout = 'fill',
-  fadeIn = true,
+  fadeIn = false,
 }: StoreMediaImageProps) {
   const { logo } = useStoreBrand();
   const [failed, setFailed] = useState(false);
@@ -77,8 +77,9 @@ export function StoreMediaImage({
         fadeIn ? (loaded ? 'opacity-100 product-img-reveal' : 'opacity-0') : 'opacity-100',
         className,
       )}
-      loading="lazy"
+      loading={fadeIn ? 'lazy' : 'eager'}
       decoding="async"
+      fetchPriority={fadeIn ? 'auto' : 'high'}
       onLoad={() => setLoaded(true)}
       onError={() => setFailed(true)}
     />

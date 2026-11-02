@@ -92,7 +92,7 @@ export function HomePage() {
               return (
               <Link key={c.id} to={`/categories?parent=${c.id}`} className="category-tile shrink-0 snap-start">
                 <span className="category-tile-img overflow-hidden shadow-sm">
-                  <StoreMediaImage src={c.image} cacheVersion={c.updated_at} alt={label} />
+                  <StoreMediaImage src={c.image} cacheVersion={c.updated_at} alt={label} fit="cover" layout="fill" />
                 </span>
                 <span className="category-tile-label">{label}</span>
               </Link>
