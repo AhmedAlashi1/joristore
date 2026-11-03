@@ -789,6 +789,59 @@ html:has(.store-app) body::-webkit-scrollbar {
   border-radius: 9999px;
   border: 2px solid rgba(255, 255, 255, 0.85);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  cursor: pointer;
+}
+
+/* Product color variant — throw / catch hero */
+.product-hero-stage {
+  position: relative;
+  overflow: hidden;
+}
+
+.product-hero-stage .product-hero-throw-out {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  margin: auto;
+  pointer-events: none;
+  animation: product-hero-throw-out 0.48s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.product-hero-throw-in {
+  animation: product-hero-throw-in 0.48s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes product-hero-throw-out {
+  to {
+    transform: translateX(calc(var(--slide-dir, 1) * -115%)) rotate(calc(var(--slide-dir, 1) * -14deg)) scale(0.82);
+    opacity: 0;
+  }
+}
+
+@keyframes product-hero-throw-in {
+  from {
+    transform: translateX(calc(var(--slide-dir, 1) * 115%)) rotate(calc(var(--slide-dir, 1) * 14deg)) scale(0.88);
+    opacity: 0.2;
+  }
+  to {
+    transform: translateX(0) rotate(0deg) scale(1);
+    opacity: 1;
+  }
+}
+
+.product-detail-variant-in {
+  animation: product-detail-variant-in 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes product-detail-variant-in {
+  from {
+    opacity: 0;
+    transform: translateX(calc(var(--slide-dir, 1) * 24px));
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 .app-header {

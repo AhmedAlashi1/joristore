@@ -1,6 +1,7 @@
 import { ArrowRight, Minus, Plus, ShoppingCart } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { ProductColorSwatches, type ColorVariant } from '../components/product/ProductColorSwatches';
 import { FavoriteButton } from '../components/product/FavoriteButton';
 import { storeApi, unwrap } from '../lib/api';
 import { ProductImageGallery } from '../components/product/ProductImageGallery';
@@ -60,6 +61,8 @@ export function ProductPage() {
   const [selectedVariantId, setSelectedVariantId] = useState<number | null>(null);
   const [qty, setQty] = useState(1);
   const [added, setAdded] = useState(false);
+  const [variantSlideDir, setVariantSlideDir] = useState(0);
+  const [colorSwitching, setColorSwitching] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -93,6 +96,19 @@ export function ProductPage() {
     });
   }, [selectedVariantId, stockMax, product]);
 
+  const colorVariants = useMemo((): ColorVariant[] => {
+    if (!product) return [];
+    const siblings = product.color_siblings ?? [];
+    const self: ColorVariant = {
+      id: product.id,
+      name: product.name,
+      color_hex: product.color_hex,
+      color_name: product.color_name,
+      image: product.image,
+    };
+    return [self, ...siblings.filter((s) => s.id !== product.id)];
+  }, [product]);
+
   if (!product) {
     return <div className="glass aspect-square animate-pulse rounded-3xl" />;
   }
@@ -120,6 +136,31 @@ export function ProductPage() {
   const siblings = product.color_siblings ?? [];
   const showColors = siblings.length > 0 || product.color_hex || product.color_name;
 
+  const applyProductVariant = (data: ProductDetail, dir: number) => {
+    setVariantSlideDir(dir);
+    setProduct(data);
+    const sizes = data.size_variants ?? [];
+    const defaultSize = sizes.find((s) => s.is_default) ?? sizes.find((s) => s.in_stock) ?? sizes[0];
+    setSelectedVariantId(defaultSize?.id ?? data.variant_id ?? null);
+    setQty(1);
+    setAdded(false);
+    window.setTimeout(() => setVariantSlideDir(0), 500);
+  };
+
+  const onColorSelect = async (variant: ColorVariant, direction: 1 | -1) => {
+    if (variant.id === product.id || colorSwitching) return;
+    setColorSwitching(true);
+    try {
+      const data = unwrap<ProductDetail>(await storeApi.product(variant.id));
+      applyProductVariant(data, direction);
+      navigate(`/product/${variant.id}`, { replace: true });
+    } catch {
+      /* keep current */
+    } finally {
+      setColorSwitching(false);
+    }
+  };
+
   return (
     <div className="space-y-4 pb-4 page-slide-left">
       <div className="flex items-center justify-between gap-2">
@@ -142,8 +183,18 @@ export function ProductPage() {
       </div>
 
       <div className="glass-strong card-pop overflow-hidden rounded-3xl">
-        <ProductImageGallery name={displayName} image={product.image} images={product.images} />
-        <div className="p-5">
+        <ProductImageGallery
+          productId={product.id}
+          variantSlideDirection={variantSlideDir}
+          name={displayName}
+          image={product.image}
+          images={product.images}
+        />
+        <div
+          key={product.id}
+          className={cn('p-5', variantSlideDir !== 0 && 'product-detail-variant-in')}
+          style={variantSlideDir !== 0 ? ({ '--slide-dir': String(variantSlideDir) } as Record<string, string>) : undefined}
+        >
           {displayCategory ? (
             <p className="text-xs font-semibold text-[var(--primary)]">{displayCategory}</p>
           ) : null}
@@ -158,25 +209,14 @@ export function ProductPage() {
             ) : null}
           </div>
 
-          {showColors ? (
+          {showColors && colorVariants.length > 0 ? (
             <div className="mt-4">
-              <p className="mb-2 text-xs font-bold text-store-muted">{t.chooseColor}</p>
-              <div className="flex flex-wrap gap-2">
-                <span
-                  className="color-swatch ring-2 ring-[var(--primary)]"
-                  style={{ background: product.color_hex || '#7367f0' }}
-                  title={product.color_name || product.name}
-                />
-                {siblings.map((s) => (
-                  <Link
-                    key={s.id}
-                    to={`/product/${s.id}`}
-                    className={cn('color-swatch', s.id === product.id && 'ring-2 ring-[var(--primary)]')}
-                    style={{ background: s.color_hex || '#c8cad8' }}
-                    title={s.color_name || s.name}
-                  />
-                ))}
-              </div>
+              <ProductColorSwatches
+                variants={colorVariants}
+                activeId={product.id}
+                label={t.chooseColor}
+                onSelect={(v, dir) => void onColorSelect(v, dir)}
+              />
             </div>
           ) : null}
 

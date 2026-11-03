@@ -1,16 +1,25 @@
 import { ChevronLeft, ChevronRight, X, ZoomIn } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { useSwipeIndex } from '../home/useSwipeIndex';
 import { StoreMediaImage } from '../media/StoreMediaImage';
 import { cn, resolveMediaUrl } from '../../lib/utils';
 
 type ProductImageGalleryProps = {
+  productId: number;
+  /** 1 = next color (enter from end), -1 = previous */
+  variantSlideDirection?: number;
   name: string;
   image?: string | null;
   images?: string[] | null;
 };
 
-export function ProductImageGallery({ name, image, images }: ProductImageGalleryProps) {
+export function ProductImageGallery({
+  productId,
+  variantSlideDirection = 0,
+  name,
+  image,
+  images,
+}: ProductImageGalleryProps) {
   const slides = useMemo(() => {
     const fromApi = (images ?? []).filter(Boolean) as string[];
     if (fromApi.length) return fromApi;
@@ -21,10 +30,35 @@ export function ProductImageGallery({ name, image, images }: ProductImageGallery
   const [active, setActive] = useState(0);
   const [lightbox, setLightbox] = useState(false);
   const [zoomed, setZoomed] = useState(false);
+  const [variantAnim, setVariantAnim] = useState<{
+    dir: number;
+    outgoingSrc: string;
+  } | null>(null);
+  const prevProductIdRef = useRef(productId);
+  const prevHeroSrcRef = useRef('');
 
   useEffect(() => {
     setActive(0);
-  }, [slides.join('|')]);
+  }, [slides.join('|'), productId]);
+
+  useEffect(() => {
+    const hero = slides[0] ?? '';
+    if (prevProductIdRef.current === productId) {
+      prevHeroSrcRef.current = hero;
+      return;
+    }
+    const outgoing = prevHeroSrcRef.current || hero;
+    const dir = variantSlideDirection === 0 ? 1 : variantSlideDirection;
+    if (outgoing && hero && outgoing !== hero) {
+      setVariantAnim({ dir, outgoingSrc: outgoing });
+      const t = window.setTimeout(() => setVariantAnim(null), 480);
+      prevProductIdRef.current = productId;
+      prevHeroSrcRef.current = hero;
+      return () => window.clearTimeout(t);
+    }
+    prevProductIdRef.current = productId;
+    prevHeroSrcRef.current = hero;
+  }, [productId, variantSlideDirection, slides]);
 
   useEffect(() => {
     if (!lightbox) setZoomed(false);
@@ -52,18 +86,33 @@ export function ProductImageGallery({ name, image, images }: ProductImageGallery
         >
           <button
             type="button"
-            className="block w-full"
+            className="product-hero-stage block w-full"
             data-fly-source="product-hero"
             onClick={() => setLightbox(true)}
             aria-label={name}
           >
-            <StoreMediaImage
-              key={activeSrc}
-              src={activeSrc}
-              alt={name}
-              layout="intrinsic"
-              className="max-h-[min(70vh,520px)] w-full"
-            />
+            {variantAnim ? (
+              <img
+                src={resolveMediaUrl(variantAnim.outgoingSrc)}
+                alt=""
+                className="product-hero-layer product-hero-throw-out max-h-[min(70vh,520px)] w-full object-contain"
+                style={{ '--slide-dir': String(variantAnim.dir) } as CSSProperties}
+                draggable={false}
+                aria-hidden
+              />
+            ) : null}
+            <div
+              className={cn(variantAnim && 'product-hero-layer product-hero-throw-in')}
+              style={variantAnim ? ({ '--slide-dir': String(variantAnim.dir) } as CSSProperties) : undefined}
+            >
+              <StoreMediaImage
+                key={`${productId}-${activeSrc}`}
+                src={activeSrc}
+                alt={name}
+                layout="intrinsic"
+                className="max-h-[min(70vh,520px)] w-full"
+              />
+            </div>
           </button>
 
           {slides.length > 1 ? (
