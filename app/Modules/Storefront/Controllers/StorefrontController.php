@@ -82,6 +82,7 @@ class StorefrontController extends Controller
 
         $manifest = [
             'id' => '/',
+            'prefer_related_applications' => false,
             'name' => $manifestDisplayName,
             'short_name' => $shortName,
             'description' => $store->description ?: $store->name,

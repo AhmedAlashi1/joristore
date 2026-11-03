@@ -53,6 +53,7 @@ type Dict = {
   emptyCart: string;
   comingSoon: string;
   openInApp: string;
+  installApp: string;
   appearance: string;
   appearanceLight: string;
   appearanceDark: string;
@@ -118,7 +119,7 @@ const dicts: Record<Locale, Dict> = {
     installButton: 'تثبيت الآن',
     installGuideButton: 'خطوات التثبيت',
     installIosHint: 'اضغط مشاركة ثم «إضافة إلى الشاشة الرئيسية»',
-    installDesktopHint: 'من المتصفح: القائمة ← تثبيت التطبيق',
+    installDesktopHint: 'Chrome/Edge: أيقونة ⊕ في شريط العنوان أو القائمة ← تثبيت التطبيق',
     dismiss: 'لاحقاً',
     pushPromptTitle: 'إشعارات الشاشة والصوت',
     pushPromptBody: 'اضغط الزر مرة واحدة لتصلك العروض وتحديثات الطلبات حتى والتطبيق مغلق.',
@@ -152,6 +153,7 @@ const dicts: Record<Locale, Dict> = {
     emptyCart: 'سلتك فارغة',
     comingSoon: 'قريباً',
     openInApp: 'افتح في التطبيق',
+    installApp: 'تثبيت التطبيق',
     appearance: 'المظهر',
     appearanceLight: 'فاتح',
     appearanceDark: 'داكن',
@@ -249,6 +251,7 @@ const dicts: Record<Locale, Dict> = {
     emptyCart: 'Your cart is empty',
     comingSoon: 'Coming soon',
     openInApp: 'Open in app',
+    installApp: 'Install app',
     appearance: 'Appearance',
     appearanceLight: 'Light',
     appearanceDark: 'Dark',

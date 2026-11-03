@@ -7,6 +7,7 @@ import { purgeStaleAppCachesIfNeeded } from './store/lib/app-cache-purge';
 import { isDashboardHost, isStorefrontHost, JORI_HOSTS } from './lib/hosts';
 import { bootstrapStoreBrandFromCache, ensureStoreBrandBootstrapped } from './store/lib/store-brand';
 import { clearDashboardPwaOnce } from './lib/clear-dashboard-pwa';
+import { stashDeferredInstallPrompt } from './store/lib/pwa-install-prompt';
 
 /** Admin lives on dashboard; storefront SPA may still ship on sportsworldps.com. */
 function redirectAdminOffStorefront() {
@@ -31,7 +32,7 @@ redirectDashboardToAdminLogin();
 window.addEventListener('beforeinstallprompt', (e) => {
   if (isDashboardHost(window.location.hostname)) return;
   e.preventDefault();
-  window.__deferredInstallPrompt = e;
+  stashDeferredInstallPrompt(e);
 });
 
 function mountApp() {

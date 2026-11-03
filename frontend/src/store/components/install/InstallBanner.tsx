@@ -6,7 +6,7 @@ import { cn } from '../../lib/utils';
 
 export function InstallBanner() {
   const { t } = useLocale();
-  const { bannerVisible, canNativeInstall, isIosDevice, install, dismissBanner, requestInstall } = useInstall();
+  const { bannerVisible, canNativeInstall, isIosDevice, dismissBanner, requestInstall } = useInstall();
 
   useEffect(() => {
     document.documentElement.style.setProperty('--install-h', bannerVisible ? '132px' : '0px');
@@ -48,9 +48,9 @@ export function InstallBanner() {
       </div>
       <div className="mt-2 flex gap-2">
         {canNativeInstall ? (
-          <button type="button" className="btn-primary flex-1" onClick={() => void install()}>
+          <button type="button" className="btn-primary flex-1" onClick={() => void requestInstall()}>
             <Download size={18} />
-            {t.installButton}
+            {t.installApp}
           </button>
         ) : null}
         {!canNativeInstall ? (

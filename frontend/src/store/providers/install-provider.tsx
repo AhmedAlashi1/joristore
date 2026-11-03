@@ -6,13 +6,13 @@ import {
   type InstallPlatform,
 } from '../lib/install-platform';
 import { SPLASH_DONE_EVENT } from '../lib/splash-done';
+import {
+  getDeferredInstallPrompt,
+  stashDeferredInstallPrompt,
+  type BeforeInstallPromptEvent,
+} from '../lib/pwa-install-prompt';
 
 const INSTALL_DISMISS_KEY = 'jori-install-dismiss';
-
-type BeforeInstallPromptEvent = Event & {
-  prompt: () => Promise<void>;
-  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
-};
 
 function installDismissed() {
   try {
@@ -31,7 +31,7 @@ type InstallCtx = {
   platform: InstallPlatform;
   installed: boolean;
   install: () => Promise<boolean>;
-  /** Native prompt when available; otherwise opens platform guide (iOS / manual). */
+  /** Browser install dialog when supported; else platform guide (iOS Safari). */
   requestInstall: () => Promise<boolean>;
   dismissGuide: () => void;
   dismissBanner: () => void;
@@ -58,17 +58,16 @@ export function InstallProvider({ children }: { children: ReactNode }) {
     if (installed) return;
 
     const syncDeferred = () => {
-      const early = window.__deferredInstallPrompt;
-      if (early) {
-        setDeferred(early as BeforeInstallPromptEvent);
-      }
+      const early = getDeferredInstallPrompt();
+      if (early) setDeferred(early);
     };
 
     syncDeferred();
+    const poll = window.setInterval(syncDeferred, 1500);
 
     const onPrompt = (e: Event) => {
       e.preventDefault();
-      window.__deferredInstallPrompt = e;
+      stashDeferredInstallPrompt(e);
       setDeferred(e as BeforeInstallPromptEvent);
       revealInstallUi();
     };
@@ -86,15 +85,17 @@ export function InstallProvider({ children }: { children: ReactNode }) {
     }
 
     return () => {
+      window.clearInterval(poll);
       window.removeEventListener('beforeinstallprompt', onPrompt);
       window.removeEventListener(SPLASH_DONE_EVENT, onSplashDone);
     };
   }, [installed, revealInstallUi]);
 
   const install = useCallback(async () => {
-    if (!deferred) return false;
-    await deferred.prompt();
-    const { outcome } = await deferred.userChoice;
+    const promptEvent = deferred ?? getDeferredInstallPrompt();
+    if (!promptEvent) return false;
+    await promptEvent.prompt();
+    const { outcome } = await promptEvent.userChoice;
     if (outcome === 'accepted') {
       setGuideVisible(false);
       setBannerVisible(false);
@@ -125,7 +126,9 @@ export function InstallProvider({ children }: { children: ReactNode }) {
   const openGuide = useCallback(() => setGuideVisible(true), []);
 
   const requestInstall = useCallback(async () => {
-    if (deferred) {
+    const promptEvent = deferred ?? getDeferredInstallPrompt();
+    if (promptEvent) {
+      if (!deferred) setDeferred(promptEvent);
       return install();
     }
     setGuideVisible(true);
@@ -136,7 +139,7 @@ export function InstallProvider({ children }: { children: ReactNode }) {
     guideVisible: guideVisible && !installed,
     bannerVisible: bannerVisible && !installed,
     iconVisible: !installed,
-    canNativeInstall: !!deferred,
+    canNativeInstall: !!(deferred ?? getDeferredInstallPrompt()),
     isIosDevice: iosDevice,
     platform,
     installed,
