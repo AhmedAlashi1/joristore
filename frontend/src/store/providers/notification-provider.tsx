@@ -154,7 +154,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   }, [isLoggedIn, refresh]);
 
   useEffect(() => {
-    if (!isLoggedIn || permission !== 'granted') {
+    if (!isLoggedIn) {
       setPushEnabled(false);
       return;
     }
@@ -162,9 +162,27 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       setPushEnabled(false);
       return;
     }
-    void syncPushSubscription()
-      .then((r) => setPushEnabled(r.ok))
-      .catch(() => setPushEnabled(false));
+    if (permission === 'granted') {
+      void syncPushSubscription()
+        .then((r) => setPushEnabled(r.ok))
+        .catch(() => setPushEnabled(false));
+      return;
+    }
+    setPushEnabled(false);
+  }, [isLoggedIn, permission]);
+
+  useEffect(() => {
+    if (!isLoggedIn || permission !== 'granted') return;
+    if (localStorage.getItem(PUSH_OPT_OUT_KEY) === '1') return;
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') {
+        void syncPushSubscription()
+          .then((r) => setPushEnabled(r.ok))
+          .catch(() => undefined);
+      }
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
   }, [isLoggedIn, permission]);
 
   const requestPermission = useCallback(async () => {

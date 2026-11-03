@@ -7,7 +7,8 @@ import {
   setCustomerId,
 } from '../lib/customer-storage';
 import { customerApi } from '../lib/api';
-import { removePushSubscription } from '../lib/push-subscribe';
+import { markPushPromptAfterAuth } from '../lib/push-prompt-state';
+import { PUSH_OPT_OUT_KEY, removePushSubscription } from '../lib/push-subscribe';
 
 export type CustomerProfile = {
   id: number;
@@ -89,12 +90,24 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
       setCustomerId(res.id);
       setCustomer(res);
       setCachedCustomerProfile(res);
+      try {
+        localStorage.removeItem(PUSH_OPT_OUT_KEY);
+      } catch {
+        /* ignore */
+      }
+      markPushPromptAfterAuth();
     },
     register: async (data) => {
       const res = await customerApi.register(data);
       setCustomerId(res.id);
       setCustomer(res);
       setCachedCustomerProfile(res);
+      try {
+        localStorage.removeItem(PUSH_OPT_OUT_KEY);
+      } catch {
+        /* ignore */
+      }
+      markPushPromptAfterAuth();
     },
     logout: () => {
       void removePushSubscription();

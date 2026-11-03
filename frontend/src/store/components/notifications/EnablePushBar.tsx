@@ -1,4 +1,4 @@
-import { Bell, X } from 'lucide-react';
+import { Bell } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { enablePushFromUserGesture, pushFailureMessage } from '../../lib/push-subscribe';
 import { useCustomer } from '../../providers/customer-provider';
@@ -6,28 +6,13 @@ import { useInstall } from '../../providers/install-provider';
 import { useLocale } from '../../providers/locale-provider';
 import { useNotifications } from '../../providers/notification-provider';
 
-const DISMISS_KEY = 'jori-push-prompt-dismiss';
-
-function isMobile() {
-  return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
-}
-
 export function EnablePushBar() {
   const { t, locale } = useLocale();
   const { isLoggedIn } = useCustomer();
   const { iconVisible, installed } = useInstall();
   const { permission, pushEnabled, refresh } = useNotifications();
-  const [dismissed, setDismissed] = useState(false);
   const [busy, setBusy] = useState(false);
   const showOpenInApp = iconVisible && !installed;
-
-  useEffect(() => {
-    try {
-      setDismissed(sessionStorage.getItem(DISMISS_KEY) === '1');
-    } catch {
-      setDismissed(false);
-    }
-  }, []);
 
   const notificationsActive = useMemo(() => {
     const browserPerm =
@@ -36,8 +21,6 @@ export function EnablePushBar() {
   }, [permission, pushEnabled]);
 
   const visible = isLoggedIn
-    && isMobile()
-    && !dismissed
     && !notificationsActive
     && permission !== 'denied'
     && permission !== 'unsupported';
@@ -89,21 +72,6 @@ export function EnablePushBar() {
             {busy ? (ar ? 'جاري التفعيل...' : 'Enabling...') : t.pushPromptAction}
           </button>
         </div>
-        <button
-          type="button"
-          className="shrink-0 rounded-lg p-1 text-store-muted"
-          aria-label={t.dismiss}
-          onClick={() => {
-            try {
-              sessionStorage.setItem(DISMISS_KEY, '1');
-            } catch {
-              /* ignore */
-            }
-            setDismissed(true);
-          }}
-        >
-          <X size={18} />
-        </button>
       </div>
     </div>
   );
