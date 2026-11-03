@@ -2,6 +2,7 @@ import { Copy, Eye, Loader2, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button, buttonVariants } from '../../components/ui/button';
+import { SelectInput } from '../../components/crud/CrudPage';
 import { cn } from '../../lib/cn';
 import { Input } from '../../components/ui/input';
 import { LoadingSpinner } from '../../components/ui/loading-spinner';
@@ -15,6 +16,7 @@ import { useNotify } from '../../lib/notify';
 import { useI18n } from '../../providers/i18n-provider';
 import { ProductPageHeader } from './ProductPageHeader';
 import { type ProductRecord, statusVariant } from './product-shared';
+import { useProductOptions } from './useProductOptions';
 
 type Paginated = {
   data: ProductRecord[];
@@ -33,6 +35,8 @@ export function ProductsListPage() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [search, setSearch] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('');
+  const { categories } = useProductOptions();
   const [page, setPage] = useState(1);
   const [lastPage, setLastPage] = useState(1);
   const [total, setTotal] = useState(0);
@@ -47,7 +51,12 @@ export function ProductsListPage() {
     setLoading(true);
     try {
       const res = await api.get('/admin/products', {
-        params: { page, per_page: 15, search: search || undefined },
+        params: {
+          page,
+          per_page: 15,
+          search: search || undefined,
+          category_id: categoryFilter || undefined,
+        },
       });
       const payload = ensureApiSuccess<Paginated>(res, '');
       setRows(payload?.data || []);
@@ -59,7 +68,7 @@ export function ProductsListPage() {
     } finally {
       setLoading(false);
     }
-  }, [ar, notify, page, search]);
+  }, [ar, categoryFilter, notify, page, search]);
 
   useEffect(() => {
     void load();
@@ -183,6 +192,16 @@ export function ProductsListPage() {
           placeholder={ar ? 'بحث بالاسم...' : 'Search by name...'}
           className="max-w-xs"
         />
+        <SelectInput
+          variant="filter"
+          value={categoryFilter}
+          onChange={(e) => { setCategoryFilter(e.target.value); setPage(1); }}
+        >
+          <option value="">{ar ? 'كل الأقسام' : 'All categories'}</option>
+          {categories.map((c) => (
+            <option key={c.id} value={String(c.id)}>{c.name}</option>
+          ))}
+        </SelectInput>
         {canDelete && selected.size > 0 ? (
           <Button variant="destructive" size="sm" disabled={busy} onClick={() => void bulkDelete()}>
             {busy ? <Loader2 className="me-2 h-4 w-4 animate-spin" /> : <Trash2 className="me-2 h-4 w-4" />}
@@ -252,7 +271,11 @@ export function ProductsListPage() {
                       </Link>
                       <p className="text-xs text-[#8a8da8]">{row.sku ?? row.slug}</p>
                     </td>
-                    <td className="px-4 py-3">{row.category_name ?? '—'}</td>
+                    <td className="px-4 py-3">
+                      {row.categories?.length
+                        ? row.categories.map((c) => c.name).join(' · ')
+                        : row.category_name ?? '—'}
+                    </td>
                     <td className="px-4 py-3">{formatPrice(row.price)}</td>
                     <td className="px-4 py-3">
                       <span className={row.quantity <= 5 ? 'font-semibold text-[#ff9f43]' : ''}>{row.quantity}</span>

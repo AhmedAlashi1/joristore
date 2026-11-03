@@ -71,6 +71,9 @@ export function SettingsPage() {
           store_description: data.store?.description ?? '',
           store_logo: data.store?.logo ?? '',
           pwa_short_name: (data.store as { pwa_short_name?: string })?.pwa_short_name ?? '',
+          catalog_new_badge_hours: String(
+            (data.store as { catalog_new_badge_hours?: number })?.catalog_new_badge_hours ?? 48,
+          ),
           store_email: data.store?.email ?? '',
           store_phone: data.store?.phone ?? '',
         });
@@ -230,6 +233,18 @@ export function SettingsPage() {
                 placeholder={ar ? 'يظهر تحت الأيقونة على الجوال' : 'Shown under the home-screen icon'}
                 maxLength={32}
               />
+            </FormField>
+            <FormField label={ar ? 'مدة شارة «جديد» (ساعات)' : 'NEW badge duration (hours)'}>
+              <Input
+                type="number"
+                min={0}
+                max={8760}
+                value={form.catalog_new_badge_hours ?? '48'}
+                onChange={(e) => setForm({ ...form, catalog_new_badge_hours: e.target.value })}
+              />
+              <p className="mt-1 text-xs text-[#8a8da8]">
+                {ar ? '0 = إيقاف الشارة. الافتراضي 48 ساعة.' : '0 = off. Default is 48 hours.'}
+              </p>
             </FormField>
             <FormField label={ar ? 'بريد المتجر' : 'Store email'}>
               <Input value={form.store_email} onChange={(e) => setForm({ ...form, store_email: e.target.value })} />

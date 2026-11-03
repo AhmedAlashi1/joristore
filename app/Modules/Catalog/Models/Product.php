@@ -5,6 +5,7 @@ namespace App\Modules\Catalog\Models;
 use App\Shared\Traits\BelongsToMerchant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use App\Modules\Orders\Models\OrderItem;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -35,6 +36,11 @@ class Product extends Model
     public function category(): BelongsTo
     {
         return $this->belongsTo(Category::class);
+    }
+
+    public function categories(): BelongsToMany
+    {
+        return $this->belongsToMany(Category::class, 'category_product')->withTimestamps();
     }
 
     public function brand(): BelongsTo

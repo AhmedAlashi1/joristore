@@ -3,6 +3,7 @@
 namespace App\Modules\Catalog\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\Catalog\Models\Category;
 use App\Modules\Catalog\Models\Inventory;
 use App\Modules\Catalog\Models\InventoryLocation;
 use App\Modules\Catalog\Models\Product;
@@ -31,9 +32,12 @@ class ProductController extends Controller
         $search = trim((string) $request->input('search', ''));
         $status = $request->input('status');
 
+        $categoryFilter = $request->input('category_id');
+
         $query = Product::query()
             ->with([
                 'category:id,name',
+                'categories:id,name,name_en',
                 'brand:id,name',
                 'defaultVariant.inventory',
                 'variants.inventory',
@@ -43,6 +47,13 @@ class ProductController extends Controller
 
         if ($search !== '') {
             $query->where('name', 'like', "%{$search}%");
+        }
+        if ($categoryFilter) {
+            $cid = (int) $categoryFilter;
+            $query->where(function ($q) use ($cid) {
+                $q->where('category_id', $cid)
+                    ->orWhereHas('categories', fn ($c) => $c->where('categories.id', $cid));
+            });
         }
         if ($status) {
             $query->where('status', $status);
@@ -80,6 +91,8 @@ class ProductController extends Controller
             'name_en' => 'nullable|string|max:255',
             'slug' => 'nullable|string|max:255',
             'category_id' => ['nullable', 'integer', Rule::exists('categories', 'id')->where('merchant_id', $merchantId)],
+            'category_ids' => 'nullable|array',
+            'category_ids.*' => ['integer', Rule::exists('categories', 'id')->where('merchant_id', $merchantId)],
             'brand_id' => ['nullable', 'integer', Rule::exists('brands', 'id')->where('merchant_id', $merchantId)],
             'status' => 'nullable|in:draft,active,inactive,archived',
             'short_description' => 'nullable|string|max:500',
@@ -119,6 +132,10 @@ class ProductController extends Controller
             $data = $this->catalogTranslation->sanitizeManualEnglishInData($data, $translationMap);
         }
         $data = $this->catalogTranslation->applyEnglishFromArabic($data, $translationMap);
+        $categoryIds = $this->resolveCategoryIdsFromData($data, $merchantId);
+        if ($categoryIds !== []) {
+            $data['category_id'] = $categoryIds[0];
+        }
         $slug = $this->uniqueSlug($data['slug'] ?? $data['name_en'] ?? $data['name'], $merchantId);
 
         $groupId = $data['product_group_id'] ?? null;
@@ -178,7 +195,9 @@ class ProductController extends Controller
                 ]);
             }
 
-            return $product->load(['category', 'brand', 'defaultVariant.inventory', 'variants.inventory', 'images']);
+            $this->syncProductCategories($product, $categoryIds, $merchantId);
+
+            return $product->load(['category', 'categories', 'brand', 'defaultVariant.inventory', 'variants.inventory', 'images']);
         });
 
         $this->syncProductImages($product, $data['image'] ?? null, $data['gallery'] ?? []);
@@ -191,7 +210,7 @@ class ProductController extends Controller
 
     public function show(int $id)
     {
-        $product = Product::with(['category', 'brand', 'defaultVariant.inventory', 'variants.inventory', 'images'])->find($id);
+        $product = Product::with(['category', 'categories', 'brand', 'defaultVariant.inventory', 'variants.inventory', 'images'])->find($id);
         if (! $product) {
             return sendError('Product not found', [], 404);
         }
@@ -213,6 +232,8 @@ class ProductController extends Controller
             'name_en' => 'nullable|string|max:255',
             'slug' => 'nullable|string|max:255',
             'category_id' => ['nullable', 'integer', Rule::exists('categories', 'id')->where('merchant_id', $merchantId)],
+            'category_ids' => 'nullable|array',
+            'category_ids.*' => ['integer', Rule::exists('categories', 'id')->where('merchant_id', $merchantId)],
             'brand_id' => ['nullable', 'integer', Rule::exists('brands', 'id')->where('merchant_id', $merchantId)],
             'status' => 'nullable|in:draft,active,inactive,archived',
             'short_description' => 'nullable|string|max:500',
@@ -262,8 +283,13 @@ class ProductController extends Controller
         $data = $this->catalogTranslation->mergeArabicSourcesForEmptyEnglish($data, $product, $translationMap);
         $data = $this->catalogTranslation->applyEnglishFromArabic($data, $translationMap);
         $clearEnglish = $this->catalogTranslation->englishFieldsToClear($product, $data, $translationMap);
+        $categoryIds = null;
+        if (array_key_exists('category_ids', $data) || array_key_exists('category_id', $data)) {
+            $categoryIds = $this->resolveCategoryIdsFromData($data, $merchantId);
+            $data['category_id'] = $categoryIds[0] ?? null;
+        }
 
-        DB::transaction(function () use ($product, $data, $merchantId, $clearEnglish) {
+        DB::transaction(function () use ($product, $data, $merchantId, $clearEnglish, $categoryIds) {
             $productData = array_filter([
                 'name' => $data['name'] ?? null,
                 'name_en' => $data['name_en'] ?? null,
@@ -335,12 +361,16 @@ class ProductController extends Controller
                     : $product->images()->where('is_primary', false)->orderBy('sort_order')->pluck('file_path')->all();
                 $this->syncProductImages($product, $primary, $gallery);
             }
+
+            if ($categoryIds !== null) {
+                $this->syncProductCategories($product, $categoryIds, $merchantId);
+            }
         });
 
         $this->activityLog->log('product.updated', 'products', "Product {$product->name} updated", Product::class, $product->id, request: $request);
 
         return sendResponse(
-            $this->format($product->fresh()->load(['category', 'brand', 'defaultVariant.inventory', 'variants.inventory', 'images']), true),
+            $this->format($product->fresh()->load(['category', 'categories', 'brand', 'defaultVariant.inventory', 'variants.inventory', 'images']), true),
             $this->catalogSaveMessage('Product updated', $data, $translationMap),
         );
     }
@@ -422,7 +452,7 @@ class ProductController extends Controller
 
     public function duplicate(Request $request, int $id)
     {
-        $source = Product::with(['variants.inventory', 'images'])->find($id);
+        $source = Product::with(['variants.inventory', 'images', 'categories'])->find($id);
         if (! $source) {
             return sendError('Product not found', [], 404);
         }
@@ -447,7 +477,7 @@ class ProductController extends Controller
                 'color_name' => null,
                 'color_hex' => null,
                 'product_type' => $source->product_type,
-                'status' => 'draft',
+                'status' => 'active',
                 'short_description' => $source->short_description,
                 'short_description_en' => $source->short_description_en,
                 'description' => $source->description,
@@ -455,7 +485,7 @@ class ProductController extends Controller
                 'featured' => $source->featured,
                 'requires_shipping' => $source->requires_shipping,
                 'is_taxable' => $source->is_taxable,
-                'published_at' => null,
+                'published_at' => now(),
                 'created_by' => auth()->id(),
                 'updated_by' => auth()->id(),
             ]);
@@ -508,6 +538,12 @@ class ProductController extends Controller
                 ]);
             }
 
+            $categoryIds = $source->categories->pluck('id')->all();
+            if ($categoryIds === [] && $source->category_id) {
+                $categoryIds = [(int) $source->category_id];
+            }
+            $this->syncProductCategories($product, $categoryIds, $merchantId);
+
             return $product;
         });
 
@@ -520,7 +556,7 @@ class ProductController extends Controller
             request: $request
         );
 
-        $copy->load(['category', 'brand', 'defaultVariant.inventory', 'variants.inventory', 'images']);
+        $copy->load(['category', 'categories', 'brand', 'defaultVariant.inventory', 'variants.inventory', 'images']);
 
         return sendResponse($this->format($copy, true), 'Product duplicated');
     }
@@ -564,6 +600,16 @@ class ProductController extends Controller
             'slug' => $product->slug,
             'status' => $product->status,
             'category_id' => $product->category_id,
+            'category_ids' => $product->relationLoaded('categories')
+                ? $product->categories->pluck('id')->values()->all()
+                : [],
+            'categories' => $product->relationLoaded('categories')
+                ? $product->categories->map(fn ($c) => [
+                    'id' => $c->id,
+                    'name' => $c->name,
+                    'name_en' => $c->name_en,
+                ])->values()->all()
+                : [],
             'category_name' => $product->category?->name,
             'category_name_en' => $product->category?->name_en,
             'brand_id' => $product->brand_id,
@@ -719,6 +765,39 @@ class ProductController extends Controller
             ->pluck('file_path')
             ->values()
             ->all();
+    }
+
+    /** @param  array<string, mixed>  $data
+     * @return list<int>
+     */
+    protected function resolveCategoryIdsFromData(array $data, int $merchantId): array
+    {
+        $ids = [];
+        if (! empty($data['category_ids']) && is_array($data['category_ids'])) {
+            $ids = array_values(array_unique(array_map('intval', $data['category_ids'])));
+        } elseif (! empty($data['category_id'])) {
+            $ids = [(int) $data['category_id']];
+        }
+
+        if ($ids === []) {
+            return [];
+        }
+
+        $valid = Category::query()
+            ->where('merchant_id', $merchantId)
+            ->whereIn('id', $ids)
+            ->pluck('id')
+            ->all();
+        $validSet = array_flip($valid);
+
+        return array_values(array_filter($ids, fn (int $id) => isset($validSet[$id])));
+    }
+
+    /** @param  list<int>  $categoryIds */
+    protected function syncProductCategories(Product $product, array $categoryIds, int $merchantId): void
+    {
+        $valid = $this->resolveCategoryIdsFromData(['category_ids' => $categoryIds], $merchantId);
+        $product->categories()->sync($valid);
     }
 
     /** @param  list<string|null>  $gallery */

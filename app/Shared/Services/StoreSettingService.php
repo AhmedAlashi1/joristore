@@ -127,6 +127,28 @@ class StoreSettingService
         );
     }
 
+    public static function defaultNewBadgeHours(): int
+    {
+        return 48;
+    }
+
+    public static function getNewBadgeHours(int $storeId): int
+    {
+        $raw = self::get($storeId, 'catalog_new_badge_hours');
+        if ($raw === null || $raw === '') {
+            return self::defaultNewBadgeHours();
+        }
+        $hours = (int) $raw;
+
+        return max(0, min($hours, 24 * 365));
+    }
+
+    public static function setNewBadgeHours(int $storeId, int $hours): void
+    {
+        $hours = max(0, min($hours, 24 * 365));
+        self::set($storeId, 'catalog_new_badge_hours', (string) $hours, true, 'catalog');
+    }
+
     /** @return list<array<string, mixed>> */
     public static function paymentMethodsDefaults(): array
     {

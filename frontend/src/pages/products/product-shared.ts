@@ -9,12 +9,16 @@ export type ProductSizeVariant = {
   quantity: number;
 };
 
+export type ProductCategoryRef = { id: number; name: string; name_en?: string | null };
+
 export type ProductRecord = {
   id: number;
   name: string;
   slug: string;
   status: string;
   category_id?: number | null;
+  category_ids?: number[];
+  categories?: ProductCategoryRef[];
   category_name?: string;
   brand_id?: number | null;
   brand_name?: string;
@@ -45,6 +49,7 @@ export type ProductFormState = {
   name: string;
   slug: string;
   category_id: string;
+  category_ids: number[];
   brand_id: string;
   status: string;
   short_description: string;
@@ -72,6 +77,7 @@ export const emptyProductForm = (): ProductFormState => ({
   name: '',
   slug: '',
   category_id: '',
+  category_ids: [],
   brand_id: '',
   status: 'draft',
   short_description: '',
@@ -106,6 +112,12 @@ export function mapProductToForm(row: ProductRecord): ProductFormState {
     name: row.name,
     slug: row.slug,
     category_id: row.category_id ? String(row.category_id) : '',
+    category_ids:
+      row.category_ids?.length
+        ? row.category_ids
+        : row.category_id
+          ? [row.category_id]
+          : [],
     brand_id: row.brand_id ? String(row.brand_id) : '',
     status: row.status,
     short_description: row.short_description ?? '',
@@ -141,7 +153,8 @@ export function prepareProductPayload(form: ProductFormState) {
     name: form.name,
     name_en: form.name_en?.trim() || undefined,
     slug: form.slug || undefined,
-    category_id: form.category_id ? Number(form.category_id) : null,
+    category_id: form.category_ids[0] ?? (form.category_id ? Number(form.category_id) : null),
+    category_ids: form.category_ids.length ? form.category_ids : undefined,
     brand_id: form.brand_id ? Number(form.brand_id) : null,
     status: form.status,
     short_description: form.short_description || null,

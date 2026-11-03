@@ -50,6 +50,7 @@ class StoreSettingsController extends Controller
                 'currency' => $merchant->store->currency,
                 'timezone' => $merchant->store->timezone,
                 'default_language' => $merchant->store->default_language,
+                'catalog_new_badge_hours' => StoreSettingService::getNewBadgeHours($merchant->store->id),
             ] : null,
         ], 'Store settings fetched');
     }
@@ -78,6 +79,7 @@ class StoreSettingsController extends Controller
             'store_description' => 'nullable|string',
             'store_logo' => 'nullable|string|max:500',
             'pwa_short_name' => 'nullable|string|max:32',
+            'catalog_new_badge_hours' => 'nullable|integer|min:0|max:8760',
             'store_email' => 'nullable|email|max:255',
             'store_phone' => 'nullable|string|max:20',
         ]);
@@ -124,6 +126,13 @@ class StoreSettingsController extends Controller
                 $data['pwa_short_name'] ?: null,
                 true,
                 'store'
+            );
+        }
+
+        if (array_key_exists('catalog_new_badge_hours', $data)) {
+            StoreSettingService::setNewBadgeHours(
+                $merchant->store->id,
+                (int) ($data['catalog_new_badge_hours'] ?? StoreSettingService::defaultNewBadgeHours())
             );
         }
 

@@ -17,6 +17,7 @@ export type ProductCardData = {
   quantity?: number;
   has_size_options?: boolean;
   featured?: boolean;
+  is_new?: boolean;
   category_name?: string;
   category_name_en?: string | null;
   brand_name?: string | null;
@@ -69,6 +70,16 @@ export function ProductCard({
         {product.featured ? (
           <span className="absolute start-2 top-2 animate-pulse rounded-lg bg-[var(--primary)] px-2 py-0.5 text-[10px] font-bold text-white shadow-lg">
             مميز
+          </span>
+        ) : null}
+        {product.is_new ? (
+          <span
+            className={cn(
+              'absolute start-2 rounded-lg bg-[#28c76f] px-2 py-0.5 text-[10px] font-bold uppercase text-white shadow-lg',
+              product.featured ? 'top-8' : 'top-2',
+            )}
+          >
+            {t.newProduct}
           </span>
         ) : null}
         {product.in_stock === false ? (

@@ -41,6 +41,7 @@ class StorefrontController extends Controller
             'default_language' => $store->default_language,
             'theme' => StoreSettingService::getTheme($store->id),
             'social' => StoreSettingService::getSocial($store->id),
+            'catalog_new_badge_hours' => StoreSettingService::getNewBadgeHours($store->id),
         ], 'Store info');
     }
 
@@ -462,6 +463,7 @@ class StorefrontController extends Controller
             'price' => MoneyHelper::fromMinor($variant?->price_amount),
             'compare_at_price' => MoneyHelper::fromMinor($variant?->compare_at_price_amount),
             'in_stock' => $this->productInStock($product, $inventory),
+            'is_new' => $this->productIsNew($product),
             'quantity' => $inventory?->quantity ?? 0,
             'has_size_options' => ($product->sized_variants_count ?? 0) > 1,
             'variant_id' => $variant?->id,
@@ -522,6 +524,22 @@ class StorefrontController extends Controller
         }
 
         return ($defaultInventory?->quantity ?? 0) > 0;
+    }
+
+    protected function productIsNew(Product $product): bool
+    {
+        $store = MerchantContext::store();
+        $hours = StoreSettingService::getNewBadgeHours($store->id);
+        if ($hours <= 0) {
+            return false;
+        }
+
+        $anchor = $product->published_at ?? $product->created_at;
+        if (! $anchor) {
+            return false;
+        }
+
+        return $anchor->greaterThan(now()->subHours($hours));
     }
 
     public function gyms(Request $request)
@@ -599,7 +617,11 @@ class StorefrontController extends Controller
 
         $categoryId = $request->input('category_id');
         if ($categoryId) {
-            $query->whereIn('category_id', $this->categoryIdsIncludingDescendants((int) $categoryId));
+            $ids = $this->categoryIdsIncludingDescendants((int) $categoryId);
+            $query->where(function (Builder $q) use ($ids) {
+                $q->whereIn('category_id', $ids)
+                    ->orWhereHas('categories', fn (Builder $c) => $c->whereIn('categories.id', $ids));
+            });
         }
 
         return $query;

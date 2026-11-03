@@ -13,6 +13,7 @@ type Dict = {
   categories: string;
   addToCart: string;
   outOfStock: string;
+  newProduct: string;
   installTitle: string;
   installSubtitle: string;
   installButton: string;
@@ -111,6 +112,7 @@ const dicts: Record<Locale, Dict> = {
     orders: 'طلباتي',
     addToCart: 'أضف للسلة',
     outOfStock: 'تم نفاذ الكمية',
+    newProduct: 'جديد',
     installTitle: 'ثبّت تطبيق على شاشتك الرئيسية',
     installSubtitle: 'تجربة أسرع — مثل التطبيق بدون متجر',
     installButton: 'تثبيت الآن',
@@ -207,6 +209,7 @@ const dicts: Record<Locale, Dict> = {
     orders: 'Orders',
     addToCart: 'Add to cart',
     outOfStock: 'Out of stock',
+    newProduct: 'NEW',
     installTitle: 'Install app on your home screen',
     installSubtitle: 'Faster experience — like a native app',
     installButton: 'Install now',
