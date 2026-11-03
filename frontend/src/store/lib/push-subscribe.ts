@@ -29,6 +29,14 @@ function isIos() {
   return /iPad|iPhone|iPod/.test(navigator.userAgent);
 }
 
+/** Chrome/Edge use aes128gcm; Firefox uses aesgcm. */
+function detectPushContentEncoding(): string {
+  if (/Firefox\//i.test(navigator.userAgent)) {
+    return 'aesgcm';
+  }
+  return 'aes128gcm';
+}
+
 function isStandalonePwa() {
   return (
     window.matchMedia('(display-mode: standalone)').matches
@@ -117,7 +125,7 @@ export async function syncPushSubscription(): Promise<{ ok: boolean; reason?: Pu
     await customerApi.pushSubscribe({
       endpoint: json.endpoint,
       keys: { p256dh: json.keys.p256dh, auth: json.keys.auth },
-      content_encoding: 'aesgcm',
+      content_encoding: detectPushContentEncoding(),
     });
   } catch {
     return { ok: false, reason: 'api_subscribe_failed' };

@@ -98,6 +98,12 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     ('Notification' in window ? Notification.permission : 'unsupported'),
   );
   const lastSeenId = useRef(0);
+  /** When Web Push is on, the service worker already shows system notifications — avoid duplicates from polling. */
+  const pushEnabledRef = useRef(false);
+
+  useEffect(() => {
+    pushEnabledRef.current = pushEnabled;
+  }, [pushEnabled]);
 
   const refresh = useCallback(async () => {
     if (!isLoggedIn) {
@@ -118,7 +124,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
       const newest = rows[0];
       if (newest && newest.id > lastSeenId.current && !newest.read_at) {
-        if (lastSeenId.current > 0) {
+        if (lastSeenId.current > 0 && !pushEnabledRef.current) {
           showSystemNotification(newest.title, newest.message);
           playAlertSound();
         }

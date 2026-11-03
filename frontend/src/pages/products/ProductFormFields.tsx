@@ -1,5 +1,6 @@
 import { FormField, FormGrid, SelectInput } from '../../components/crud/CrudPage';
 import { Input } from '../../components/ui/input';
+import { SearchableMultiSelect } from '../../components/ui/SearchableMultiSelect';
 import { AutoEnglishPreview } from '../../components/ui/AutoEnglishPreview';
 import { ProductGalleryField } from '../../components/ui/ProductGalleryField';
 import type { ProductFormState, ProductOption, SizeRow } from './product-shared';
@@ -75,39 +76,21 @@ export function ProductFormFields({
           <FormField label={ar ? 'المخزون' : 'Stock'}>
             <Input type="number" value={String(form.quantity)} onChange={(e) => patch({ quantity: Number(e.target.value) })} />
           </FormField>
-          <FormField label={ar ? 'الأقسام' : 'Categories'}>
-            <div className="max-h-40 space-y-2 overflow-y-auto rounded-xl border border-white/15 bg-white/5 p-3 dark:border-white/8">
-              {categories.length === 0 ? (
-                <p className="text-xs text-[#8a8da8]">{ar ? 'لا أقسام' : 'No categories'}</p>
-              ) : (
-                categories.map((c) => {
-                  const checked = form.category_ids.includes(c.id);
-                  return (
-                    <label key={c.id} className="flex cursor-pointer items-center gap-2 text-sm">
-                      <input
-                        type="checkbox"
-                        className="accent-[#7367f0]"
-                        checked={checked}
-                        onChange={() => {
-                          const next = checked
-                            ? form.category_ids.filter((id) => id !== c.id)
-                            : [...form.category_ids, c.id];
-                          patch({
-                            category_ids: next,
-                            category_id: next[0] ? String(next[0]) : '',
-                          });
-                        }}
-                      />
-                      <span>{c.name}</span>
-                    </label>
-                  );
-                })
-              )}
-            </div>
-            <p className="mt-1 text-xs text-[#8a8da8]">
-              {ar ? 'يمكن اختيار أكثر من قسم' : 'You can select multiple categories'}
-            </p>
-          </FormField>
+          <div className="sm:col-span-2">
+            <FormField label={ar ? 'الأقسام' : 'Categories'}>
+            <SearchableMultiSelect
+              options={categories}
+              value={form.category_ids}
+              onChange={(next) => patch({
+                category_ids: next,
+                category_id: next[0] ? String(next[0]) : '',
+              })}
+              placeholder={ar ? 'اختر قسم أو أكثر…' : 'Select one or more categories…'}
+              searchPlaceholder={ar ? 'بحث في الأقسام…' : 'Search categories…'}
+              emptyLabel={ar ? 'لا نتائج' : 'No results'}
+            />
+            </FormField>
+          </div>
           <FormField label={ar ? 'الماركة' : 'Brand'}>
             <SelectInput value={form.brand_id} onChange={(e) => patch({ brand_id: e.target.value })}>
               <option value="">{ar ? 'بدون ماركة' : 'No brand'}</option>

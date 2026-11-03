@@ -50,6 +50,7 @@ export function NotificationsPage() {
   const [sendMessage, setSendMessage] = useState('');
   const [sendCustomerId, setSendCustomerId] = useState<string>('');
   const [sending, setSending] = useState(false);
+  const [pushStatus, setPushStatus] = useState<{ vapid_configured: boolean; subscription_count: number } | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -91,6 +92,11 @@ export function NotificationsPage() {
       .then((res) => {
         const payload = ensureApiSuccess<CustomerOption[]>(res, '');
         setCustomers(Array.isArray(payload) ? payload : []);
+      })
+      .catch(() => undefined);
+    api.get('/admin/customer-notifications/push-status')
+      .then((res) => {
+        setPushStatus(ensureApiSuccess<{ vapid_configured: boolean; subscription_count: number }>(res, ''));
       })
       .catch(() => undefined);
   }, []);
@@ -151,9 +157,22 @@ export function NotificationsPage() {
         <h3 className="mb-1 text-lg font-bold">{ar ? 'إرسال إشعار للعملاء' : 'Send to customers'}</h3>
         <p className="mb-3 text-sm text-[#8a8da8]">
           {ar
-            ? 'يُحفظ في التطبيق فوراً (صفحة الإشعارات). Push يصل فقط إذا فعّل العميل الإشعارات من التطبيق. اختر العميل بنفس رقم الهاتف المسجّل في المتجر.'
-            : 'Saved in-app immediately (notifications page). Push only if the customer enabled alerts in the app. Pick the customer matching their store login phone.'}
+            ? 'يُحفظ في التطبيق فوراً. Push مجاني (Web Push) ويصل خارج التطبيق إذا فعّل العميل الإشعارات من جواله (Android Chrome أو iPhone بعد «إضافة للشاشة الرئيسية»).'
+            : 'Saved in-app immediately. Free Web Push reaches the lock screen when the customer enabled alerts (Android Chrome, or iPhone after Add to Home Screen).'}
         </p>
+        {pushStatus && !pushStatus.vapid_configured ? (
+          <div className="mb-3 rounded-xl border border-[#ff9f43]/40 bg-[#ff9f43]/10 px-3 py-2 text-sm text-[#b86e00] dark:text-[#ffcc80]">
+            {ar
+              ? '⚠️ Push غير مفعّل على السيرفر: نفّذ php artisan webpush:vapid ثم أضف VAPID_* في .env و config:cache'
+              : '⚠️ Push not configured on server: run webpush:vapid, set VAPID_* in .env, then config:cache'}
+          </div>
+        ) : pushStatus ? (
+          <p className="mb-3 text-xs text-[#8a8da8]">
+            {ar
+              ? `أجهزة Push مسجّلة: ${pushStatus.subscription_count}`
+              : `Registered push devices: ${pushStatus.subscription_count}`}
+          </p>
+        ) : null}
         <div className="space-y-3">
           <FormField label={ar ? 'عميل (اختياري)' : 'Customer (optional)'}>
             <select

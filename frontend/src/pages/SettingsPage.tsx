@@ -230,9 +230,14 @@ export function SettingsPage() {
               <Input
                 value={form.pwa_short_name ?? ''}
                 onChange={(e) => setForm({ ...form, pwa_short_name: e.target.value })}
-                placeholder={ar ? 'يظهر تحت الأيقونة على الجوال' : 'Shown under the home-screen icon'}
+                placeholder={ar ? 'مثال: عالم الرياضة' : 'e.g. your store name in Arabic'}
                 maxLength={32}
               />
+              <p className="mt-1 text-xs text-[#8a8da8]">
+                {ar
+                  ? 'يظهر تحت أيقونة التطبيق، وفي سطر «من …» على إشعارات الجوال (ليس داخل نص الرسالة).'
+                  : 'Home-screen label and the phone’s “from …” push line — not inside your message text.'}
+              </p>
             </FormField>
             <FormField label={ar ? 'مدة شارة «جديد» (ساعات)' : 'NEW badge duration (hours)'}>
               <Input

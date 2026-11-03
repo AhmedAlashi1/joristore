@@ -3,13 +3,25 @@
 namespace App\Modules\Customers\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\Customers\Models\PushSubscription;
 use App\Shared\Services\CustomerNotificationDispatchService;
 use App\Shared\Services\MerchantContext;
+use App\Shared\Services\WebPushService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
 class CustomerNotificationController extends Controller
 {
+    public function pushStatus(WebPushService $webPush)
+    {
+        $merchantId = MerchantContext::merchantId();
+
+        return sendResponse([
+            'vapid_configured' => $webPush->isConfigured(),
+            'subscription_count' => PushSubscription::query()->where('merchant_id', $merchantId)->count(),
+        ], 'Push status');
+    }
+
     public function index(Request $request)
     {
         $perPage = max(1, min((int) $request->input('per_page', 20), 100));
@@ -58,6 +70,8 @@ class CustomerNotificationController extends Controller
         if ($result['sent_count'] === 0) {
             return sendError('No customers found', [], 422);
         }
+
+        $result['vapid_configured'] = app(WebPushService::class)->isConfigured();
 
         return sendResponse($result, 'Notifications sent');
     }

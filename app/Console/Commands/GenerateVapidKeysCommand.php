@@ -19,7 +19,11 @@ class GenerateVapidKeysCommand extends Command
         $this->newLine();
         $this->line('VAPID_PUBLIC_KEY='.$keys['publicKey']);
         $this->line('VAPID_PRIVATE_KEY='.$keys['privateKey']);
-        $this->line('VAPID_SUBJECT='.config('app.url'));
+        $url = (string) config('app.url');
+        $subject = filter_var($url, FILTER_VALIDATE_URL) ? $url : 'mailto:admin@example.com';
+        $this->line('VAPID_SUBJECT='.$subject);
+        $this->newLine();
+        $this->comment('Then: php artisan config:cache (on server after editing .env)');
 
         return self::SUCCESS;
     }

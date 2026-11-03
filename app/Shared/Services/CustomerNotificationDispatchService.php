@@ -57,7 +57,10 @@ class CustomerNotificationDispatchService
         $subscriptions = PushSubscription::query()
             ->where('merchant_id', $merchantId)
             ->whereIn('customer_id', $customerIds)
-            ->get();
+            ->orderByDesc('updated_at')
+            ->get()
+            ->unique('customer_id')
+            ->values();
 
         $pushCount = $this->webPush->sendMany($subscriptions, $title, $message, '/notifications');
 
@@ -97,7 +100,10 @@ class CustomerNotificationDispatchService
         $subscriptions = PushSubscription::query()
             ->where('merchant_id', $merchantId)
             ->where('customer_id', $customerId)
-            ->get();
+            ->orderByDesc('updated_at')
+            ->get()
+            ->unique('customer_id')
+            ->values();
 
         $this->webPush->sendMany($subscriptions, $titleAr, $messageAr, '/notifications');
     }

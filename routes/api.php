@@ -148,6 +148,7 @@ Route::middleware(['auth:sanctum', 'merchant.context'])->prefix('admin')->group(
     });
 
     Route::controller(CustomerNotificationController::class)->prefix('customer-notifications')->group(function () {
+        Route::get('/push-status', 'pushStatus')->middleware('merchant.permission:customers.view');
         Route::get('/', 'index')->middleware('merchant.permission:customers.view');
         Route::post('/send', 'send')->middleware('merchant.permission:customers.update');
     });

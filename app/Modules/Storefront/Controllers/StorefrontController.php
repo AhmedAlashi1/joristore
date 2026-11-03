@@ -49,12 +49,14 @@ class StorefrontController extends Controller
     {
         $store = MerchantContext::store();
         $theme = StoreSettingService::getTheme($store->id);
-        $shortName = StoreSettingService::get($store->id, 'pwa_short_name');
-        if (! $shortName) {
+        $shortName = trim((string) StoreSettingService::get($store->id, 'pwa_short_name', ''));
+        if ($shortName === '') {
             $shortName = mb_strlen($store->name) > 12
                 ? mb_substr($store->name, 0, 12)
                 : $store->name;
         }
+        // PWA / push "from …" line on phones uses manifest name — prefer short Arabic label from settings.
+        $manifestDisplayName = $shortName !== '' ? $shortName : $store->name;
 
         $logoUrl = $this->absolutePublicAsset($store->logo);
         $icons = [
@@ -80,7 +82,7 @@ class StorefrontController extends Controller
 
         $manifest = [
             'id' => '/',
-            'name' => $store->name,
+            'name' => $manifestDisplayName,
             'short_name' => $shortName,
             'description' => $store->description ?: $store->name,
             'theme_color' => $theme['primary'] ?? '#6c63ff',
