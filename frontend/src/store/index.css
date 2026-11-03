@@ -1135,6 +1135,19 @@ html:has(.store-app) body::-webkit-scrollbar {
 
 @media (min-width: 480px) {
   .app-shell { box-shadow: 0 0 80px rgba(115, 103, 240, 0.08); }
+
+  /* Desktop browser: hide mobile-only «open in app» pill; install stays in header. */
+  .open-in-app-bar {
+    display: none !important;
+  }
+
+  .store-app.has-open-in-app {
+    --open-app-h: 0px;
+  }
+
+  .store-app.has-open-in-app .app-header {
+    padding-top: calc(6px + var(--safe-top));
+  }
 }
 
 /* ── Bottom nav dock (floating glass pill) ── */
@@ -1155,10 +1168,6 @@ html:has(.store-app) body::-webkit-scrollbar {
   box-shadow:
     0 -4px 40px rgba(0, 0, 0, 0.35),
     0 8px 32px rgba(0, 0, 0, 0.25);
-}
-
-.store-app.dark .bottom-nav-dock .bottom-nav-item:not(.bottom-nav-item-active) {
-  color: var(--muted-strong);
 }
 
 .bottom-nav-item {
@@ -1345,24 +1354,6 @@ html.store-dark-mode body {
 
 .assist-fab-motion-wa {
   animation-delay: 0.35s;
-}
-
-.assist-fab-install {
-  position: relative;
-}
-
-.assist-fab-motion-install {
-  display: flex;
-  height: 2.75rem;
-  width: 2.75rem;
-  align-items: center;
-  justify-content: center;
-  border-radius: 9999px;
-  background: linear-gradient(145deg, var(--primary), color-mix(in srgb, var(--primary) 75%, #1e3a8a));
-  box-shadow:
-    0 4px 14px color-mix(in srgb, var(--primary) 45%, transparent),
-    0 2px 6px rgb(0 0 0 / 0.25);
-  animation-delay: 0.15s;
 }
 
 .ai-fab-icon {

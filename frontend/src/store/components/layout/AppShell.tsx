@@ -71,7 +71,7 @@ export function AppShell() {
               className={({ isActive }) =>
                 cn(
                   'bottom-nav-item relative flex flex-1 flex-col items-center justify-center gap-0.5 rounded-[22px] py-2 transition-all duration-300',
-                  isActive ? 'bottom-nav-item-active' : 'bottom-nav-item-idle text-store-muted',
+                  isActive ? 'bottom-nav-item-active' : 'text-store-muted',
                 )
               }
             >
