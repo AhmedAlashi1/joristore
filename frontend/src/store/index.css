@@ -1137,42 +1137,28 @@ html:has(.store-app) body::-webkit-scrollbar {
   .app-shell { box-shadow: 0 0 80px rgba(115, 103, 240, 0.08); }
 }
 
-/* ── Bottom nav dock (iOS-style) ── */
+/* ── Bottom nav dock (floating glass pill) ── */
 .bottom-nav-dock {
   pointer-events: none;
-  position: relative;
 }
+
 .bottom-nav-dock .bottom-nav {
   pointer-events: auto;
-  background: rgba(255, 255, 255, 0.92);
-  backdrop-filter: blur(28px) saturate(1.4);
-  -webkit-backdrop-filter: blur(28px) saturate(1.4);
   box-shadow:
-    0 -2px 24px rgba(0, 0, 0, 0.12),
-    0 8px 32px rgba(0, 0, 0, 0.1);
-  border: 1px solid var(--glass-border);
+    0 -4px 40px rgba(115, 103, 240, 0.12),
+    0 8px 32px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.95);
 }
 
 .store-app.dark .bottom-nav-dock .bottom-nav {
-  background: rgba(14, 16, 24, 0.94);
-  border-color: rgba(255, 255, 255, 0.14);
+  border-color: rgba(255, 255, 255, 0.12);
   box-shadow:
-    0 -4px 32px rgba(0, 0, 0, 0.55),
-    0 8px 24px rgba(0, 0, 0, 0.35);
+    0 -4px 40px rgba(0, 0, 0, 0.35),
+    0 8px 32px rgba(0, 0, 0, 0.25);
 }
 
 .store-app.dark .bottom-nav-dock .bottom-nav-item:not(.bottom-nav-item-active) {
   color: var(--muted-strong);
-}
-
-.bottom-nav-dock::before {
-  content: '';
-  pointer-events: none;
-  position: absolute;
-  inset-inline: 0;
-  bottom: 100%;
-  height: 48px;
-  background: linear-gradient(to top, var(--bg) 15%, transparent);
 }
 
 .bottom-nav-item {

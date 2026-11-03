@@ -5,7 +5,7 @@ import { OpenInAppBar } from '../install/OpenInAppBar';
 import { useInstall } from '../../providers/install-provider';
 import { InstallBanner } from '../install/InstallBanner';
 import { InstallGuideModal } from '../install/InstallGuideModal';
-import { EnablePushBar, IosPushInstallHint } from '../notifications/EnablePushBar';
+import { EnablePushBar } from '../notifications/EnablePushBar';
 import { PushEnableModal } from '../notifications/PushEnableModal';
 import { useCart } from '../../providers/cart-provider';
 import { useWishlist } from '../../providers/wishlist-provider';
@@ -38,7 +38,6 @@ export function AppShell() {
       </div>
 
       <OpenInAppBar />
-      <IosPushInstallHint />
       <EnablePushBar />
       <PushEnableModal />
       <AppHeader />
@@ -54,7 +53,7 @@ export function AppShell() {
       <FloatingAssistStack />
 
       <div className="bottom-nav-dock fixed inset-x-0 bottom-0 z-50 mx-auto max-w-[480px] px-3" style={{ paddingBottom: 'calc(6px + var(--safe-bottom))' }}>
-        <nav className="bottom-nav flex items-stretch justify-around rounded-[28px] px-1 py-1.5">
+        <nav className="bottom-nav glass-strong flex items-stretch justify-around rounded-[28px] px-1 py-1.5">
           {tabs.map(({ to, icon: Icon, labelKey, end }) => (
             <NavLink
               key={to}
