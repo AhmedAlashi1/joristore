@@ -121,7 +121,7 @@ const dicts: Record<Locale, Dict> = {
     installDesktopHint: 'من المتصفح: القائمة ← تثبيت التطبيق',
     dismiss: 'لاحقاً',
     pushPromptTitle: 'إشعارات الشاشة والصوت',
-    pushPromptBody: 'فعّل الإشعار ليصلك على شاشة الجوال حتى والتطبيق مغلق (بعد تثبيت التطبيق على iPhone).',
+    pushPromptBody: 'اضغط الزر مرة واحدة لتصلك العروض وتحديثات الطلبات حتى والتطبيق مغلق.',
     pushPromptAction: 'تفعيل الإشعارات',
     wishlist: 'المفضلة',
     emptyWishlist: 'قائمة المفضلة فارغة',

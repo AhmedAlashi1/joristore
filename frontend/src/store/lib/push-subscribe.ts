@@ -44,6 +44,11 @@ function isStandalonePwa() {
   );
 }
 
+/** iOS only registers Web Push from the home-screen PWA, not Safari tabs. */
+export function iosPushRequiresInstall(): boolean {
+  return isIos() && !isStandalonePwa();
+}
+
 async function ensureServiceWorkerRegistration(): Promise<ServiceWorkerRegistration | null> {
   if (!('serviceWorker' in navigator)) return null;
 

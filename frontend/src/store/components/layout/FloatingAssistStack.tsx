@@ -7,6 +7,7 @@ import { useLocale } from '../../providers/locale-provider';
 import { socialAriaLabels } from '../social/SocialBrandIcon';
 import { WhatsAppFabIcon } from '../social/WhatsAppFabIcon';
 import { normalizeWhatsAppUrl } from '../../lib/whatsapp';
+import { InstallHomeFab } from '../install/InstallHomeFab';
 
 const stackPosition: CSSProperties = {
   right: 'max(12px, calc(50% - 240px + 12px))',
@@ -31,6 +32,8 @@ export function FloatingAssistStack() {
         className="floating-assist-stack fixed z-[46] flex flex-col items-center gap-3"
         style={stackPosition}
       >
+        <InstallHomeFab />
+
         <button
           type="button"
           className="ai-fab-btn"

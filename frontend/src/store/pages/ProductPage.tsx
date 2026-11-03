@@ -5,7 +5,7 @@ import { FavoriteButton } from '../components/product/FavoriteButton';
 import { storeApi, unwrap } from '../lib/api';
 import { ProductImageGallery } from '../components/product/ProductImageGallery';
 import { cn, formatPrice } from '../lib/utils';
-import { useCart } from '../providers/cart-provider';
+import { useAddToCartMotion } from '../lib/use-add-to-cart-motion';
 import { pickLocalizedText } from '../lib/localized-text';
 import { normalizeProductImagePath } from '../lib/product-image';
 import { useLocale } from '../providers/locale-provider';
@@ -55,7 +55,7 @@ export function ProductPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { t, locale } = useLocale();
-  const { addItem } = useCart();
+  const addToCart = useAddToCartMotion();
   const [product, setProduct] = useState<ProductDetail | null>(null);
   const [selectedVariantId, setSelectedVariantId] = useState<number | null>(null);
   const [qty, setQty] = useState(1);
@@ -104,7 +104,7 @@ export function ProductPage() {
 
   const handleAdd = () => {
     if (!canAdd || !variantIdForCart) return;
-    addItem({
+    addToCart({
       productId: product.id,
       productVariantId: variantIdForCart,
       name: activeVariant ? `${displayName} (${activeVariant.name})` : displayName,
@@ -112,7 +112,7 @@ export function ProductPage() {
       image: normalizeProductImagePath(product.image ?? product.images?.[0]),
       variantLabel: activeVariant?.name ?? null,
       maxQuantity: stockMax,
-    }, qty);
+    }, qty, { fromEl: document.querySelector('[data-fly-source="product-hero"]') });
     setAdded(true);
     setTimeout(() => setAdded(false), 1500);
   };

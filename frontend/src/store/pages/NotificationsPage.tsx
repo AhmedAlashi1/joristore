@@ -1,7 +1,8 @@
 import { Bell, BellRing, Megaphone, Package, Wallet } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { pushFailureMessage } from '../lib/push-subscribe';
+import { iosPushRequiresInstall, pushFailureMessage } from '../lib/push-subscribe';
+import { useInstall } from '../providers/install-provider';
 import { cn, formatPrice } from '../lib/utils';
 import { useCustomer } from '../providers/customer-provider';
 import { useLocale } from '../providers/locale-provider';
@@ -26,15 +27,19 @@ export function CustomerNotificationsPage() {
   const { isLoggedIn } = useCustomer();
   const { items, unreadCount, loading, permission, pushEnabled, requestPermission, markRead, markAllRead, refresh } = useNotifications();
   const [enablingPush, setEnablingPush] = useState(false);
+  const [pushError, setPushError] = useState<string | null>(null);
+  const { requestInstall } = useInstall();
+  const iosInstallFirst = iosPushRequiresInstall();
 
   useEffect(() => { void refresh(); }, [refresh]);
 
   const onEnablePush = async () => {
+    setPushError(null);
     setEnablingPush(true);
     try {
       const result = await requestPermission();
-      if (!result.ok) {
-        window.alert(pushFailureMessage(result.reason, ar));
+      if (!result.ok && result.reason !== 'ios_need_home_screen') {
+        setPushError(pushFailureMessage(result.reason, ar));
       }
     } finally {
       setEnablingPush(false);
@@ -54,9 +59,9 @@ export function CustomerNotificationsPage() {
   const showPushCta = permission !== 'granted' || !pushEnabled;
 
   return (
-    <div className="notifications-page mx-auto w-full max-w-[20.5rem] pb-24 pt-0.5">
-      <div className="mb-5 flex items-center justify-between gap-3">
-        <h1 className="text-lg font-bold">{ar ? 'الإشعارات' : 'Notifications'}</h1>
+    <div className="notifications-page space-y-3 pb-24">
+      <div className="mb-2 flex items-center justify-between gap-3">
+        <h1 className="text-lg font-bold text-[var(--fg)]">{ar ? 'الإشعارات' : 'Notifications'}</h1>
         {unreadCount > 0 ? (
           <button type="button" onClick={() => void markAllRead()} className="text-xs font-semibold text-[var(--primary)]">
             {ar ? 'تعليم الكل كمقروء' : 'Mark all read'}
@@ -65,33 +70,50 @@ export function CustomerNotificationsPage() {
       </div>
 
       {showPushCta ? (
-        <button
-          type="button"
-          disabled={enablingPush}
-          onClick={() => void onEnablePush()}
-          className="notification-card mb-5 flex w-full items-start gap-3 rounded-2xl border border-[var(--primary)]/20 bg-[var(--glass-bg)] p-4 text-start shadow-sm"
-        >
+        <div className="glass mb-5 flex w-full items-start gap-3 rounded-2xl border border-[var(--glass-border)] p-4">
           <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--primary-soft)]">
             <BellRing size={20} className="text-[var(--primary)]" />
           </span>
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-bold">{ar ? 'فعّل الإشعارات على جوالك' : 'Enable phone notifications'}</p>
-            <p className="mt-1 text-xs leading-relaxed text-store-muted">
-              {ar
-                ? 'للوصول خارج التطبيق فعّل Push من الزر.'
-                : 'Enable push for alerts when the app is closed.'}
-            </p>
-            <span className="mt-2 inline-block text-xs font-semibold text-[var(--primary)]">
-              {enablingPush ? (ar ? 'جاري التفعيل...' : 'Enabling...') : (ar ? 'تفعيل الآن' : 'Enable now')}
-            </span>
+            {iosInstallFirst ? (
+              <>
+                <p className="text-sm font-bold text-[var(--fg)]">{ar ? 'ثبّت التطبيق أولاً' : 'Install the app first'}</p>
+                <p className="mt-1 text-xs leading-relaxed text-store-muted">
+                  {ar
+                    ? 'Safari → مشاركة → «إضافة إلى الشاشة الرئيسية»، ثم افتح من الأيقونة.'
+                    : 'Share → Add to Home Screen, then open from the icon.'}
+                </p>
+                <button type="button" onClick={() => void requestInstall()} className="mt-3 text-sm font-bold text-[var(--primary)]">
+                  {ar ? 'كيف أثبّت التطبيق؟' : 'How to install'}
+                </button>
+              </>
+            ) : (
+              <>
+                <p className="text-sm font-bold text-[var(--fg)]">{ar ? 'فعّل الإشعارات على جوالك' : 'Enable phone notifications'}</p>
+                <p className="mt-1 text-xs leading-relaxed text-store-muted">
+                  {ar ? 'اضغط مرة واحدة — مطلوب موافقة نظام iOS/Android.' : 'One tap — your phone will ask for permission.'}
+                </p>
+                {pushError ? (
+                  <p className="mt-2 text-[11px] leading-relaxed text-[#ea5455]">{pushError}</p>
+                ) : null}
+                <button
+                  type="button"
+                  disabled={enablingPush}
+                  onClick={() => void onEnablePush()}
+                  className="mt-3 w-full rounded-xl bg-[var(--primary-soft)] py-2.5 text-sm font-bold text-[var(--primary)] disabled:opacity-50"
+                >
+                  {enablingPush ? (ar ? 'جاري التفعيل...' : 'Enabling...') : (ar ? 'تفعيل الآن' : 'Enable now')}
+                </button>
+              </>
+            )}
           </div>
-        </button>
+        </div>
       ) : null}
 
       {loading && items.length === 0 ? (
-        <div className="notification-card rounded-2xl py-14 text-center text-sm text-store-muted">{ar ? 'جاري التحميل...' : 'Loading...'}</div>
+        <div className="glass rounded-2xl py-14 text-center text-sm text-store-muted">{ar ? 'جاري التحميل...' : 'Loading...'}</div>
       ) : items.length === 0 ? (
-        <div className="notification-card rounded-2xl py-14 text-center text-sm text-store-muted">{ar ? 'لا توجد إشعارات' : 'No notifications'}</div>
+        <div className="glass rounded-2xl py-14 text-center text-sm text-store-muted">{ar ? 'لا توجد إشعارات' : 'No notifications'}</div>
       ) : (
         <ul className="flex list-none flex-col gap-3.5 p-0">
           {items.map((n) => {
@@ -104,10 +126,8 @@ export function CustomerNotificationsPage() {
                   type="button"
                   onClick={() => unread && void markRead(n.id)}
                   className={cn(
-                    'notification-card relative w-full overflow-hidden rounded-2xl border bg-[var(--glass-bg)] p-4 text-start shadow-sm transition active:scale-[0.99]',
-                    unread
-                      ? 'border-[var(--primary)]/35 shadow-[0_4px_20px_rgba(var(--primary-rgb),0.12)]'
-                      : 'border-black/[0.06] dark:border-white/10',
+                    'glass relative w-full overflow-hidden rounded-2xl p-4 text-start transition active:scale-[0.99]',
+                    unread && 'ring-1 ring-[var(--primary)]/40 shadow-[0_4px_24px_rgba(var(--primary-rgb),0.15)]',
                   )}
                 >
                   {unread ? (
@@ -118,7 +138,7 @@ export function CustomerNotificationsPage() {
                   ) : null}
 
                   <div className="flex items-start gap-3 pe-4">
-                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-black/[0.04] text-[var(--primary)] dark:bg-white/[0.07]">
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--primary-soft)] text-[var(--primary)]">
                       <Icon size={18} />
                     </span>
                     <div className="min-w-0 flex-1">
@@ -128,18 +148,18 @@ export function CustomerNotificationsPage() {
                       </span>
 
                       {showBody ? (
-                        <p className="mt-2.5 text-[13px] leading-relaxed text-[#6f6b7d] dark:text-[#b6b8cc]">{n.message}</p>
+                        <p className="mt-2.5 text-[13px] leading-relaxed text-store-muted">{n.message}</p>
                       ) : null}
 
                       {n.data?.transfer_reference ? (
-                        <p className="mt-2 text-xs" dir="ltr">
-                          <span className="font-semibold">{ar ? 'رقم التحويل: ' : 'Ref: '}</span>
+                        <p className="mt-2 text-xs text-[var(--fg)]" dir="ltr">
+                          <span className="font-semibold text-store-muted">{ar ? 'رقم التحويل: ' : 'Ref: '}</span>
                           {n.data.transfer_reference}
                         </p>
                       ) : null}
                       {n.data?.account_holder_name ? (
-                        <p className="mt-1 text-xs">
-                          <span className="font-semibold">{ar ? 'صاحب الحساب: ' : 'Account: '}</span>
+                        <p className="mt-1 text-xs text-[var(--fg)]">
+                          <span className="font-semibold text-store-muted">{ar ? 'صاحب الحساب: ' : 'Account: '}</span>
                           {n.data.account_holder_name}
                         </p>
                       ) : null}
@@ -147,8 +167,8 @@ export function CustomerNotificationsPage() {
                         <p className="mt-2 text-sm font-bold text-[var(--primary)]">{formatPrice(Number(n.data.amount))}</p>
                       ) : null}
                       {(n.data?.payment_method_label_ar || n.data?.payment_method_label_en) ? (
-                        <p className="mt-1 text-xs">
-                          <span className="font-semibold">{ar ? 'طريقة الدفع: ' : 'Method: '}</span>
+                        <p className="mt-1 text-xs text-[var(--fg)]">
+                          <span className="font-semibold text-store-muted">{ar ? 'طريقة الدفع: ' : 'Method: '}</span>
                           {ar ? n.data.payment_method_label_ar : n.data.payment_method_label_en}
                         </p>
                       ) : null}
@@ -168,7 +188,7 @@ export function CustomerNotificationsPage() {
                         </a>
                       ) : null}
 
-                      <p className="mt-3 border-t border-black/[0.06] pt-2.5 text-[10px] text-[#8a8da8] dark:border-white/10">
+                      <p className="mt-3 border-t border-[var(--glass-border)] pt-2.5 text-[11px] text-store-muted">
                         {n.created_at ? new Date(n.created_at).toLocaleString(locale === 'ar' ? 'ar-SA' : 'en') : ''}
                       </p>
                     </div>

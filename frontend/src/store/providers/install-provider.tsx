@@ -1,4 +1,10 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import {
+  detectInstallPlatform,
+  isIosDevice,
+  isStandaloneDisplay,
+  type InstallPlatform,
+} from '../lib/install-platform';
 import { SPLASH_DONE_EVENT } from '../lib/splash-done';
 
 const INSTALL_DISMISS_KEY = 'jori-install-dismiss';
@@ -7,17 +13,6 @@ type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>;
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
 };
-
-function isStandalone() {
-  return (
-    window.matchMedia('(display-mode: standalone)').matches
-    || (window.navigator as Navigator & { standalone?: boolean }).standalone === true
-  );
-}
-
-function isIos() {
-  return /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as Window & { MSStream?: unknown }).MSStream;
-}
 
 function installDismissed() {
   try {
@@ -33,8 +28,11 @@ type InstallCtx = {
   iconVisible: boolean;
   canNativeInstall: boolean;
   isIosDevice: boolean;
+  platform: InstallPlatform;
   installed: boolean;
   install: () => Promise<boolean>;
+  /** Native prompt when available; otherwise opens platform guide (iOS / manual). */
+  requestInstall: () => Promise<boolean>;
   dismissGuide: () => void;
   dismissBanner: () => void;
   openBanner: () => void;
@@ -47,14 +45,13 @@ export function InstallProvider({ children }: { children: ReactNode }) {
   const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null);
   const [guideVisible, setGuideVisible] = useState(false);
   const [bannerVisible, setBannerVisible] = useState(false);
-  const [iconVisible, setIconVisible] = useState(false);
-  const [installed] = useState(isStandalone);
-  const [isIosDevice] = useState(isIos);
+  const [installed] = useState(isStandaloneDisplay);
+  const [iosDevice] = useState(() => isIosDevice());
+  const [platform] = useState(detectInstallPlatform);
 
   const revealInstallUi = useCallback(() => {
-    if (installed || installDismissed()) return;
-    setIconVisible(true);
-    setBannerVisible(true);
+    if (installed) return;
+    if (!installDismissed()) setBannerVisible(true);
   }, [installed]);
 
   useEffect(() => {
@@ -101,7 +98,6 @@ export function InstallProvider({ children }: { children: ReactNode }) {
     if (outcome === 'accepted') {
       setGuideVisible(false);
       setBannerVisible(false);
-      setIconVisible(false);
       setDeferred(null);
       window.__deferredInstallPrompt = null;
       return true;
@@ -128,19 +124,29 @@ export function InstallProvider({ children }: { children: ReactNode }) {
   }, []);
   const openGuide = useCallback(() => setGuideVisible(true), []);
 
+  const requestInstall = useCallback(async () => {
+    if (deferred) {
+      return install();
+    }
+    setGuideVisible(true);
+    return false;
+  }, [deferred, install]);
+
   const value = useMemo<InstallCtx>(() => ({
     guideVisible: guideVisible && !installed,
     bannerVisible: bannerVisible && !installed,
-    iconVisible: iconVisible && !installed,
+    iconVisible: !installed,
     canNativeInstall: !!deferred,
-    isIosDevice,
+    isIosDevice: iosDevice,
+    platform,
     installed,
     install,
+    requestInstall,
     dismissGuide,
     dismissBanner,
     openBanner,
     openGuide,
-  }), [guideVisible, bannerVisible, iconVisible, deferred, isIosDevice, installed, install, dismissGuide, dismissBanner, openBanner, openGuide]);
+  }), [guideVisible, bannerVisible, deferred, iosDevice, platform, installed, install, requestInstall, dismissGuide, dismissBanner, openBanner, openGuide]);
 
   return <InstallContext.Provider value={value}>{children}</InstallContext.Provider>;
 }

@@ -1,7 +1,8 @@
 import type { MouseEvent } from 'react';
+import { useRef } from 'react';
 import { ShoppingCart } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { useCart } from '../../providers/cart-provider';
+import { useAddToCartMotion } from '../../lib/use-add-to-cart-motion';
 import { cn } from '../../lib/utils';
 import { normalizeProductImagePath } from '../../lib/product-image';
 
@@ -24,7 +25,8 @@ type AddToCartButtonProps = {
 
 export function AddToCartButton({ product, className, size = 18 }: AddToCartButtonProps) {
   const navigate = useNavigate();
-  const { addItem } = useCart();
+  const addToCart = useAddToCartMotion();
+  const btnRef = useRef<HTMLButtonElement>(null);
 
   const canQuickAdd =
     product.in_stock !== false &&
@@ -43,7 +45,7 @@ export function AddToCartButton({ product, className, size = 18 }: AddToCartButt
 
     if (!canQuickAdd || !product.productVariantId) return;
 
-    addItem(
+    addToCart(
       {
         productId: product.productId,
         productVariantId: product.productVariantId,
@@ -53,6 +55,7 @@ export function AddToCartButton({ product, className, size = 18 }: AddToCartButt
         maxQuantity: product.quantity,
       },
       1,
+      { fromEl: btnRef.current },
     );
   };
 
@@ -60,6 +63,7 @@ export function AddToCartButton({ product, className, size = 18 }: AddToCartButt
 
   return (
     <button
+      ref={btnRef}
       type="button"
       aria-label="Add to cart"
       disabled={disabled}

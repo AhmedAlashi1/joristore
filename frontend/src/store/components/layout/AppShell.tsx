@@ -5,12 +5,13 @@ import { OpenInAppBar } from '../install/OpenInAppBar';
 import { useInstall } from '../../providers/install-provider';
 import { InstallBanner } from '../install/InstallBanner';
 import { InstallGuideModal } from '../install/InstallGuideModal';
-import { EnablePushBar } from '../notifications/EnablePushBar';
+import { EnablePushBar, IosPushInstallHint } from '../notifications/EnablePushBar';
 import { PushEnableModal } from '../notifications/PushEnableModal';
 import { useCart } from '../../providers/cart-provider';
 import { useWishlist } from '../../providers/wishlist-provider';
 import { useLocale } from '../../providers/locale-provider';
 import { FloatingAssistStack } from './FloatingAssistStack';
+import { useStoreMotion } from '../../providers/store-motion-provider';
 import { cn } from '../../lib/utils';
 
 const tabs = [
@@ -27,6 +28,7 @@ export function AppShell() {
   const { count: wishCount } = useWishlist();
   const location = useLocation();
   const { iconVisible, installed } = useInstall();
+  const { cartTargetRef, wishlistTargetRef } = useStoreMotion();
   const showOpenInApp = iconVisible && !installed;
   return (
     <div className={cn('app-shell', showOpenInApp && 'has-open-in-app')}>
@@ -36,11 +38,12 @@ export function AppShell() {
       </div>
 
       <OpenInAppBar />
+      <IosPushInstallHint />
       <EnablePushBar />
       <PushEnableModal />
       <AppHeader />
 
-      <main className="relative z-10 px-4 pt-[calc(var(--header-h)+var(--safe-top)+var(--open-app-h)+var(--push-prompt-h,0px)+20px)]">
+      <main className="relative z-10 px-4 pt-[calc(var(--header-h)+var(--safe-top)+var(--open-app-h)+var(--push-prompt-h,0px)+24px)]">
         <div key={location.pathname} className="page-enter">
           <Outlet />
         </div>
@@ -51,16 +54,25 @@ export function AppShell() {
       <FloatingAssistStack />
 
       <div className="bottom-nav-dock fixed inset-x-0 bottom-0 z-50 mx-auto max-w-[480px] px-3" style={{ paddingBottom: 'calc(6px + var(--safe-bottom))' }}>
-        <nav className="bottom-nav glass-strong flex items-stretch justify-around rounded-[28px] px-1 py-1.5">
+        <nav className="bottom-nav flex items-stretch justify-around rounded-[28px] px-1 py-1.5">
           {tabs.map(({ to, icon: Icon, labelKey, end }) => (
             <NavLink
               key={to}
               to={to}
               end={end}
+              ref={
+                labelKey === 'cart'
+                  ? cartTargetRef
+                  : labelKey === 'wishlist'
+                    ? wishlistTargetRef
+                    : undefined
+              }
+              {...(labelKey === 'cart' ? { 'data-cart-fly-target': '' } : {})}
+              {...(labelKey === 'wishlist' ? { 'data-wishlist-fly-target': '' } : {})}
               className={({ isActive }) =>
                 cn(
                   'bottom-nav-item relative flex flex-1 flex-col items-center justify-center gap-0.5 rounded-[22px] py-2 transition-all duration-300',
-                  isActive ? 'bottom-nav-item-active' : 'text-store-muted',
+                  isActive ? 'bottom-nav-item-active' : 'bottom-nav-item-idle text-store-muted',
                 )
               }
             >

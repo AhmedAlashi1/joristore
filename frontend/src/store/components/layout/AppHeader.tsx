@@ -9,7 +9,7 @@ import { cn } from '../../lib/utils';
 export function AppHeader() {
   const { t } = useLocale();
   const { unreadCount } = useNotifications();
-  const { iconVisible: installVisible, openGuide } = useInstall();
+  const { iconVisible: installVisible, requestInstall } = useInstall();
   const { name: storeName, logo } = useStoreBrand();
   const location = useLocation();
   return (
@@ -43,7 +43,7 @@ export function AppHeader() {
             </Link>
 
             {installVisible ? (
-              <button type="button" onClick={openGuide} className="header-icon-btn header-icon-install" aria-label={t.installButton}>
+              <button type="button" onClick={() => void requestInstall()} className="header-icon-btn header-icon-install" aria-label={t.installButton}>
                 <Download size={18} />
               </button>
             ) : null}

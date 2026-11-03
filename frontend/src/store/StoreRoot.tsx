@@ -10,6 +10,7 @@ import { StoreBrandProvider, useStoreBrand } from './providers/store-brand-provi
 import { AppearanceProvider, useAppearance } from './providers/appearance-provider';
 import { WishlistProvider } from './providers/wishlist-provider';
 import { PullRefreshProvider } from './providers/pull-refresh-provider';
+import { StoreMotionProvider } from './providers/store-motion-provider';
 import StoreApp from './StoreApp';
 import './index.css';
 
@@ -35,9 +36,11 @@ function StoreProviders() {
                 <CustomerProvider>
                   <NotificationProvider>
                     <CartProvider>
-                      <PullRefreshProvider>
-                        <StoreApp />
-                      </PullRefreshProvider>
+                      <StoreMotionProvider>
+                        <PullRefreshProvider>
+                          <StoreApp />
+                        </PullRefreshProvider>
+                      </StoreMotionProvider>
                     </CartProvider>
                   </NotificationProvider>
                 </CustomerProvider>

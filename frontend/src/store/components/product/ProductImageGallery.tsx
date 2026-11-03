@@ -53,6 +53,7 @@ export function ProductImageGallery({ name, image, images }: ProductImageGallery
           <button
             type="button"
             className="block w-full"
+            data-fly-source="product-hero"
             onClick={() => setLightbox(true)}
             aria-label={name}
           >

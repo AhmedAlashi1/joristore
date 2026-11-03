@@ -1,6 +1,6 @@
 import { BellRing, Loader2, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { enablePushFromUserGesture, pushFailureMessage, PUSH_OPT_OUT_KEY } from '../../lib/push-subscribe';
+import { enablePushFromUserGesture, iosPushRequiresInstall, pushFailureMessage, PUSH_OPT_OUT_KEY } from '../../lib/push-subscribe';
 import { useCustomer } from '../../providers/customer-provider';
 import { useLocale } from '../../providers/locale-provider';
 import { useNotifications } from '../../providers/notification-provider';
@@ -19,7 +19,8 @@ export function PushEnableModal() {
     isLoggedIn
     && !pushEnabled
     && permission !== 'denied'
-    && permission !== 'unsupported';
+    && permission !== 'unsupported'
+    && !iosPushRequiresInstall();
 
   useEffect(() => {
     if (!needsPush) {
@@ -51,7 +52,7 @@ export function PushEnableModal() {
       await refresh();
       if (result.ok) {
         setOpen(false);
-      } else {
+      } else if (result.reason !== 'ios_need_home_screen') {
         window.alert(pushFailureMessage(result.reason, ar));
       }
     } finally {

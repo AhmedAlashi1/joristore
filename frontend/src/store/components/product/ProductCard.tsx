@@ -58,7 +58,7 @@ export function ProductCard({
       )}
       style={compact ? undefined : { animationDelay: `${index * 0.06}s` }}
     >
-      <div className="product-card-media relative w-full shrink-0 overflow-hidden bg-[#eceef4] dark:bg-[#252538]">
+      <div className="product-card-media relative w-full shrink-0 overflow-hidden bg-[#eceef4] dark:bg-[#252538]" data-fly-source>
         <StoreMediaImage
           src={product.image}
           alt={displayName}
