@@ -107,6 +107,23 @@ export const statusVariant: Record<string, 'default' | 'success' | 'warning' | '
   archived: 'destructive',
 };
 
+export function parseStockQuantity(value: string | number): number {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? Math.max(0, Math.trunc(value)) : 0;
+  }
+  const n = parseInt(String(value).trim(), 10);
+  return Number.isFinite(n) ? Math.max(0, n) : 0;
+}
+
+export function productHasSizeVariants(row: ProductRecord | ProductFormState): boolean {
+  const sizes = 'size_variants' in row ? row.size_variants : [];
+  return (sizes?.length ?? 0) > 0;
+}
+
+export function totalSizeStock(sizes: { quantity: number }[]): number {
+  return sizes.reduce((sum, s) => sum + parseStockQuantity(s.quantity), 0);
+}
+
 export function mapProductToForm(row: ProductRecord): ProductFormState {
   return {
     name: row.name,
@@ -165,7 +182,7 @@ export function prepareProductPayload(form: ProductFormState) {
     price: Number(form.price),
     compare_at_price: form.compare_at_price ? Number(form.compare_at_price) : null,
     cost: form.cost ? Number(form.cost) : null,
-    quantity: Number(form.quantity) || 0,
+    quantity: parseStockQuantity(form.quantity),
     featured: Boolean(form.featured),
     image: form.image || null,
     gallery: form.gallery.filter(Boolean),
@@ -180,7 +197,7 @@ export function prepareProductPayload(form: ProductFormState) {
         name: r.name.trim(),
         sku: r.sku || null,
         price: r.price ? Number(r.price) : undefined,
-        quantity: Number(r.quantity) || 0,
+        quantity: parseStockQuantity(r.quantity),
       }))
       : undefined,
   };

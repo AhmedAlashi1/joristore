@@ -3,7 +3,14 @@ import { Input } from '../../components/ui/input';
 import { SearchableMultiSelect } from '../../components/ui/SearchableMultiSelect';
 import { AutoEnglishPreview } from '../../components/ui/AutoEnglishPreview';
 import { ProductGalleryField } from '../../components/ui/ProductGalleryField';
-import type { ProductFormState, ProductOption, SizeRow } from './product-shared';
+import {
+  parseStockQuantity,
+  productHasSizeVariants,
+  totalSizeStock,
+  type ProductFormState,
+  type ProductOption,
+  type SizeRow,
+} from './product-shared';
 
 type ProductFormFieldsProps = {
   form: ProductFormState;
@@ -23,6 +30,7 @@ export function ProductFormFields({
   readOnly = false,
 }: ProductFormFieldsProps) {
   const patch = (partial: Partial<ProductFormState>) => setForm({ ...form, ...partial });
+  const hasSizes = productHasSizeVariants(form);
 
   if (readOnly) {
     return null;
@@ -73,9 +81,30 @@ export function ProductFormFields({
           <FormField label={ar ? 'السعر *' : 'Price *'}>
             <Input type="number" step="0.01" value={form.price} onChange={(e) => patch({ price: e.target.value })} />
           </FormField>
-          <FormField label={ar ? 'المخزون' : 'Stock'}>
-            <Input type="number" value={String(form.quantity)} onChange={(e) => patch({ quantity: Number(e.target.value) })} />
-          </FormField>
+          {hasSizes ? (
+            <FormField label={ar ? 'المخزون (مجموع المقاسات)' : 'Stock (sizes total)'}>
+              <Input
+                type="number"
+                readOnly
+                value={String(totalSizeStock(form.size_variants))}
+                className="cursor-default opacity-90"
+              />
+              <p className="text-xs text-[#8a8da8]">
+                {ar ? 'عدّل الكمية من جدول المقاسات أدناه' : 'Edit quantity in the sizes table below'}
+              </p>
+            </FormField>
+          ) : (
+            <FormField label={ar ? 'المخزون' : 'Stock'}>
+              <Input
+                type="number"
+                min={0}
+                step={1}
+                inputMode="numeric"
+                value={String(form.quantity)}
+                onChange={(e) => patch({ quantity: parseStockQuantity(e.target.value) })}
+              />
+            </FormField>
+          )}
           <div className="sm:col-span-2">
             <FormField label={ar ? 'الأقسام' : 'Categories'}>
             <SearchableMultiSelect
@@ -132,14 +161,14 @@ export function ProductFormFields({
         </FormField>
         <FormField label={ar ? 'الوصف (عربي)' : 'Description (Arabic)'}>
           <textarea
-            className="glass-input min-h-[120px] w-full rounded-xl px-3 py-2 text-sm"
+            className="glass-input admin-form-input min-h-[120px] w-full rounded-xl px-3 py-2 text-sm"
             value={form.description}
             onChange={(e) => patch({ description: e.target.value })}
           />
         </FormField>
         <FormField label={ar ? 'الوصف (إنجليزي)' : 'Description (English)'}>
           <textarea
-            className="glass-input min-h-[120px] w-full rounded-xl px-3 py-2 text-sm"
+            className="glass-input admin-form-input min-h-[120px] w-full rounded-xl px-3 py-2 text-sm"
             value={form.description_en}
             onChange={(e) => patch({ description_en: e.target.value })}
             dir="ltr"
@@ -183,11 +212,19 @@ export function ProductFormFields({
                 list[idx] = { ...list[idx], sku: e.target.value };
                 patch({ size_variants: list });
               }} />
-              <Input type="number" placeholder={ar ? 'كمية' : 'Qty'} value={String(row.quantity)} onChange={(e) => {
-                const list = [...form.size_variants];
-                list[idx] = { ...list[idx], quantity: Number(e.target.value) };
-                patch({ size_variants: list });
-              }} />
+              <Input
+                type="number"
+                min={0}
+                step={1}
+                inputMode="numeric"
+                placeholder={ar ? 'كمية' : 'Qty'}
+                value={String(row.quantity)}
+                onChange={(e) => {
+                  const list = [...form.size_variants];
+                  list[idx] = { ...list[idx], quantity: parseStockQuantity(e.target.value) };
+                  patch({ size_variants: list });
+                }}
+              />
               <button type="button" className="text-xs text-[#ea5455]" onClick={() => {
                 const list = [...form.size_variants];
                 list.splice(idx, 1);

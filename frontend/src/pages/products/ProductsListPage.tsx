@@ -2,7 +2,8 @@ import { Copy, Eye, Loader2, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button, buttonVariants } from '../../components/ui/button';
-import { SelectInput } from '../../components/crud/CrudPage';
+import { SearchableSelect } from '../../components/ui/SearchableSelect';
+import { parseStockQuantity } from './product-shared';
 import { cn } from '../../lib/cn';
 import { Input } from '../../components/ui/input';
 import { LoadingSpinner } from '../../components/ui/loading-spinner';
@@ -41,6 +42,8 @@ export function ProductsListPage() {
   const [lastPage, setLastPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [selected, setSelected] = useState<Set<number>>(new Set());
+  const [stockDraft, setStockDraft] = useState<Record<number, string>>({});
+  const [stockSavingId, setStockSavingId] = useState<number | null>(null);
 
   const canCreate = hasPermission('products.create');
   const canUpdate = hasPermission('products.update');
@@ -156,6 +159,32 @@ export function ProductsListPage() {
     }
   };
 
+  const rowHasSizeVariants = (row: ProductRecord) => (row.size_variants?.length ?? 0) > 0;
+
+  const saveStock = async (row: ProductRecord) => {
+    if (!canUpdate || rowHasSizeVariants(row)) return;
+    const draft = stockDraft[row.id] ?? String(row.quantity);
+    const quantity = parseStockQuantity(draft);
+    if (quantity === row.quantity) return;
+
+    setStockSavingId(row.id);
+    try {
+      const res = await api.patch(`/admin/products/${row.id}/stock`, { quantity });
+      const updated = ensureApiSuccess<ProductRecord>(res, '');
+      setRows((prev) => prev.map((r) => (r.id === row.id ? { ...r, quantity: updated.quantity } : r)));
+      setStockDraft((prev) => {
+        const next = { ...prev };
+        delete next[row.id];
+        return next;
+      });
+      notify.success(ar ? 'تم تحديث المخزون' : 'Stock updated');
+    } catch (error) {
+      notify.errorFrom(error, ar ? 'فشل تحديث المخزون' : 'Stock update failed');
+    } finally {
+      setStockSavingId(null);
+    }
+  };
+
   const deleteOne = async (row: ProductRecord) => {
     if (!window.confirm(ar ? `حذف «${row.name}»؟` : `Delete "${row.name}"?`)) return;
     setBusy(true);
@@ -192,16 +221,14 @@ export function ProductsListPage() {
           placeholder={ar ? 'بحث بالاسم...' : 'Search by name...'}
           className="max-w-xs"
         />
-        <SelectInput
-          variant="filter"
+        <SearchableSelect
+          options={categories}
           value={categoryFilter}
-          onChange={(e) => { setCategoryFilter(e.target.value); setPage(1); }}
-        >
-          <option value="">{ar ? 'كل الأقسام' : 'All categories'}</option>
-          {categories.map((c) => (
-            <option key={c.id} value={String(c.id)}>{c.name}</option>
-          ))}
-        </SelectInput>
+          onChange={(v) => { setCategoryFilter(v); setPage(1); }}
+          placeholder={ar ? 'كل الأقسام' : 'All categories'}
+          searchPlaceholder={ar ? 'بحث باسم القسم…' : 'Search category name…'}
+          emptyLabel={ar ? 'لا نتائج' : 'No results'}
+        />
         {canDelete && selected.size > 0 ? (
           <Button variant="destructive" size="sm" disabled={busy} onClick={() => void bulkDelete()}>
             {busy ? <Loader2 className="me-2 h-4 w-4 animate-spin" /> : <Trash2 className="me-2 h-4 w-4" />}
@@ -278,7 +305,36 @@ export function ProductsListPage() {
                     </td>
                     <td className="px-4 py-3">{formatPrice(row.price)}</td>
                     <td className="px-4 py-3">
-                      <span className={row.quantity <= 5 ? 'font-semibold text-[#ff9f43]' : ''}>{row.quantity}</span>
+                      {canUpdate && !rowHasSizeVariants(row) ? (
+                        <Input
+                          type="number"
+                          min={0}
+                          step={1}
+                          inputMode="numeric"
+                          disabled={stockSavingId === row.id}
+                          className="h-9 w-20 px-2 text-center tabular-nums"
+                          value={stockDraft[row.id] ?? String(row.quantity)}
+                          onChange={(e) => setStockDraft((prev) => ({ ...prev, [row.id]: e.target.value }))}
+                          onBlur={() => void saveStock(row)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.currentTarget.blur();
+                            }
+                          }}
+                        />
+                      ) : (
+                        <span className="inline-flex flex-col gap-0.5">
+                          <span className={row.quantity <= 5 ? 'font-semibold text-[#ff9f43]' : ''}>{row.quantity}</span>
+                          {rowHasSizeVariants(row) ? (
+                            <Link
+                              to={`/admin/products/${row.id}/edit`}
+                              className="text-[10px] font-semibold text-[#7367f0] hover:underline"
+                            >
+                              {ar ? 'مقاسات — تعديل' : 'Sizes — edit'}
+                            </Link>
+                          ) : null}
+                        </span>
+                      )}
                     </td>
                     <td className="px-4 py-3">
                       <Badge variant={statusVariant[row.status] ?? 'default'}>{row.status}</Badge>

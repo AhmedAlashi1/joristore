@@ -326,10 +326,16 @@ class ProductController extends Controller
 
             $product->update($productData);
 
-            if (array_key_exists('size_variants', $data) && is_array($data['size_variants'])) {
-                $this->syncSizeVariants($product, $data['size_variants'], $data, $merchantId);
+            $sizeRows = $data['size_variants'] ?? null;
+            if (is_array($sizeRows) && $sizeRows !== []) {
+                $this->syncSizeVariants($product, $sizeRows, $data, $merchantId);
             } else {
-                $variant = $product->defaultVariant;
+                $variant = ProductVariant::query()
+                    ->where('product_id', $product->id)
+                    ->where('is_default', true)
+                    ->first()
+                    ?? ProductVariant::query()->where('product_id', $product->id)->orderBy('id')->first();
+
                 if ($variant) {
                     $variant->update(array_filter([
                         'sku' => $data['sku'] ?? null,
@@ -338,16 +344,8 @@ class ProductController extends Controller
                         'cost_amount' => isset($data['cost']) ? $this->toMinorUnits($data['cost']) : null,
                     ], fn ($v) => $v !== null));
 
-                    if (isset($data['quantity'])) {
-                        $location = InventoryLocation::firstOrCreate(
-                            ['merchant_id' => $merchantId, 'is_default' => true],
-                            ['name' => 'Main Warehouse', 'code' => 'MAIN', 'status' => 'active']
-                        );
-
-                        Inventory::updateOrCreate(
-                            ['product_variant_id' => $variant->id, 'inventory_location_id' => $location->id],
-                            ['merchant_id' => $merchantId, 'quantity' => $data['quantity']]
-                        );
+                    if (array_key_exists('quantity', $data)) {
+                        $this->setVariantStock($variant, $merchantId, (int) $data['quantity']);
                     }
                 }
             }
@@ -373,6 +371,47 @@ class ProductController extends Controller
             $this->format($product->fresh()->load(['category', 'categories', 'brand', 'defaultVariant.inventory', 'variants.inventory', 'images']), true),
             $this->catalogSaveMessage('Product updated', $data, $translationMap),
         );
+    }
+
+    public function updateStock(Request $request, int $id)
+    {
+        $product = Product::with(['variants.inventory'])->find($id);
+        if (! $product) {
+            return sendError('Product not found', [], 404);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'quantity' => 'required|integer|min:0',
+        ]);
+
+        if ($validator->fails()) {
+            return sendError($validator->errors()->first(), $validator->errors()->toArray(), 422);
+        }
+
+        $merchantId = MerchantContext::merchantId();
+        $quantity = (int) $validator->validated()['quantity'];
+
+        $sizeVariants = $product->variants->reject(fn (ProductVariant $v) => $v->name === 'Default');
+        if ($sizeVariants->isNotEmpty()) {
+            return sendError(
+                'This product uses size variants — edit stock on the product page.',
+                ['code' => 'has_size_variants'],
+                422,
+            );
+        }
+
+        $variant = $product->variants->firstWhere('is_default', true)
+            ?? $product->variants->sortBy('id')->first();
+
+        if (! $variant) {
+            return sendError('Product variant not found', [], 404);
+        }
+
+        $this->setVariantStock($variant, $merchantId, $quantity);
+
+        $product->load(['category', 'categories', 'brand', 'defaultVariant.inventory', 'variants.inventory', 'images']);
+
+        return sendResponse($this->format($product), 'Stock updated');
     }
 
     public function destroy(Request $request, int $id)
@@ -592,6 +631,14 @@ class ProductController extends Controller
     {
         $variant = $product->defaultVariant;
         $inventory = $variant?->inventory;
+        $sizeVariants = $product->relationLoaded('variants')
+            ? $product->variants
+                ->reject(fn (ProductVariant $v) => $v->name === 'Default')
+                ->values()
+            : collect();
+        $displayQuantity = $sizeVariants->isNotEmpty()
+            ? (int) $sizeVariants->sum(fn (ProductVariant $v) => $v->inventory?->quantity ?? 0)
+            : ($inventory?->quantity ?? 0);
 
         $base = [
             'id' => $product->id,
@@ -616,7 +663,7 @@ class ProductController extends Controller
             'brand_name' => $product->brand?->name,
             'featured' => $product->featured,
             'price' => $this->fromMinorUnits($variant?->price_amount),
-            'quantity' => $inventory?->quantity ?? 0,
+            'quantity' => $displayQuantity,
             'sku' => $variant?->sku,
             'image' => $this->primaryImagePath($product),
             'gallery' => $this->galleryImagePaths($product),
@@ -627,17 +674,14 @@ class ProductController extends Controller
         $base['product_group_id'] = $product->product_group_id;
         $base['color_name'] = $product->color_name;
         $base['color_hex'] = $product->color_hex;
-        $base['size_variants'] = $product->relationLoaded('variants')
-            ? $product->variants
-                ->reject(fn (ProductVariant $v) => $v->name === 'Default')
-                ->map(fn (ProductVariant $v) => [
-                    'name' => $v->name,
-                    'sku' => $v->sku,
-                    'price' => $this->fromMinorUnits($v->price_amount),
-                    'quantity' => $v->inventory?->quantity ?? 0,
-                    'is_default' => $v->is_default,
-                ])->values()->all()
-            : [];
+        $base['size_variants'] = $sizeVariants
+            ->map(fn (ProductVariant $v) => [
+                'name' => $v->name,
+                'sku' => $v->sku,
+                'price' => $this->fromMinorUnits($v->price_amount),
+                'quantity' => $v->inventory?->quantity ?? 0,
+                'is_default' => $v->is_default,
+            ])->values()->all();
 
         $base['short_description'] = $product->short_description;
         $base['short_description_en'] = $product->short_description_en;
@@ -720,10 +764,7 @@ class ProductController extends Controller
                 ]);
             }
 
-            Inventory::updateOrCreate(
-                ['product_variant_id' => $variant->id, 'inventory_location_id' => $location->id],
-                ['merchant_id' => $merchantId, 'quantity' => (int) ($row['quantity'] ?? 0)]
-            );
+            $this->setVariantStock($variant, $merchantId, (int) ($row['quantity'] ?? 0), $location);
         }
 
         if ($keepNames !== []) {
@@ -732,6 +773,23 @@ class ProductController extends Controller
                 ->whereNotIn('name', $keepNames)
                 ->delete();
         }
+    }
+
+    protected function setVariantStock(
+        ProductVariant $variant,
+        int $merchantId,
+        int $quantity,
+        ?InventoryLocation $location = null,
+    ): void {
+        $location ??= InventoryLocation::firstOrCreate(
+            ['merchant_id' => $merchantId, 'is_default' => true],
+            ['name' => 'Main Warehouse', 'code' => 'MAIN', 'status' => 'active']
+        );
+
+        Inventory::updateOrCreate(
+            ['product_variant_id' => $variant->id, 'inventory_location_id' => $location->id],
+            ['merchant_id' => $merchantId, 'quantity' => max(0, $quantity)]
+        );
     }
 
     /** @return list<string> */

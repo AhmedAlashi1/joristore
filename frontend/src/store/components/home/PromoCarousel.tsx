@@ -11,7 +11,7 @@ type Slide = StorePromoBanner & { alt: string; imageVersion: string };
 
 function PromoBannerSkeleton() {
   return (
-    <div className="promo-carousel-viewport aspect-[5/2] w-full overflow-hidden rounded-2xl shadow-md">
+    <div className="promo-carousel-viewport h-32 w-full overflow-hidden rounded-2xl shadow-md">
       <div className="skeleton-shimmer h-full w-full rounded-2xl" aria-hidden />
     </div>
   );
@@ -32,14 +32,14 @@ function PromoBannerSlide({
   }, [url]);
 
   return (
-    <div className="relative h-full w-full bg-[var(--primary-soft)]/15">
+    <div className="relative h-full w-full bg-[#f0f1f6] dark:bg-[#252838]">
       {!loaded ? <div className="skeleton-shimmer absolute inset-0 opacity-70" aria-hidden /> : null}
       {url ? (
         <img
           src={url}
           alt={slide.alt}
           className={cn(
-            'h-full w-full object-contain object-center transition-opacity duration-200 ease-out',
+            'h-full w-full object-cover object-center transition-opacity duration-200 ease-out',
             loaded ? 'opacity-100' : 'opacity-0',
           )}
           loading={priority ? 'eager' : 'lazy'}
@@ -113,7 +113,7 @@ export function PromoCarousel() {
   return (
     <section className="mt-2 space-y-1.5">
       <div
-        className="promo-carousel-viewport relative aspect-[5/2] w-full overflow-hidden rounded-2xl shadow-md"
+        className="promo-carousel-viewport relative h-32 w-full overflow-hidden rounded-2xl shadow-md"
         dir="ltr"
         onTouchStart={onTouchStart}
         onTouchEnd={onTouchEnd}

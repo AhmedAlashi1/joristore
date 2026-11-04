@@ -193,6 +193,22 @@ select.glass-input option {
   background: #fff;
 }
 
+.admin-form-input {
+  background: #fff;
+  border-color: rgba(47, 43, 61, 0.18);
+  box-shadow: inset 0 1px 2px rgba(47, 43, 61, 0.06);
+}
+
+.dark .admin-form-input {
+  background: rgba(32, 34, 52, 0.96);
+  border-color: rgba(255, 255, 255, 0.14);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+textarea.glass-input.admin-form-input {
+  min-height: 7.5rem;
+}
+
 /* ── Nav link glow ── */
 .nav-link-glass {
   position: relative;

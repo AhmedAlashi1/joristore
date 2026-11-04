@@ -110,6 +110,7 @@ Route::middleware(['auth:sanctum', 'merchant.context'])->prefix('admin')->group(
         Route::post('products/{id}/duplicate', 'duplicate')->middleware('merchant.permission:products.create');
         Route::get('products/{id}', 'show')->middleware('merchant.permission:products.view');
         Route::put('products/{id}', 'update')->middleware('merchant.permission:products.update');
+        Route::patch('products/{id}/stock', 'updateStock')->middleware('merchant.permission:products.update');
         Route::delete('products/{id}', 'destroy')->middleware('merchant.permission:products.delete');
     });
 
