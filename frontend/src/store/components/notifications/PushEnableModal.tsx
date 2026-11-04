@@ -1,6 +1,7 @@
 import { BellRing, Loader2, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { enablePushFromUserGesture, iosPushRequiresInstall, pushFailureMessage, PUSH_OPT_OUT_KEY } from '../../lib/push-subscribe';
+import { consumePushPromptAfterAuth } from '../../lib/push-prompt-state';
 import { useCustomer } from '../../providers/customer-provider';
 import { useLocale } from '../../providers/locale-provider';
 import { useNotifications } from '../../providers/notification-provider';
@@ -8,22 +9,29 @@ import { useNotifications } from '../../providers/notification-provider';
 const SESSION_DISMISS_KEY = 'jori-push-modal-dismiss-session';
 
 export function PushEnableModal() {
-  const { locale } = useLocale();
+  const { t, locale } = useLocale();
   const ar = locale === 'ar';
   const { isLoggedIn } = useCustomer();
-  const { permission, pushEnabled, refresh } = useNotifications();
+  const { permission, pushReady, pushEnabled, refresh } = useNotifications();
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
 
-  const needsPush =
-    isLoggedIn
-    && !pushEnabled
+  const notificationsActive = permission === 'granted' && pushEnabled;
+
+  const mayPrompt =
+    pushReady
+    && isLoggedIn
+    && !notificationsActive
     && permission !== 'denied'
     && permission !== 'unsupported'
     && !iosPushRequiresInstall();
 
   useEffect(() => {
-    if (!needsPush) {
+    if (!mayPrompt) {
+      setOpen(false);
+      return;
+    }
+    if (!consumePushPromptAfterAuth()) {
       setOpen(false);
       return;
     }
@@ -40,9 +48,9 @@ export function PushEnableModal() {
       /* ignore */
     }
     setOpen(true);
-  }, [needsPush]);
+  }, [mayPrompt]);
 
-  if (!open || !needsPush) return null;
+  if (!open || !mayPrompt) return null;
 
   const onEnable = async () => {
     setBusy(true);
@@ -90,20 +98,16 @@ export function PushEnableModal() {
             <BellRing size={28} />
           </span>
           <h2 id="push-modal-title" className="text-lg font-bold">
-            {ar ? 'فعّل الإشعارات' : 'Enable notifications'}
+            {t.pushPromptTitle}
           </h2>
-          <p className="mt-2 text-sm leading-relaxed text-store-muted">
-            {ar
-              ? 'اضغط «تفعيل» مرة واحدة لتصلك عروض المتجر وطلباتك حتى والتطبيق مغلق. (مطلوب من نظام الجوال — لا يمكن التفعيل تلقائياً بدون موافقتك.)'
-              : 'Tap Enable once to get store alerts when the app is closed. Your phone requires this one-time approval.'}
-          </p>
+          <p className="mt-2 text-sm leading-relaxed text-store-muted">{t.pushPromptBody}</p>
           <button
             type="button"
             disabled={busy}
             onClick={() => void onEnable()}
             className="btn-primary mt-5 w-full py-3 text-sm"
           >
-            {busy ? <Loader2 className="mx-auto animate-spin" size={22} /> : (ar ? 'تفعيل الإشعارات' : 'Enable notifications')}
+            {busy ? <Loader2 className="mx-auto animate-spin" size={22} /> : t.pushPromptAction}
           </button>
           <button type="button" onClick={onLater} className="mt-3 text-xs font-semibold text-[#8a8da8]">
             {ar ? 'ليس الآن' : 'Not now'}

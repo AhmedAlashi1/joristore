@@ -35,6 +35,8 @@ type NotificationCtx = {
   unreadCount: number;
   loading: boolean;
   permission: NotificationPermission | 'unsupported';
+  /** False until initial push subscription check finishes (avoids prompt flash). */
+  pushReady: boolean;
   pushEnabled: boolean;
   requestPermission: () => Promise<{ ok: boolean; reason?: PushEnableReason }>;
   disablePush: () => Promise<void>;
@@ -94,6 +96,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [pushEnabled, setPushEnabled] = useState(false);
+  const [pushReady, setPushReady] = useState(false);
   const [permission, setPermission] = useState<NotificationPermission | 'unsupported'>(() =>
     ('Notification' in window ? Notification.permission : 'unsupported'),
   );
@@ -156,19 +159,34 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!isLoggedIn) {
       setPushEnabled(false);
+      setPushReady(true);
       return;
     }
     if (localStorage.getItem(PUSH_OPT_OUT_KEY) === '1') {
       setPushEnabled(false);
+      setPushReady(true);
       return;
     }
-    if (permission === 'granted') {
-      void syncPushSubscription()
-        .then((r) => setPushEnabled(r.ok))
-        .catch(() => setPushEnabled(false));
+    if (permission !== 'granted') {
+      setPushEnabled(false);
+      setPushReady(true);
       return;
     }
-    setPushEnabled(false);
+    setPushReady(false);
+    let cancelled = false;
+    void syncPushSubscription()
+      .then((r) => {
+        if (!cancelled) setPushEnabled(r.ok);
+      })
+      .catch(() => {
+        if (!cancelled) setPushEnabled(false);
+      })
+      .finally(() => {
+        if (!cancelled) setPushReady(true);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [isLoggedIn, permission]);
 
   useEffect(() => {
@@ -215,13 +233,14 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     unreadCount,
     loading,
     permission,
+    pushReady,
     pushEnabled,
     requestPermission,
     disablePush,
     refresh,
     markRead,
     markAllRead,
-  }), [items, unreadCount, loading, permission, pushEnabled, requestPermission, disablePush, refresh, markRead, markAllRead]);
+  }), [items, unreadCount, loading, permission, pushReady, pushEnabled, requestPermission, disablePush, refresh, markRead, markAllRead]);
 
   return <NotificationContext.Provider value={value}>{children}</NotificationContext.Provider>;
 }

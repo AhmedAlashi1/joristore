@@ -872,6 +872,18 @@ html:has(.store-app) body::-webkit-scrollbar {
   pointer-events: auto;
 }
 
+.app-header > .glass-strong {
+  background: rgba(228, 230, 242, 0.94);
+  border-color: rgba(255, 255, 255, 0.55);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.1);
+}
+
+.store-app.dark .app-header > .glass-strong {
+  background: rgba(16, 18, 30, 0.88);
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+}
+
 .favorite-btn-active {
   background: rgba(234, 84, 85, 0.12);
   color: #ea5455;
