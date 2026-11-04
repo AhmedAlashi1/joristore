@@ -1,3 +1,4 @@
+import { resolveMediaUrl } from './utils';
 import { storeApi, unwrap } from './api';
 import { readStoreCache, writeStoreCache } from './store-cache';
 import type { ProductCardData } from '../components/product/ProductCard';
@@ -36,14 +37,43 @@ export type StorePromoBanner = {
   updated_at?: string | null;
 };
 
+let cachedPromosPreloaded = false;
+
 export function getCachedPromos(): StorePromoBanner[] | null {
-  return readStoreCache<StorePromoBanner[]>(PROMO_CACHE_KEY);
+  const cached = readStoreCache<StorePromoBanner[]>(PROMO_CACHE_KEY);
+  if (cached?.length && !cachedPromosPreloaded) {
+    cachedPromosPreloaded = true;
+    preloadPromoBannerImages(cached, 1);
+  }
+  return cached;
+}
+
+/** Warm browser cache for the first banner(s) during splash / prefetch. */
+export function preloadPromoBannerImages(list: StorePromoBanner[], max = 2): void {
+  if (typeof document === 'undefined' || list.length === 0) return;
+  list.slice(0, max).forEach((banner, index) => {
+    const url = resolveMediaUrl(banner.image, banner.updated_at ?? undefined);
+    if (!url) return;
+    if (index === 0) {
+      const link = document.createElement('link');
+      link.rel = 'preload';
+      link.as = 'image';
+      link.href = url;
+      document.head.appendChild(link);
+      window.setTimeout(() => link.remove(), 120_000);
+    } else {
+      const img = new Image();
+      img.decoding = 'async';
+      img.src = url;
+    }
+  });
 }
 
 export async function reloadPromoBanners(force = false): Promise<StorePromoBanner[]> {
   const res = await storeApi.promoBanners(force ? Date.now() : undefined);
   const list = unwrap<StorePromoBanner[]>(res) ?? [];
   writeStoreCache(PROMO_CACHE_KEY, list);
+  preloadPromoBannerImages(list);
   return list;
 }
 

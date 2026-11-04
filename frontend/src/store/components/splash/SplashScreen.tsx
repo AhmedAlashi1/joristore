@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { prefetchStoreHome } from '../../lib/prefetch-home';
+import { getCachedPromos, prefetchStoreHome } from '../../lib/prefetch-home';
 import { useStoreBrand } from '../../providers/store-brand-provider';
 import { dismissPreSplash } from '../../lib/splash-done';
 import { cn } from '../../lib/utils';
@@ -20,6 +20,7 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
 
   useEffect(() => {
     dismissPreSplash();
+    getCachedPromos();
     void prefetchStoreHome();
   }, []);
 
