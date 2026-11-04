@@ -40,7 +40,10 @@ export function buildCheckoutWhatsAppMessage(ctx: CheckoutWhatsAppContext): stri
     const sizePart = size
       ? (ctx.ar ? ` — المقاس: ${size}` : ` — Size: ${size}`)
       : '';
-    lines.push(`${i + 1}. ${item.name}${sizePart} × ${item.quantity} = ${formatPrice(item.price * item.quantity)}`);
+    const idPart = ctx.ar ? ` — رقم المنتج: ${item.productId}` : ` — Product ID: ${item.productId}`;
+    lines.push(
+      `${i + 1}. ${item.name}${idPart}${sizePart} × ${item.quantity} = ${formatPrice(item.price * item.quantity)}`,
+    );
   });
 
   lines.push('');
