@@ -2,6 +2,7 @@ import { ChevronLeft, FileText, Languages, Loader2, LogIn, LogOut, MapPin, Messa
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useCustomer } from '../providers/customer-provider';
+import { SocialLinks } from '../components/social/SocialLinks';
 import { AppearanceSettings } from '../components/settings/AppearanceSettings';
 import { PushNotificationToggle } from '../components/settings/PushNotificationToggle';
 import { apiErrorMessage } from '../lib/api';
@@ -135,6 +136,8 @@ export function AccountPage() {
             </Link>
           </div>
         </section>
+
+        <SocialLinks title={t.followUs} />
       </div>
     );
   }
@@ -223,6 +226,7 @@ export function AccountPage() {
         </div>
       </section>
 
+      <SocialLinks title={t.followUs} />
     </div>
   );
 }

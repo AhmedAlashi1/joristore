@@ -4,7 +4,6 @@ import { Link } from 'react-router-dom';
 import { PromoCarousel } from '../components/home/PromoCarousel';
 import { HomeProductRail } from '../components/home/HomeProductRail';
 import { GymSpotlight } from '../components/home/GymSpotlight';
-import { SocialLinks } from '../components/social/SocialLinks';
 import type { ProductCardData } from '../components/product/ProductCard';
 import { StoreMediaImage } from '../components/media/StoreMediaImage';
 import { getCachedHome, HOME_CACHE_KEY, prefetchStoreHome } from '../lib/prefetch-home';
@@ -126,8 +125,6 @@ export function HomePage() {
       {!hasProducts && loaded ? (
         <div className="glass rounded-2xl py-8 text-center text-sm text-store-muted">{t.noProducts}</div>
       ) : null}
-
-      <SocialLinks className="pb-2" title={t.followUs} />
     </div>
   );
 }

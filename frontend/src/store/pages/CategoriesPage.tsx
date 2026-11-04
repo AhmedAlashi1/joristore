@@ -1,7 +1,7 @@
 import { ArrowRight, ChevronLeft, LayoutGrid } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { CategoryCircleRail, CategoryCircleRailSkeleton } from '../components/categories/CategoryCircleRail';
+import { StoreMediaImage } from '../components/media/StoreMediaImage';
 import { storeApi, unwrap } from '../lib/api';
 import {
   ancestorChain,
@@ -114,28 +114,44 @@ export function CategoriesPage() {
       ) : null}
 
       {loading ? (
-        <CategoryCircleRailSkeleton count={8} />
+        <div className="grid grid-cols-2 gap-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="skeleton-shimmer aspect-[4/5] rounded-2xl" />
+          ))}
+        </div>
       ) : visible.length === 0 ? (
         <div className="glass rounded-2xl py-12 text-center text-sm text-store-muted">{t.noProducts}</div>
       ) : (
-        <CategoryCircleRail
-          items={visible.map((cat) => ({
-            id: cat.id,
-            label: catLabel(cat),
-            image: cat.image,
-            updated_at: cat.updated_at,
-            isBranch: hasChildren(categories, cat.id),
-          }))}
-          activeId={parentId}
-          onSelect={openCategoryId}
-        />
+        <div className="grid grid-cols-2 gap-3">
+          {visible.map((cat) => {
+            const isBranch = hasChildren(categories, cat.id);
+            return (
+              <button
+                key={cat.id}
+                type="button"
+                onClick={() => openCategoryId(cat.id)}
+                className="category-dept-card glass-strong glass-interactive flex flex-col overflow-hidden rounded-2xl border border-[var(--glass-border)] text-start shadow-sm"
+              >
+                <span className="category-dept-img relative block aspect-[4/3] w-full overflow-hidden rounded-t-2xl bg-[var(--primary-soft)]">
+                  <StoreMediaImage
+                    src={cat.image}
+                    cacheVersion={cat.updated_at}
+                    alt={catLabel(cat)}
+                    fit="cover"
+                    layout="fill"
+                  />
+                  {isBranch ? (
+                    <span className="absolute bottom-2 start-2 rounded-lg bg-black/50 px-2 py-0.5 text-[10px] font-bold text-white backdrop-blur-sm">
+                      {ar ? 'أقسام فرعية' : 'Subcategories'}
+                    </span>
+                  ) : null}
+                </span>
+                <span className="px-3 py-2.5 text-sm font-bold leading-snug text-[var(--fg)]">{catLabel(cat)}</span>
+              </button>
+            );
+          })}
+        </div>
       )}
-
-      {!loading && visible.length > 0 ? (
-        <p className="text-center text-[11px] text-store-muted">
-          {ar ? 'مرّر أفقياً • اضغط القسم للدخول أو التصفّح' : 'Swipe • tap a category to browse'}
-        </p>
-      ) : null}
 
       <Link to="/shop" className="block text-center text-sm font-semibold text-[var(--primary)]">
         {t.viewAllShop}

@@ -706,7 +706,27 @@ html:has(.store-app) body::-webkit-scrollbar {
 }
 
 
-/* Category circles (categories page + rails) */
+/* Categories page — 2-column dept cards */
+.category-dept-card .category-dept-img img {
+  object-fit: cover;
+}
+
+.categories-page .category-dept-card {
+  box-shadow: 0 8px 24px rgba(20, 22, 38, 0.08);
+}
+
+.store-app.dark .categories-page .category-dept-card {
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.32);
+}
+
+.store-app button.category-dept-card {
+  color: var(--fg);
+  font: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Category circles (home rail) */
 .category-circle-tile {
   display: flex;
   width: 76px;
@@ -1210,14 +1230,16 @@ html:has(.store-app) body::-webkit-scrollbar {
 
 .bottom-nav-dock .bottom-nav {
   pointer-events: auto;
+  background: rgba(228, 230, 242, 0.94);
   box-shadow:
     0 -4px 40px rgba(115, 103, 240, 0.12),
-    0 8px 32px rgba(0, 0, 0, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.95);
+    0 8px 32px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.55);
 }
 
 .store-app.dark .bottom-nav-dock .bottom-nav {
-  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(16, 18, 30, 0.88);
+  border-color: rgba(255, 255, 255, 0.1);
   box-shadow:
     0 -4px 40px rgba(0, 0, 0, 0.35),
     0 8px 32px rgba(0, 0, 0, 0.25);
