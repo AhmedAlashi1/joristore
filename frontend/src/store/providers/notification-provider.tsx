@@ -38,6 +38,8 @@ type NotificationCtx = {
   /** False until initial push subscription check finishes (avoids prompt flash). */
   pushReady: boolean;
   pushEnabled: boolean;
+  /** Granted + subscribed, or granted while sync pending (suppresses false “off” UI). */
+  pushFullyActive: boolean;
   requestPermission: () => Promise<{ ok: boolean; reason?: PushEnableReason }>;
   disablePush: () => Promise<void>;
   refresh: () => Promise<void>;
@@ -228,6 +230,9 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     await refresh();
   }, [refresh]);
 
+  const pushFullyActive =
+    permission === 'granted' && (!pushReady || pushEnabled);
+
   const value = useMemo<NotificationCtx>(() => ({
     items,
     unreadCount,
@@ -235,12 +240,13 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     permission,
     pushReady,
     pushEnabled,
+    pushFullyActive,
     requestPermission,
     disablePush,
     refresh,
     markRead,
     markAllRead,
-  }), [items, unreadCount, loading, permission, pushReady, pushEnabled, requestPermission, disablePush, refresh, markRead, markAllRead]);
+  }), [items, unreadCount, loading, permission, pushReady, pushEnabled, pushFullyActive, requestPermission, disablePush, refresh, markRead, markAllRead]);
 
   return <NotificationContext.Provider value={value}>{children}</NotificationContext.Provider>;
 }

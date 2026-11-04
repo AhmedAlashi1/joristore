@@ -25,7 +25,7 @@ export function CustomerNotificationsPage() {
   const { t, locale } = useLocale();
   const ar = locale === 'ar';
   const { isLoggedIn } = useCustomer();
-  const { items, unreadCount, loading, permission, pushReady, pushEnabled, requestPermission, markRead, markAllRead, refresh } = useNotifications();
+  const { items, unreadCount, loading, pushReady, pushFullyActive, requestPermission, markRead, markAllRead, refresh } = useNotifications();
   const [enablingPush, setEnablingPush] = useState(false);
   const [pushError, setPushError] = useState<string | null>(null);
   const { requestInstall } = useInstall();
@@ -56,7 +56,7 @@ export function CustomerNotificationsPage() {
     );
   }
 
-  const showPushCta = pushReady && (permission !== 'granted' || !pushEnabled);
+  const showPushCta = pushReady && !pushFullyActive;
 
   return (
     <div className="notifications-page space-y-3 pb-24">

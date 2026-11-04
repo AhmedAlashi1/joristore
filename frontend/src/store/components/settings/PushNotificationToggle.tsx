@@ -9,13 +9,13 @@ import { cn } from '../../lib/utils';
 export function PushNotificationToggle({ className }: { className?: string }) {
   const { t, locale } = useLocale();
   const ar = locale === 'ar';
-  const { permission, pushReady, pushEnabled, requestPermission, disablePush } = useNotifications();
+  const { permission, pushReady, pushEnabled, pushFullyActive, requestPermission, disablePush } = useNotifications();
   const { requestInstall } = useInstall();
   const [busy, setBusy] = useState(false);
 
   if (!pushReady) return null;
 
-  const isOn = permission === 'granted' && pushEnabled;
+  const isOn = pushReady && permission === 'granted' && pushEnabled;
   const iosInstallFirst = iosPushRequiresInstall();
 
   const enable = async () => {
@@ -47,7 +47,7 @@ export function PushNotificationToggle({ className }: { className?: string }) {
     return null;
   }
 
-  if (isOn) {
+  if (pushFullyActive || isOn) {
     return (
       <div className={cn('glass flex w-full items-center justify-between gap-3 rounded-xl px-4 py-3.5 text-sm', className)}>
         <span className="font-medium">{ar ? 'إشعارات الجوال' : 'Phone notifications'}</span>

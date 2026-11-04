@@ -1,7 +1,9 @@
 import { BellRing, Loader2, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { useLocation } from 'react-router-dom';
 import { enablePushFromUserGesture, iosPushRequiresInstall, pushFailureMessage, PUSH_OPT_OUT_KEY } from '../../lib/push-subscribe';
-import { consumePushPromptAfterAuth } from '../../lib/push-prompt-state';
+import { PUSH_PROMPT_AFTER_AUTH_KEY } from '../../lib/push-prompt-state';
 import { useCustomer } from '../../providers/customer-provider';
 import { useLocale } from '../../providers/locale-provider';
 import { useNotifications } from '../../providers/notification-provider';
@@ -11,27 +13,25 @@ const SESSION_DISMISS_KEY = 'jori-push-modal-dismiss-session';
 export function PushEnableModal() {
   const { t, locale } = useLocale();
   const ar = locale === 'ar';
+  const location = useLocation();
   const { isLoggedIn } = useCustomer();
-  const { permission, pushReady, pushEnabled, refresh } = useNotifications();
+  const { permission, pushReady, pushFullyActive, refresh } = useNotifications();
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
 
-  const notificationsActive = permission === 'granted' && pushEnabled;
+  const onAccountPage = location.pathname === '/account';
 
   const mayPrompt =
-    pushReady
+    onAccountPage
+    && pushReady
     && isLoggedIn
-    && !notificationsActive
+    && !pushFullyActive
     && permission !== 'denied'
     && permission !== 'unsupported'
     && !iosPushRequiresInstall();
 
   useEffect(() => {
     if (!mayPrompt) {
-      setOpen(false);
-      return;
-    }
-    if (!consumePushPromptAfterAuth()) {
       setOpen(false);
       return;
     }
@@ -44,8 +44,15 @@ export function PushEnableModal() {
         setOpen(false);
         return;
       }
+      const afterAuth = sessionStorage.getItem(PUSH_PROMPT_AFTER_AUTH_KEY) === '1';
+      if (!afterAuth) {
+        setOpen(false);
+        return;
+      }
+      sessionStorage.removeItem(PUSH_PROMPT_AFTER_AUTH_KEY);
     } catch {
-      /* ignore */
+      setOpen(false);
+      return;
     }
     setOpen(true);
   }, [mayPrompt]);
@@ -77,27 +84,33 @@ export function PushEnableModal() {
     setOpen(false);
   };
 
-  return (
-    <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/45 p-4 pb-[calc(5.5rem+var(--safe-bottom))] sm:items-center">
+  return createPortal(
+    <div
+      className="push-enable-modal-backdrop fixed inset-0 z-[100] flex items-center justify-center bg-black/55 p-5 backdrop-blur-sm"
+      role="presentation"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onLater();
+      }}
+    >
       <div
-        className="glass-strong relative w-full max-w-[20.5rem] rounded-3xl border border-[var(--primary)]/25 p-5 shadow-2xl"
+        className="glass-strong relative w-full max-w-[21rem] rounded-3xl border border-[var(--glass-border)] p-6 shadow-2xl"
         role="dialog"
         aria-modal
         aria-labelledby="push-modal-title"
       >
         <button
           type="button"
-          className="absolute end-6 top-6 rounded-lg p-1 text-store-muted"
+          className="absolute end-4 top-4 rounded-lg p-1.5 text-store-muted transition hover:bg-white/10"
           aria-label={ar ? 'إغلاق' : 'Close'}
           onClick={onLater}
         >
           <X size={20} />
         </button>
-        <div className="flex flex-col items-center text-center">
-          <span className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--primary-soft)] text-[var(--primary)]">
+        <div className="flex flex-col items-center pt-2 text-center">
+          <span className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--primary-soft)] text-[var(--primary)]">
             <BellRing size={28} />
           </span>
-          <h2 id="push-modal-title" className="text-lg font-bold">
+          <h2 id="push-modal-title" className="text-lg font-bold text-[var(--fg)]">
             {t.pushPromptTitle}
           </h2>
           <p className="mt-2 text-sm leading-relaxed text-store-muted">{t.pushPromptBody}</p>
@@ -105,15 +118,16 @@ export function PushEnableModal() {
             type="button"
             disabled={busy}
             onClick={() => void onEnable()}
-            className="btn-primary mt-5 w-full py-3 text-sm"
+            className="btn-primary mt-6 w-full py-3 text-sm"
           >
             {busy ? <Loader2 className="mx-auto animate-spin" size={22} /> : t.pushPromptAction}
           </button>
-          <button type="button" onClick={onLater} className="mt-3 text-xs font-semibold text-[#8a8da8]">
+          <button type="button" onClick={onLater} className="mt-4 text-xs font-semibold text-store-muted">
             {ar ? 'ليس الآن' : 'Not now'}
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

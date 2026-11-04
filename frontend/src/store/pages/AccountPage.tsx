@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { useCustomer } from '../providers/customer-provider';
 import { SocialLinks } from '../components/social/SocialLinks';
 import { AppearanceSettings } from '../components/settings/AppearanceSettings';
+import { PushEnableModal } from '../components/notifications/PushEnableModal';
 import { PushNotificationToggle } from '../components/settings/PushNotificationToggle';
 import { apiErrorMessage } from '../lib/api';
 import { clearStorefrontCaches } from '../lib/app-cache-purge';
@@ -227,6 +228,8 @@ export function AccountPage() {
       </section>
 
       <SocialLinks title={t.followUs} />
+
+      <PushEnableModal />
     </div>
   );
 }
