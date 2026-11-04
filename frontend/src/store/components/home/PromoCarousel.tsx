@@ -11,7 +11,7 @@ type Slide = StorePromoBanner & { alt: string; imageVersion: string };
 
 function PromoBannerSkeleton() {
   return (
-    <div className="promo-carousel-track aspect-[5/2] max-h-[132px] w-full overflow-hidden rounded-2xl shadow-md">
+    <div className="promo-carousel-viewport aspect-[5/2] w-full overflow-hidden rounded-2xl shadow-md">
       <div className="skeleton-shimmer h-full w-full rounded-2xl" aria-hidden />
     </div>
   );
@@ -32,14 +32,14 @@ function PromoBannerSlide({
   }, [url]);
 
   return (
-    <div className="relative h-full w-full bg-[var(--primary-soft)]/25">
+    <div className="relative h-full w-full bg-[var(--primary-soft)]/15">
       {!loaded ? <div className="skeleton-shimmer absolute inset-0 opacity-70" aria-hidden /> : null}
       {url ? (
         <img
           src={url}
           alt={slide.alt}
           className={cn(
-            'h-full w-full object-cover object-center transition-opacity duration-200 ease-out',
+            'h-full w-full object-contain object-center transition-opacity duration-200 ease-out',
             loaded ? 'opacity-100' : 'opacity-0',
           )}
           loading={priority ? 'eager' : 'lazy'}
@@ -113,31 +113,33 @@ export function PromoCarousel() {
   return (
     <section className="mt-2 space-y-1.5">
       <div
-        className="promo-carousel-track relative aspect-[5/2] max-h-[132px] overflow-hidden rounded-2xl shadow-md"
+        className="promo-carousel-viewport relative aspect-[5/2] w-full overflow-hidden rounded-2xl shadow-md"
+        dir="ltr"
         onTouchStart={onTouchStart}
         onTouchEnd={onTouchEnd}
       >
-        <div
-          className="flex h-full transition-transform duration-300 ease-out"
-          style={{ transform: `translateX(-${active * 100}%)` }}
-        >
-          {slides.map((p, i) => {
-            const shouldLoadImage = i === active || i === nextIndex;
-            return (
-              <Link
-                key={`${p.id}-${p.imageVersion}`}
-                to={p.link}
-                className="promo-banner block h-full w-full shrink-0 overflow-hidden"
-              >
-                {shouldLoadImage ? (
-                  <PromoBannerSlide slide={p} priority={i === active} />
-                ) : (
-                  <div className="skeleton-shimmer h-full w-full opacity-40" aria-hidden />
-                )}
-              </Link>
-            );
-          })}
-        </div>
+        {slides.map((p, i) => {
+          const isActive = i === active;
+          const shouldLoadImage = isActive || i === nextIndex;
+          return (
+            <Link
+              key={`${p.id}-${p.imageVersion}`}
+              to={p.link}
+              aria-hidden={!isActive}
+              tabIndex={isActive ? 0 : -1}
+              className={cn(
+                'promo-banner absolute inset-0 block overflow-hidden transition-opacity duration-300',
+                isActive ? 'z-10 opacity-100' : 'pointer-events-none z-0 opacity-0',
+              )}
+            >
+              {shouldLoadImage ? (
+                <PromoBannerSlide slide={p} priority={isActive} />
+              ) : (
+                <div className="skeleton-shimmer h-full w-full opacity-40" aria-hidden />
+              )}
+            </Link>
+          );
+        })}
       </div>
       {slides.length > 1 ? (
         <div className="flex items-center justify-center gap-2">

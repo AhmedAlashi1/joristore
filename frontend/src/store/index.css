@@ -602,7 +602,8 @@ html:has(.store-app) body::-webkit-scrollbar {
   display: block;
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
+  object-position: center;
 }
 
 
@@ -894,7 +895,7 @@ html:has(.store-app) body::-webkit-scrollbar {
 }
 
 .promo-banner {
-  min-height: 108px;
+  min-height: 0;
 }
 
 .promo-shine {
