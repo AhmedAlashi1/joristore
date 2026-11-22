@@ -19,17 +19,18 @@
   RewriteCond %{DOCUMENT_ROOT}/../joristore/public/storage/%1 -f
   RewriteRule ^storage/(.+)$ %{DOCUMENT_ROOT}/../joristore/public/storage/$1 [L]
 
-  # Missing file on disk → Laravel (routes/web.php /storage/{path}) — never SPA index.html
+  # LiteSpeed: plain /storage often still hits SPA — internal route that works in production
   RewriteCond %{REQUEST_URI} ^/storage/
-  RewriteRule ^storage/ api-laravel.php [L,QSA]
+  RewriteRule ^storage/(.*)$ index.php/storage/$1 [L,QSA]
 
   # Serve existing files and directories as-is (assets, favicon, etc.)
   RewriteCond %{REQUEST_FILENAME} -f [OR]
   RewriteCond %{REQUEST_FILENAME} -d
   RewriteRule ^ - [L]
 
-  # SPA routes only (not /storage — that must not return index.html)
+  # SPA routes only (not storage — must not return index.html)
   RewriteCond %{REQUEST_URI} !^/storage/
+  RewriteCond %{REQUEST_URI} !^/index\.php/storage/
   RewriteRule ^ index.html [L]
 </IfModule>
 

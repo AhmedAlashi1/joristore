@@ -61,7 +61,12 @@ export default defineConfig(({ mode }) => {
         importScripts: ['push-sw.js'],
         globPatterns: ['**/*.{js,css,html,ico,svg,png,woff2}'],
         navigateFallback: '/index.html',
-        navigateFallbackDenylist: [/^\/api/, /^\/index\.php\/api/, /^\/storage/],
+        navigateFallbackDenylist: [
+          /^\/api/,
+          /^\/index\.php\/api/,
+          /^\/storage/,
+          /^\/index\.php\/storage/,
+        ],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
@@ -74,7 +79,8 @@ export default defineConfig(({ mode }) => {
             handler: 'NetworkOnly',
           },
           {
-            urlPattern: ({ url }) => url.pathname.startsWith('/storage/'),
+            urlPattern: ({ url }) =>
+              url.pathname.startsWith('/storage/') || url.pathname.includes('/index.php/storage/'),
             handler: 'NetworkFirst',
             options: {
               cacheName: 'store-media',

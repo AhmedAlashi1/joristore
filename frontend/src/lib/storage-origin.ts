@@ -1,7 +1,23 @@
-import { backendPublicOrigin, isStorefrontHost } from './hosts';
+import { backendPublicOrigin, isStorefrontHost, laravelPublicPathPrefix } from './hosts';
 
 /** @deprecated use backendPublicOrigin */
 export const storagePublicOrigin = backendPublicOrigin;
+
+/** Store docroot on LiteSpeed: `/storage` → SPA HTML; `/index.php/storage` serves files. */
+function storefrontStoragePrefix(): string {
+  if (import.meta.env.DEV) return '';
+  if (typeof window !== 'undefined' && isStorefrontHost(window.location.hostname)) {
+    return laravelPublicPathPrefix();
+  }
+  return '';
+}
+
+function attachStoragePrefix(pathname: string): string {
+  if (!pathname.startsWith('/storage/')) return pathname;
+  if (pathname.startsWith('/index.php/storage/')) return pathname;
+  const prefix = storefrontStoragePrefix();
+  return prefix ? `${prefix}${pathname}` : pathname;
+}
 
 /**
  * Storefront: same-origin `/storage` (public_html/storage → joristore/storage/app/public).
@@ -37,8 +53,9 @@ function rewriteStorageUrlForStorefront(url: string): string {
       return url;
     }
     const origin = window.location.origin.replace(/\/$/, '');
+    const path = attachStoragePrefix(parsed.pathname);
 
-    return `${origin}${parsed.pathname}${parsed.search}`;
+    return `${origin}${path}${parsed.search}`;
   } catch {
     return url;
   }
@@ -52,13 +69,15 @@ export function absoluteStorageUrl(pathOrUrl?: string | null, cacheVersion?: str
   if (/^https?:\/\//i.test(trimmed)) {
     url = rewriteStorageUrlForStorefront(trimmed);
   } else if (trimmed.startsWith('/storage/') || trimmed.startsWith('storage/')) {
-    url = `${storageFileOrigin()}${normalizeStoragePath(trimmed)}`;
+    const path = attachStoragePrefix(normalizeStoragePath(trimmed));
+    url = `${storageFileOrigin()}${path}`;
   } else if (trimmed.startsWith('/')) {
     url = trimmed.startsWith('/storage/')
-      ? `${storageFileOrigin()}${trimmed}`
+      ? `${storageFileOrigin()}${attachStoragePrefix(trimmed)}`
       : trimmed;
   } else {
-    url = `${storageFileOrigin()}${normalizeStoragePath(trimmed)}`;
+    const path = attachStoragePrefix(normalizeStoragePath(trimmed));
+    url = `${storageFileOrigin()}${path}`;
   }
   const version = cacheVersion != null && String(cacheVersion) !== '' ? String(cacheVersion) : '';
   if (!version) return url;

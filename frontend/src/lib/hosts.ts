@@ -56,8 +56,13 @@ function useIndexPhpApi(): boolean {
   return true;
 }
 
-function apiPathPrefix(): string {
+/** LiteSpeed store docroot: route Laravel via `api-laravel.php` / `index.php/…`. */
+export function laravelPublicPathPrefix(): string {
   return useIndexPhpApi() ? '/index.php' : '';
+}
+
+function apiPathPrefix(): string {
+  return laravelPublicPathPrefix();
 }
 
 /** Fix baked `.env` like `https://dashboard…/api` (LiteSpeed 404 without `index.php`). */
