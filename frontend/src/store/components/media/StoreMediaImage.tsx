@@ -40,16 +40,22 @@ export function StoreMediaImage({
     setLoaded(false);
   }, [src, version]);
 
+  const fallbackSrc = logo ? resolveMediaUrl(logo) : DEFAULT_LOGO;
+
   if (showLogo) {
     return (
       <img
-        src={logo || DEFAULT_LOGO}
+        src={fallbackSrc}
         alt={alt}
         className={cn(
           'h-full w-full bg-[var(--primary-soft)] object-contain p-3 opacity-100',
           className,
         )}
         loading="lazy"
+        decoding="async"
+        onError={(e) => {
+          e.currentTarget.style.visibility = 'hidden';
+        }}
       />
     );
   }

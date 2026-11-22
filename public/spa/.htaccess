@@ -11,18 +11,25 @@
   RewriteCond %{REQUEST_URI} ^/index\.php/api [NC]
   RewriteRule ^index\.php/api(/.*)?$ api-laravel.php [L,QSA]
 
-  # Laravel /storage/* (repo at ~/joristore next to ~/public_html on cPanel)
+  RewriteCond %{REQUEST_URI} ^/index\.php/storage [NC]
+  RewriteRule ^index\.php/storage(/.*)?$ api-laravel.php [L,QSA]
+
+  # Static file: ~/public_html/storage → symlink, or direct path under joristore/public/storage
   RewriteCond %{REQUEST_URI} ^/storage/(.+)$
   RewriteCond %{DOCUMENT_ROOT}/../joristore/public/storage/%1 -f
   RewriteRule ^storage/(.+)$ %{DOCUMENT_ROOT}/../joristore/public/storage/$1 [L]
 
-  # Same if you symlink: ln -sfn ~/joristore/public/storage ~/public_html/storage
+  # Missing file on disk → Laravel (routes/web.php /storage/{path}) — never SPA index.html
+  RewriteCond %{REQUEST_URI} ^/storage/
+  RewriteRule ^storage/ api-laravel.php [L,QSA]
+
   # Serve existing files and directories as-is (assets, favicon, etc.)
   RewriteCond %{REQUEST_FILENAME} -f [OR]
   RewriteCond %{REQUEST_FILENAME} -d
   RewriteRule ^ - [L]
 
-  # Everything else → index.html (client-side routes: /login, /users, ...)
+  # SPA routes only (not /storage — that must not return index.html)
+  RewriteCond %{REQUEST_URI} !^/storage/
   RewriteRule ^ index.html [L]
 </IfModule>
 

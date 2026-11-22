@@ -75,18 +75,44 @@ export default defineConfig(({ mode }) => {
           },
           {
             urlPattern: ({ url }) => url.pathname.startsWith('/storage/'),
-            handler: 'StaleWhileRevalidate',
+            handler: 'NetworkFirst',
             options: {
               cacheName: 'store-media',
-              expiration: { maxEntries: 120, maxAgeSeconds: 60 * 60 * 24 * 7 },
+              networkTimeoutSeconds: 8,
+              expiration: { maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 * 30 },
+              cacheableResponse: { statuses: [200] },
+              plugins: [
+                {
+                  cacheWillUpdate: async ({ response }: { response: Response }) => {
+                    if (!response?.ok) return null;
+                    const ct = (response.headers.get('content-type') || '').toLowerCase();
+                    if (ct.includes('text/html')) return null;
+                    if (!ct.includes('image')) return null;
+                    return response;
+                  },
+                },
+              ],
             },
           },
           {
             urlPattern: new RegExp(`^https://${dashboardHostEscaped}/storage/.*`, 'i'),
-            handler: 'StaleWhileRevalidate',
+            handler: 'NetworkFirst',
             options: {
               cacheName: 'store-media-remote',
-              expiration: { maxEntries: 120, maxAgeSeconds: 60 * 60 * 24 * 7 },
+              networkTimeoutSeconds: 8,
+              expiration: { maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 * 30 },
+              cacheableResponse: { statuses: [200] },
+              plugins: [
+                {
+                  cacheWillUpdate: async ({ response }: { response: Response }) => {
+                    if (!response?.ok) return null;
+                    const ct = (response.headers.get('content-type') || '').toLowerCase();
+                    if (ct.includes('text/html')) return null;
+                    if (!ct.includes('image')) return null;
+                    return response;
+                  },
+                },
+              ],
             },
           },
         ],
