@@ -1,5 +1,6 @@
 import { ChevronLeft, ChevronRight, X, ZoomIn } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { createPortal } from 'react-dom';
 import { useSwipeIndex } from '../home/useSwipeIndex';
 import { StoreMediaImage } from '../media/StoreMediaImage';
 import { cn, resolveMediaUrl } from '../../lib/utils';
@@ -63,6 +64,15 @@ export function ProductImageGallery({
   useEffect(() => {
     if (!lightbox) setZoomed(false);
   }, [lightbox, active]);
+
+  useEffect(() => {
+    if (!lightbox) return undefined;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [lightbox]);
 
   const { onTouchStart, onTouchEnd, goPrev, goNext } = useSwipeIndex(slides.length, active, setActive);
 
@@ -164,57 +174,64 @@ export function ProductImageGallery({
         ) : null}
       </div>
 
-      {lightbox ? (
-        <div className="fixed inset-0 z-[100] flex flex-col bg-black/95" role="dialog" aria-modal>
-          <div className="flex items-center justify-between px-4 py-3 text-white">
-            <span className="truncate pe-4 text-sm font-semibold">{name}</span>
-            <button type="button" className="rounded-lg p-2 hover:bg-white/10" onClick={() => setLightbox(false)}>
-              <X className="h-6 w-6" />
-            </button>
-          </div>
-
+      {lightbox
+        ? createPortal(
           <div
-            className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden p-4"
-            onTouchStart={onTouchStart}
-            onTouchEnd={onTouchEnd}
-            onClick={() => setZoomed((z) => !z)}
+            className="product-image-lightbox fixed inset-0 z-[200] flex flex-col bg-black/95"
+            role="dialog"
+            aria-modal
           >
-            <img
-              src={resolveMediaUrl(slides[active])}
-              alt={name}
-              decoding="async"
-              className={cn(
-                'max-h-full max-w-full object-contain transition-transform duration-200',
-                zoomed ? 'scale-[2]' : 'scale-100',
-              )}
-              draggable={false}
-            />
-            {slides.length > 1 ? (
-              <>
-                <button
-                  type="button"
-                  className="absolute start-3 top-1/2 -translate-y-1/2 rounded-full bg-white/15 p-3 text-white"
-                  onClick={(e) => { e.stopPropagation(); goPrev(); }}
-                >
-                  <ChevronLeft className="h-6 w-6 rtl:rotate-180" />
-                </button>
-                <button
-                  type="button"
-                  className="absolute end-3 top-1/2 -translate-y-1/2 rounded-full bg-white/15 p-3 text-white"
-                  onClick={(e) => { e.stopPropagation(); goNext(); }}
-                >
-                  <ChevronRight className="h-6 w-6 rtl:rotate-180" />
-                </button>
-              </>
-            ) : null}
-          </div>
+            <div className="flex items-center justify-between px-4 py-3 pt-[calc(8px+var(--safe-top))] text-white">
+              <span className="truncate pe-4 text-sm font-semibold">{name}</span>
+              <button type="button" className="rounded-lg p-2 hover:bg-white/10" onClick={() => setLightbox(false)}>
+                <X className="h-6 w-6" />
+              </button>
+            </div>
 
-          <p className="pb-6 text-center text-xs text-white/70">
-            {slides.length > 1 ? `${active + 1} / ${slides.length} · ` : ''}
-            اضغط للتكبير / التصغير · اسحب للتقليب
-          </p>
-        </div>
-      ) : null}
+            <div
+              className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden p-4"
+              onTouchStart={onTouchStart}
+              onTouchEnd={onTouchEnd}
+              onClick={() => setZoomed((z) => !z)}
+            >
+              <img
+                src={resolveMediaUrl(slides[active])}
+                alt={name}
+                decoding="async"
+                className={cn(
+                  'max-h-full max-w-full object-contain transition-transform duration-200',
+                  zoomed ? 'scale-[2]' : 'scale-100',
+                )}
+                draggable={false}
+              />
+              {slides.length > 1 ? (
+                <>
+                  <button
+                    type="button"
+                    className="absolute start-3 top-1/2 -translate-y-1/2 rounded-full bg-white/15 p-3 text-white"
+                    onClick={(e) => { e.stopPropagation(); goPrev(); }}
+                  >
+                    <ChevronLeft className="h-6 w-6 rtl:rotate-180" />
+                  </button>
+                  <button
+                    type="button"
+                    className="absolute end-3 top-1/2 -translate-y-1/2 rounded-full bg-white/15 p-3 text-white"
+                    onClick={(e) => { e.stopPropagation(); goNext(); }}
+                  >
+                    <ChevronRight className="h-6 w-6 rtl:rotate-180" />
+                  </button>
+                </>
+              ) : null}
+            </div>
+
+            <p className="pb-[calc(12px+var(--safe-bottom))] text-center text-xs text-white/70">
+              {slides.length > 1 ? `${active + 1} / ${slides.length} · ` : ''}
+              اضغط للتكبير / التصغير · اسحب للتقليب
+            </p>
+          </div>,
+          document.body,
+        )
+        : null}
     </>
   );
 }

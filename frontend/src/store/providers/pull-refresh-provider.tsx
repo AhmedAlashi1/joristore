@@ -22,6 +22,7 @@ const TASK_TIMEOUT_MS = 2200;
 
 function isPullRefreshDisabled(pathname: string): boolean {
   if (pathname === '/checkout') return true;
+  if (/^\/product\//.test(pathname)) return true;
   if (pathname.startsWith('/account/addresses/new')) return true;
   if (/^\/account\/addresses\/\d+\/edit/.test(pathname)) return true;
   return false;

@@ -54,9 +54,11 @@ export function absoluteStorageUrl(pathOrUrl?: string | null, cacheVersion?: str
   } else if (trimmed.startsWith('/storage/') || trimmed.startsWith('storage/')) {
     url = `${storageFileOrigin()}${normalizeStoragePath(trimmed)}`;
   } else if (trimmed.startsWith('/')) {
-    url = trimmed;
+    url = trimmed.startsWith('/storage/')
+      ? `${storageFileOrigin()}${trimmed}`
+      : trimmed;
   } else {
-    url = `/${trimmed.replace(/^\/+/, '')}`;
+    url = `${storageFileOrigin()}${normalizeStoragePath(trimmed)}`;
   }
   const version = cacheVersion != null && String(cacheVersion) !== '' ? String(cacheVersion) : '';
   if (!version) return url;
